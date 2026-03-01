@@ -32,7 +32,10 @@ faraway/
 2. Implement it
 3. Test it (see CONTRIBUTING.md — use `playwright-cli` for UI, `cargo test` for server)
 4. Mark `[x]` in `TODO.md`
-5. Commit — include `TODO.md` in the same commit
+5. Update any docs that are now inaccurate or incomplete
+6. Commit everything — code, `TODO.md`, and any doc updates in the same commit
+
+**Before ending a session:** run `git status` and make sure there are no uncommitted changes. A new Claude instance can only pick up where you left off if everything is committed.
 
 ## Key Facts
 

@@ -17,11 +17,14 @@
 2. Implement the change
 3. Test it (see Testing section below)
 4. Mark task [x] in TODO.md
-5. Commit: git commit -m "feat: <task description>"
-   Include TODO.md update in the same commit
-6. Add any newly discovered tasks to the Discovered section of TODO.md
-7. Update relevant docs if the implementation changed something
+5. Add any newly discovered tasks to the Discovered section of TODO.md
+6. Update docs — if anything in RULES.md, docs/design.md, or CONTRIBUTING.md
+   is wrong, incomplete, or out of date, fix it now
+7. Commit everything together: git commit -m "feat: <task description>"
+   Code + TODO.md + any doc updates all in one commit
 ```
+
+**Before ending a session:** always run `git status` and commit any remaining changes. A new Claude instance starts from git — if it's not committed, it's lost.
 
 ---
 
