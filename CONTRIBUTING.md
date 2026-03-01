@@ -56,6 +56,18 @@ faraway/
 
 ---
 
+## Cloning (first time)
+
+```bash
+git clone --recurse-submodules <repo-url>
+# or if already cloned without submodules:
+git submodule update --init
+```
+
+The `cards/` submodule contains card images (`cards/public/region/`, `cards/public/sanctuary/`) and the TypeScript card data (`cards/cards.ts`).
+
+---
+
 ## Running the Project
 
 ### Server
