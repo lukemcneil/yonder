@@ -1,6 +1,6 @@
 # Contributing & Development Guide
 
-> **For Claude Code sessions:** Read this first. It tells you how to work, what to build next, and how to test everything.
+> **For Claude Code sessions:** You should have arrived here from `CLAUDE.md`. This file explains how to work, what to build next, and how to test everything.
 
 ---
 

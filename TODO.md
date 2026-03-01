@@ -97,8 +97,7 @@ _(Add tasks here as they are discovered during implementation)_
 
 ## Completed
 
-_(Completed tasks move here with date)_
-
-<!-- example:
-- [x] 2026-03-01 — Created initial project structure
--->
+- [x] 2026-03-01 — Created CLAUDE.md, TODO.md, CONTRIBUTING.md, RULES.md, docs/design.md
+- [x] 2026-03-01 — Downloaded official English rulebook (rules-en.pdf)
+- [x] 2026-03-01 — Moved Faraway_analysis.xlsx into project root
+- [x] 2026-03-01 — Initialised git repository
