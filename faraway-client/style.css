@@ -238,10 +238,15 @@ body {
   object-fit: cover;
 }
 
-/* Size variants */
-.card.sm  { width: 40px;  height: 60px; }
-.card.md  { width: 60px;  height: 88px; }
-.card.lg  { width: 80px;  height: 117px; }
+/* Size variants — region tiles are square (300×300), sanctuary tiles are portrait */
+.card.sm  { width: 44px;  height: 44px; }
+.card.md  { width: 66px;  height: 66px; }
+.card.lg  { width: 90px;  height: 90px; }
+
+/* Sanctuary cards are portrait (189×291 ≈ 2:3) */
+.card.sanctuary { width: 44px; height: 68px; }
+.card.sanctuary.md { width: 60px; height: 92px; }
+.card.sanctuary.lg { width: 80px; height: 123px; }
 
 /* Playable hand card */
 .card.playable {
@@ -336,7 +341,7 @@ body {
   overflow: hidden;
   border: 3px solid transparent;
   width: 80px;
-  height: 117px;
+  height: 123px;
   flex-shrink: 0;
 }
 

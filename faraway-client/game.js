@@ -313,7 +313,7 @@ function regionCardEl(card, size, clickable) {
 
 function sanctuaryCardEl(card, size) {
   const el = document.createElement('div');
-  el.className = `card ${size}`;
+  el.className = `card sanctuary ${size}`;
   const img = document.createElement('img');
   img.src = sanctuaryImagePath(card.tile);
   img.alt = `Sanctuary ${card.tile}`;
