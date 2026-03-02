@@ -494,7 +494,8 @@ mod tests {
     // ─── Round 8 special case ─────────────────────────────────────────────────
 
     #[test]
-    fn round_8_transitions_to_game_over_after_last_draft() {
+    fn round_8_transitions_to_game_over_without_drafting() {
+        // Round 8: after both players play, game goes directly to GameOver (no draft).
         let mut gs = setup_game(
             vec![region(10), region(15), region(20)],
             vec![region(3), region(8), region(25)],
@@ -503,8 +504,7 @@ mod tests {
         gs.round = 8; // Jump to round 8.
         gs.play_card(0, 0).unwrap();
         gs.play_card(1, 0).unwrap();
-        gs.draft_card(1, 0).unwrap();
-        gs.draft_card(0, 0).unwrap();
+        // No drafting in round 8 — should go straight to GameOver.
         assert!(matches!(gs.phase, GamePhase::GameOver { .. }));
     }
 

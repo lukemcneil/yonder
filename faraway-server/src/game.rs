@@ -281,6 +281,12 @@ impl GameState {
     }
 
     fn begin_drafting(&mut self) {
+        // Round 8 exception: no drafting after the last round.
+        if self.round == 8 {
+            self.market.clear();
+            self.finalize_scores();
+            return;
+        }
         // Draft order: ascending card number order of played cards.
         let mut order: Vec<(usize, u8)> = self.players.iter().map(|p| {
             let played_num = p.tableau.last().map(|c| c.number).unwrap_or(0);

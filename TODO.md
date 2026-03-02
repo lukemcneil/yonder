@@ -6,8 +6,8 @@
 
 ## Current Status
 
-**Active milestone:** M1 — Server foundation
-**Next task:** Set up Rust project
+**Active milestone:** M3 — Scoring Engine
+**Next task:** Implement scoring in `faraway-server/src/scoring.rs`
 
 ---
 
@@ -32,7 +32,7 @@
 - [x] Implement `DraftCard` action: in ascending-number order, pick 1 from market
 - [x] Implement round end: discard leftover market card, refill market, advance round counter
 - [x] Implement round 8 special case: no draft after round 8, transition to scoring
-- [ ] Verify: full 8-round game can complete end-to-end via raw WebSocket messages (use wscat or similar)
+- [x] Verify: full 8-round game can complete end-to-end via raw WebSocket messages (use wscat or similar)
 
 ## M3 — Scoring Engine
 
@@ -102,3 +102,4 @@ _(Add tasks here as they are discovered during implementation)_
 - [x] 2026-03-01 — Moved Faraway_analysis.xlsx into project root
 - [x] 2026-03-01 — Initialised git repository
 - [x] 2026-03-02 — M1 complete: faraway-server Rust project, cards.rs (68 regions + 45 sanctuaries), game.rs (GameState/PlayerState/phases), scoring.rs (full engine + 11 unit tests), main.rs (WS endpoint, multi-room, per-player JSON snapshots)
+- [x] 2026-03-02 — M2 complete: full game loop (StartGame, PlayCard, ChooseSanctuary, DraftCard), round 8 no-draft fix, 42 unit tests, e2e_test.py verifies full 8-round game via WebSocket
