@@ -23,15 +23,15 @@
 
 ## M2 — Core Game Loop
 
-- [ ] Implement `StartGame` action: validate player count, transition from WaitingForPlayers → Playing
-- [ ] Implement setup: shuffle deck, deal 3 cards to each player, reveal market (N+1 cards)
-- [ ] Implement `PlayCard` action: place card face-down, wait for all players, then reveal simultaneously
-- [ ] Implement sanctuary eligibility check (played number > previous number)
-- [ ] Implement sanctuary draw: `1 + visible_clues` cards drawn
-- [ ] Implement `ChooseSanctuary` action: keep 1, discard rest to bottom of sanctuary deck
-- [ ] Implement `DraftCard` action: in ascending-number order, pick 1 from market
-- [ ] Implement round end: discard leftover market card, refill market, advance round counter
-- [ ] Implement round 8 special case: no draft after round 8, transition to scoring
+- [x] Implement `StartGame` action: validate player count, transition from WaitingForPlayers → Playing
+- [x] Implement setup: shuffle deck, deal 3 cards to each player, reveal market (N+1 cards)
+- [x] Implement `PlayCard` action: place card face-down, wait for all players, then reveal simultaneously
+- [x] Implement sanctuary eligibility check (played number > previous number)
+- [x] Implement sanctuary draw: `1 + visible_clues` cards drawn (clues from tableau AND sanctuaries)
+- [x] Implement `ChooseSanctuary` action: keep 1, discard rest to bottom of sanctuary deck
+- [x] Implement `DraftCard` action: in ascending-number order, pick 1 from market
+- [x] Implement round end: discard leftover market card, refill market, advance round counter
+- [x] Implement round 8 special case: no draft after round 8, transition to scoring
 - [ ] Verify: full 8-round game can complete end-to-end via raw WebSocket messages (use wscat or similar)
 
 ## M3 — Scoring Engine

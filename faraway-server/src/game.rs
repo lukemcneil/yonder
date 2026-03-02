@@ -267,10 +267,9 @@ impl GameState {
     }
 
     fn draw_sanctuary_choices(&mut self, seat: usize) -> Vec<SanctuaryCard> {
-        // Draw 1 + (number of visible clue icons in this player's tableau).
-        let clue_count = self.players[seat].tableau.iter()
-            .filter(|c| c.clue)
-            .count();
+        // Draw 1 + (clue icons across tableau cards AND held sanctuary cards).
+        let clue_count = self.players[seat].tableau.iter().filter(|c| c.clue).count()
+            + self.players[seat].sanctuaries.iter().filter(|c| c.clue).count();
         let draw_count = 1 + clue_count;
         let mut choices = Vec::new();
         for _ in 0..draw_count {

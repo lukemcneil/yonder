@@ -13,6 +13,7 @@ use ws::{stream::DuplexStream, Message};
 mod cards;
 mod game;
 mod scoring;
+mod tests;
 
 // ─── Room registry ────────────────────────────────────────────────────────────
 
