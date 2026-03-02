@@ -54,6 +54,19 @@ function connect() {
 
   ws.addEventListener('message', (event) => {
     const data = JSON.parse(event.data);
+    // Join error: server sends a plain string like "GameAlreadyStarted".
+    if (typeof data === 'string') {
+      const friendly = {
+        GameAlreadyStarted: 'That game has already started. Ask a player for the correct name.',
+        RoomFull: 'That room is full.',
+      };
+      lobbyStatus.textContent = friendly[data] || `Error: ${data}`;
+      connectBtn.disabled = false;
+      location.hash = '';
+      ws.close();
+      return;
+    }
+    // Action error during gameplay.
     if (data.Err) {
       lobbyStatus.textContent = `Error: ${data.Err}`;
       connectBtn.disabled = false;
