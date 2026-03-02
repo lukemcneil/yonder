@@ -1,3 +1,5 @@
+use std::collections::HashMap;
+
 use serde::{Deserialize, Serialize};
 
 use crate::cards::{RegionCard, SanctuaryCard};
@@ -19,12 +21,10 @@ pub enum RoundPhase {
     /// Cards have been played; process sanctuaries for each eligible player in
     /// order of seat, then move to Drafting.
     RevealingAndSanctuaries,
-    /// The player at `seat` must pick one of `choices` to keep.
+    /// All eligible players choose a sanctuary simultaneously.
     SanctuaryChoice {
-        seat: usize,
-        choices: Vec<SanctuaryCard>,
-        /// Seats still pending a sanctuary choice after this one.
-        remaining_seats: Vec<usize>,
+        /// Each eligible seat's drawn choices (removed once they pick).
+        pending: HashMap<usize, Vec<SanctuaryCard>>,
     },
     /// Players draft from market in `order`; `current` indexes into `order`.
     Drafting {
@@ -169,32 +169,29 @@ impl GameState {
         Ok(())
     }
 
-    /// Choose a sanctuary to keep (SanctuaryChoice phase, addressed to `seat`).
+    /// Choose a sanctuary to keep (SanctuaryChoice phase). All eligible players
+    /// choose simultaneously; once everyone has chosen, advance to drafting.
     pub fn choose_sanctuary(&mut self, seat: usize, sanctuary_index: usize) -> Result<(), ActionError> {
-        let (choice_seat, choices, remaining) = match &self.phase {
-            GamePhase::Playing(RoundPhase::SanctuaryChoice { seat: s, choices, remaining_seats }) => {
-                (*s, choices.clone(), remaining_seats.clone())
-            }
+        let pending = match &mut self.phase {
+            GamePhase::Playing(RoundPhase::SanctuaryChoice { pending }) => pending,
             _ => return Err(ActionError::WrongPhase),
         };
-        if seat != choice_seat {
-            return Err(ActionError::NotYourTurn);
-        }
+        let choices = pending.remove(&seat).ok_or(ActionError::NotYourTurn)?;
         if sanctuary_index >= choices.len() {
+            // Put choices back so the player can retry.
+            if let GamePhase::Playing(RoundPhase::SanctuaryChoice { pending }) = &mut self.phase {
+                pending.insert(seat, choices);
+            }
             return Err(ActionError::InvalidCardIndex);
         }
         let kept = choices[sanctuary_index].clone();
         self.player_mut(seat)?.sanctuaries.push(kept);
-        // Advance to next pending sanctuary choice or to Drafting.
-        if let Some((&next_seat, rest)) = remaining.split_first() {
-            // Another player still needs to choose.
-            let next_choices = self.draw_sanctuary_choices(next_seat);
-            self.phase = GamePhase::Playing(RoundPhase::SanctuaryChoice {
-                seat: next_seat,
-                choices: next_choices,
-                remaining_seats: rest.to_vec(),
-            });
-        } else {
+        // If all players have chosen, advance to drafting.
+        let all_done = match &self.phase {
+            GamePhase::Playing(RoundPhase::SanctuaryChoice { pending }) => pending.is_empty(),
+            _ => false,
+        };
+        if all_done {
             self.begin_drafting();
         }
         Ok(())
@@ -256,15 +253,12 @@ impl GameState {
         if eligible_seats.is_empty() {
             self.begin_drafting();
         } else {
-            let mut iter = eligible_seats.into_iter();
-            let first = iter.next().unwrap();
-            let remaining: Vec<usize> = iter.collect();
-            let choices = self.draw_sanctuary_choices(first);
-            self.phase = GamePhase::Playing(RoundPhase::SanctuaryChoice {
-                seat: first,
-                choices,
-                remaining_seats: remaining,
-            });
+            let mut pending = HashMap::new();
+            for seat in eligible_seats {
+                let choices = self.draw_sanctuary_choices(seat);
+                pending.insert(seat, choices);
+            }
+            self.phase = GamePhase::Playing(RoundPhase::SanctuaryChoice { pending });
         }
     }
 
@@ -401,8 +395,8 @@ impl GameState {
             GamePhase::Playing(RoundPhase::RevealingAndSanctuaries) => {
                 (ClientPhase::ChoosingCards, vec![], None, None)
             }
-            GamePhase::Playing(RoundPhase::SanctuaryChoice { seat, choices, remaining_seats: _ }) => {
-                let my_choices = if *seat == my_seat { Some(choices.clone()) } else { None };
+            GamePhase::Playing(RoundPhase::SanctuaryChoice { pending }) => {
+                let my_choices = pending.get(&my_seat).cloned();
                 (ClientPhase::SanctuaryChoice, vec![], None, my_choices)
             }
             GamePhase::Playing(RoundPhase::Drafting { order, current }) => {

@@ -125,8 +125,7 @@ function renderStatusBar() {
     if (state.sanctuary_choices) {
       statusPhase.textContent = 'You found a Sanctuary! Choose one to keep.';
     } else {
-      const active = state.players.find(p => p.seat !== mySeat);
-      statusPhase.textContent = `${active ? active.name : 'Opponent'} is choosing a sanctuary…`;
+      statusPhase.textContent = 'Waiting for other players to choose a sanctuary…';
     }
   } else if (phase === 'drafting') {
     const drafter = state.current_drafter;

@@ -206,11 +206,13 @@ mod tests {
 
         gs.play_card(0, 0).unwrap(); // Alice plays 10 (> 5 ✓)
         gs.play_card(1, 0).unwrap(); // Bob plays 3 (< 7 ✗)
-        // Only Alice is eligible → SanctuaryChoice for seat 0.
-        assert!(matches!(
-            gs.phase,
-            GamePhase::Playing(RoundPhase::SanctuaryChoice { seat: 0, .. })
-        ));
+        // Only Alice is eligible → SanctuaryChoice with seat 0 pending.
+        if let GamePhase::Playing(RoundPhase::SanctuaryChoice { pending }) = &gs.phase {
+            assert!(pending.contains_key(&0), "Alice should have choices");
+            assert!(!pending.contains_key(&1), "Bob should not have choices");
+        } else {
+            panic!("Expected SanctuaryChoice, got {:?}", gs.phase);
+        }
     }
 
     #[test]
@@ -262,10 +264,11 @@ mod tests {
         gs.play_card(1, 1).unwrap(); // Bob plays 8 (< 50 ✗)
 
         // Alice should have 1 sanctuary choice (no clues).
-        if let GamePhase::Playing(RoundPhase::SanctuaryChoice { seat: 0, choices, .. }) = &gs.phase {
+        if let GamePhase::Playing(RoundPhase::SanctuaryChoice { pending }) = &gs.phase {
+            let choices = pending.get(&0).expect("Alice (seat 0) should have choices");
             assert_eq!(choices.len(), 1);
         } else {
-            panic!("Expected SanctuaryChoice for seat 0, got {:?}", gs.phase);
+            panic!("Expected SanctuaryChoice, got {:?}", gs.phase);
         }
     }
 
@@ -287,10 +290,11 @@ mod tests {
         gs.play_card(1, 1).unwrap(); // Bob plays 8 (< 50 ✗)
 
         // Alice should draw 1 + 2 clues = 3 sanctuary choices.
-        if let GamePhase::Playing(RoundPhase::SanctuaryChoice { seat: 0, choices, .. }) = &gs.phase {
+        if let GamePhase::Playing(RoundPhase::SanctuaryChoice { pending }) = &gs.phase {
+            let choices = pending.get(&0).expect("Alice (seat 0) should have choices");
             assert_eq!(choices.len(), 3);
         } else {
-            panic!("Expected SanctuaryChoice for seat 0, got {:?}", gs.phase);
+            panic!("Expected SanctuaryChoice, got {:?}", gs.phase);
         }
     }
 
@@ -311,10 +315,11 @@ mod tests {
         gs.play_card(1, 1).unwrap(); // Bob plays 8 (< 50 ✗)
 
         // Alice should draw 1 + 1 sanctuary clue = 2 choices.
-        if let GamePhase::Playing(RoundPhase::SanctuaryChoice { seat: 0, choices, .. }) = &gs.phase {
+        if let GamePhase::Playing(RoundPhase::SanctuaryChoice { pending }) = &gs.phase {
+            let choices = pending.get(&0).expect("Alice (seat 0) should have choices");
             assert_eq!(choices.len(), 2);
         } else {
-            panic!("Expected SanctuaryChoice for seat 0, got {:?}", gs.phase);
+            panic!("Expected SanctuaryChoice, got {:?}", gs.phase);
         }
     }
 
@@ -378,8 +383,8 @@ mod tests {
     }
 
     #[test]
-    fn choose_sanctuary_chains_to_next_eligible_player() {
-        // Both players qualify; Alice goes first, then Bob.
+    fn choose_sanctuary_both_players_choose_simultaneously() {
+        // Both players qualify; both choose at the same time.
         let mut gs = setup_game(
             vec![region(10), region(15), region(20)],
             vec![region(8), region(15), region(25)],
@@ -392,23 +397,20 @@ mod tests {
         gs.play_card(0, 0).unwrap(); // Alice plays 10
         gs.play_card(1, 0).unwrap(); // Bob plays 8
 
-        // Should be SanctuaryChoice for one of them (lower seat = 0 first).
-        assert!(matches!(
-            gs.phase,
-            GamePhase::Playing(RoundPhase::SanctuaryChoice { seat: 0, .. })
-        ));
+        // Both should have pending choices.
+        if let GamePhase::Playing(RoundPhase::SanctuaryChoice { pending }) = &gs.phase {
+            assert!(pending.contains_key(&0), "Alice should have choices");
+            assert!(pending.contains_key(&1), "Bob should have choices");
+        } else {
+            panic!("Expected SanctuaryChoice, got {:?}", gs.phase);
+        }
 
+        // Alice chooses first — still in SanctuaryChoice (Bob pending).
         gs.choose_sanctuary(0, 0).unwrap();
+        assert!(matches!(gs.phase, GamePhase::Playing(RoundPhase::SanctuaryChoice { .. })));
 
-        // Now Bob's turn.
-        assert!(matches!(
-            gs.phase,
-            GamePhase::Playing(RoundPhase::SanctuaryChoice { seat: 1, .. })
-        ));
-
+        // Bob chooses — now advance to Drafting.
         gs.choose_sanctuary(1, 0).unwrap();
-
-        // Now Drafting.
         assert!(matches!(gs.phase, GamePhase::Playing(RoundPhase::Drafting { .. })));
     }
 
