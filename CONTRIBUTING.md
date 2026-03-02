@@ -82,6 +82,12 @@ cargo run
 # WebSocket: ws://localhost:8000/game/<room>?player=<name>
 ```
 
+> **Note:** Port 8000 may be in use (e.g. by the `cards/` Nuxt app). To use a different port,
+> set `ROCKET_PORT` when running the binary directly — `cargo run` does not inherit it:
+> ```bash
+> cargo build && ROCKET_PORT=8001 ./target/debug/faraway-server
+> ```
+
 ### Frontend
 
 Serve the client as static files. The simplest way:
