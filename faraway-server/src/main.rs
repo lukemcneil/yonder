@@ -64,12 +64,13 @@ async fn play_game(
                         return Ok(());
                     }
                 }
-                // Send initial snapshot.
+                state_updated_sender = room.sender.clone();
+                // Broadcast join to existing clients, then send initial snapshot to joiner.
+                let _ = state_updated_sender.send(());
                 let snapshot = room.state.to_client_state(my_seat);
                 let _ = stream
                     .send(Message::Text(serde_json::to_string(&snapshot).unwrap()))
                     .await;
-                state_updated_sender = room.sender.clone();
             }
 
             let mut state_updated_receiver = state_updated_sender.subscribe();
