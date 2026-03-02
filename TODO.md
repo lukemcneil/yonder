@@ -13,13 +13,13 @@
 
 ## M1 — Server Foundation
 
-- [ ] Create `faraway-server/` Rust project with Rocket 0.5 + rocket_ws
-- [ ] Add card data structs to `faraway-server/src/cards.rs` (base game: regions 1–68, sanctuaries 1–45, ported from `cards/cards.ts`)
-- [ ] Add `GameState` and `PlayerState` structs in `faraway-server/src/game.rs`
-- [ ] Implement WebSocket endpoint `/game/<room>?player=<name>` in `main.rs`
-- [ ] Implement multi-room management (`HashMap<String, GameRoom>` with Tokio broadcast channels)
-- [ ] Implement `GameState` → JSON serialisation (serde) with per-player hidden hand logic
-- [ ] Verify: two browser tabs can connect to the same room and both receive the initial state broadcast
+- [x] Create `faraway-server/` Rust project with Rocket 0.5 + rocket_ws
+- [x] Add card data structs to `faraway-server/src/cards.rs` (base game: regions 1–68, sanctuaries 1–45, ported from `cards/cards.ts`)
+- [x] Add `GameState` and `PlayerState` structs in `faraway-server/src/game.rs`
+- [x] Implement WebSocket endpoint `/game/<room>?player=<name>` in `main.rs`
+- [x] Implement multi-room management (`HashMap<String, GameRoom>` with Tokio broadcast channels)
+- [x] Implement `GameState` → JSON serialisation (serde) with per-player hidden hand logic
+- [x] Verify: two browser tabs can connect to the same room and both receive the initial state broadcast
 
 ## M2 — Core Game Loop
 
@@ -101,3 +101,4 @@ _(Add tasks here as they are discovered during implementation)_
 - [x] 2026-03-01 — Downloaded official English rulebook (rules-en.pdf)
 - [x] 2026-03-01 — Moved Faraway_analysis.xlsx into project root
 - [x] 2026-03-01 — Initialised git repository
+- [x] 2026-03-02 — M1 complete: faraway-server Rust project, cards.rs (68 regions + 45 sanctuaries), game.rs (GameState/PlayerState/phases), scoring.rs (full engine + 11 unit tests), main.rs (WS endpoint, multi-room, per-player JSON snapshots)

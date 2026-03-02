@@ -1,0 +1,13 @@
+[package]
+name = "faraway-server"
+version = "0.1.0"
+edition = "2021"
+
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
+[dependencies]
+rand = "0.8.5"
+rocket = "0.5.1"
+ws = { package = "rocket_ws", version = "0.1.1" }
+serde = { version = "1.0.209", features = ["derive"] }
+serde_json = "1.0.127"
