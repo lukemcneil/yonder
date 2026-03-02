@@ -1,0 +1,82 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Faraway</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+  <!-- Lobby -->
+  <div id="lobby">
+    <h1>Faraway</h1>
+    <div class="lobby-form">
+      <label for="player-name">Your name</label>
+      <input type="text" id="player-name" placeholder="Alice" maxlength="20">
+
+      <label for="room-name">Room</label>
+      <input type="text" id="room-name" placeholder="room1" maxlength="30">
+
+      <button id="connect-btn">Join Game</button>
+      <div id="lobby-status"></div>
+    </div>
+  </div>
+
+  <!-- Game board (hidden until connected) -->
+  <div id="game-board" class="hidden">
+
+    <!-- Status bar -->
+    <div id="status-bar">
+      <span id="status-phase"></span>
+      <span id="status-round"></span>
+      <span id="status-deck">Deck: –</span>
+      <span id="status-sanctuary-deck">Sanctuary: –</span>
+    </div>
+
+    <!-- Opponents area -->
+    <div id="opponents-area"></div>
+
+    <!-- Market -->
+    <div id="market-area">
+      <div id="market-label">Market</div>
+      <div id="market-cards"></div>
+    </div>
+
+    <!-- My area -->
+    <div id="my-area">
+      <div id="my-tableau-row">
+        <div id="my-tableau-label">Your tableau</div>
+        <div id="my-tableau"></div>
+        <div id="my-sanctuaries-label">Sanctuaries</div>
+        <div id="my-sanctuaries"></div>
+      </div>
+      <div id="my-hand-row">
+        <div id="my-hand-label">Your hand</div>
+        <div id="my-hand"></div>
+      </div>
+    </div>
+
+  </div>
+
+  <!-- Sanctuary choice modal -->
+  <div id="sanctuary-modal" class="hidden">
+    <div id="sanctuary-modal-inner">
+      <h2>Choose a Sanctuary</h2>
+      <p>Keep one card. The rest are discarded.</p>
+      <div id="sanctuary-choices"></div>
+    </div>
+  </div>
+
+  <!-- Game over overlay -->
+  <div id="game-over-overlay" class="hidden">
+    <div id="game-over-inner">
+      <h2>Game Over</h2>
+      <div id="scores-list"></div>
+      <button id="play-again-btn">Play Again</button>
+    </div>
+  </div>
+
+  <script src="game.js"></script>
+</body>
+</html>

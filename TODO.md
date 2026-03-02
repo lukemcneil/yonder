@@ -6,8 +6,8 @@
 
 ## Current Status
 
-**Active milestone:** M4 — Frontend Lobby & Game Board
-**Next task:** Create `faraway-client/` directory with `index.html`, `game.js`, `style.css`
+**Active milestone:** M5 — Scoring UI
+**Next task:** Implement scoring screen: cards reveal right-to-left one at a time
 
 ---
 
@@ -54,19 +54,19 @@
 
 ## M4 — Frontend Lobby & Game Board
 
-- [ ] Create `faraway-client/` directory with `index.html`, `game.js`, `style.css`
-- [ ] Symlink or copy card images from `cards/public/` into `faraway-client/`
-- [ ] Implement lobby screen (name, room, player count selector, connect button)
-- [ ] Implement WebSocket connection and full-state JSON parsing
-- [ ] Render opponent tableaux (card images in order, hand size count)
-- [ ] Render shared market (cards, deck count)
-- [ ] Render your own tableau and sanctuaries
-- [ ] Render your hand (3 cards, clickable during ChoosingCards phase)
-- [ ] Implement status bar (current phase, whose turn, instructions)
-- [ ] Implement `PlayCard` UI: click hand card → sends action
-- [ ] Implement sanctuary chooser modal: shows drawn cards, click to keep 1
-- [ ] Implement draft picker: highlight your turn, click market card to draft
-- [ ] Verify with playwright-cli: full lobby → game flow in headed mode
+- [x] Create `faraway-client/` directory with `index.html`, `game.js`, `style.css`
+- [x] Symlink or copy card images from `cards/public/` into `faraway-client/`
+- [x] Implement lobby screen (name, room, player count selector, connect button)
+- [x] Implement WebSocket connection and full-state JSON parsing
+- [x] Render opponent tableaux (card images in order, hand size count)
+- [x] Render shared market (cards, deck count)
+- [x] Render your own tableau and sanctuaries
+- [x] Render your hand (3 cards, clickable during ChoosingCards phase)
+- [x] Implement status bar (current phase, whose turn, instructions)
+- [x] Implement `PlayCard` UI: click hand card → sends action
+- [x] Implement sanctuary chooser modal: shows drawn cards, click to keep 1
+- [x] Implement draft picker: highlight your turn, click market card to draft
+- [x] Verify with playwright-cli: full lobby → game flow in headed mode
 
 ## M5 — Scoring UI
 
@@ -104,3 +104,4 @@ _(Add tasks here as they are discovered during implementation)_
 - [x] 2026-03-02 — M1 complete: faraway-server Rust project, cards.rs (68 regions + 45 sanctuaries), game.rs (GameState/PlayerState/phases), scoring.rs (full engine + 11 unit tests), main.rs (WS endpoint, multi-room, per-player JSON snapshots)
 - [x] 2026-03-02 — M2 complete: full game loop (StartGame, PlayCard, ChooseSanctuary, DraftCard), round 8 no-draft fix, 42 unit tests, e2e_test.py verifies full 8-round game via WebSocket
 - [x] 2026-03-02 — M3 complete: scoring engine (all 8 fame types + prerequisites + sanctuary scoring), 43 unit tests, known-game integration test confirms hand-calculated score of 23
+- [x] 2026-03-02 — M4 complete: faraway-client/ (index.html, style.css, game.js), card image symlinks, full game UI — lobby, board, hand, market, opponent panels, sanctuary modal, draft picker, game-over overlay — verified full 8-round game with playwright-cli headed mode
