@@ -6,8 +6,8 @@
 
 ## Current Status
 
-**Active milestone:** M3 — Scoring Engine
-**Next task:** Implement scoring in `faraway-server/src/scoring.rs`
+**Active milestone:** M4 — Frontend Lobby & Game Board
+**Next task:** Create `faraway-client/` directory with `index.html`, `game.js`, `style.css`
 
 ---
 
@@ -36,21 +36,21 @@
 
 ## M3 — Scoring Engine
 
-- [ ] Implement scoring in `faraway-server/src/scoring.rs`
-- [ ] Implement right-to-left reveal loop
-- [ ] Implement prerequisite validation (count wonder icons in visible cards + sanctuaries)
-- [ ] Implement flat fame scoring
-- [ ] Implement per-icon scoring (stone, chimera, thistle)
-- [ ] Implement per-colour scoring (red, green, blue, yellow)
-- [ ] Implement per-colour-pair scoring (e.g. yellow+green)
-- [ ] Implement per-night scoring
-- [ ] Implement per-clue scoring
-- [ ] Implement wonder-set scoring (floor of min of 3 wonder counts)
-- [ ] Implement colour-set scoring (floor of min of 4 colour counts)
-- [ ] Implement sanctuary own-fame scoring (runs after all 8 region cards)
-- [ ] Implement tiebreaker (lowest sum of card numbers)
-- [ ] Write unit tests for scoring engine covering all 8 scoring types + prerequisites
-- [ ] Verify: manually calculate a known game's score and confirm server matches
+- [x] Implement scoring in `faraway-server/src/scoring.rs`
+- [x] Implement right-to-left reveal loop
+- [x] Implement prerequisite validation (count wonder icons in visible cards + sanctuaries)
+- [x] Implement flat fame scoring
+- [x] Implement per-icon scoring (stone, chimera, thistle)
+- [x] Implement per-colour scoring (red, green, blue, yellow)
+- [x] Implement per-colour-pair scoring (e.g. yellow+green)
+- [x] Implement per-night scoring
+- [x] Implement per-clue scoring
+- [x] Implement wonder-set scoring (floor of min of 3 wonder counts)
+- [x] Implement colour-set scoring (floor of min of 4 colour counts)
+- [x] Implement sanctuary own-fame scoring (runs after all 8 region cards)
+- [x] Implement tiebreaker (lowest sum of card numbers)
+- [x] Write unit tests for scoring engine covering all 8 scoring types + prerequisites
+- [x] Verify: manually calculate a known game's score and confirm server matches
 
 ## M4 — Frontend Lobby & Game Board
 
@@ -103,3 +103,4 @@ _(Add tasks here as they are discovered during implementation)_
 - [x] 2026-03-01 — Initialised git repository
 - [x] 2026-03-02 — M1 complete: faraway-server Rust project, cards.rs (68 regions + 45 sanctuaries), game.rs (GameState/PlayerState/phases), scoring.rs (full engine + 11 unit tests), main.rs (WS endpoint, multi-room, per-player JSON snapshots)
 - [x] 2026-03-02 — M2 complete: full game loop (StartGame, PlayCard, ChooseSanctuary, DraftCard), round 8 no-draft fix, 42 unit tests, e2e_test.py verifies full 8-round game via WebSocket
+- [x] 2026-03-02 — M3 complete: scoring engine (all 8 fame types + prerequisites + sanctuary scoring), 43 unit tests, known-game integration test confirms hand-calculated score of 23

@@ -271,6 +271,56 @@ mod tests {
         assert_eq!(score, 10);
     }
 
+    /// Integration test: manually-calculated score for a known 8-card game.
+    ///
+    /// Tableau (played order, index 0 = first played = rightmost during scoring):
+    ///   [0] #3  Green  Flat(4)               no quest
+    ///   [1] #9  Blue   Flat(5)               no quest
+    ///   [2] #11 Green  PerClue×3             no quest
+    ///   [3] #13 Blue   PerIcon(Stone)×2      no quest
+    ///   [4] #14 Red    PerNight×2            no quest
+    ///   [5] #16 Red    PerIcon(Chimera)×2    no quest  wonders=(0,1,0)
+    ///   [6] #25 Yellow PerColourPair(Y+G)×1  no quest  night=true
+    ///   [7] #30 Red    PerIcon(Stone)×2      no quest  night=true  wonders=(1,0,0)
+    ///
+    /// Sanctuaries: tile24 Flat(5), tile1 PerColour(Green)×1
+    ///
+    /// Hand-calculated total = 23:
+    /// (Sanctuaries are always in visible context when scoring region cards.)
+    ///   i=7 PerIcon(Stone)×2:     visible=[]+sancts;         stone=0           → 0
+    ///   i=6 PerColourPair(Y+G)×1: visible=[30]+sancts;       Y=0,G=1(tile1)    → 1
+    ///   i=5 PerIcon(Chimera)×2:   visible=[25,30]+sancts;    chimera=0         → 0
+    ///   i=4 PerNight×2:           visible=[16,25,30]+sancts; nights=2(25,30)   → 4
+    ///   i=3 PerIcon(Stone)×2:     visible=[14,16,25,30]+s;   stone=1(30)       → 2
+    ///   i=2 PerClue×3:            visible=[13..30]+sancts;   clues=0           → 0
+    ///   i=1 Flat(5):              no quest                                     → 5
+    ///   i=0 Flat(4):              no quest                                     → 4
+    ///   tile24 Flat(5):           full tableau + [tile1]                       → 5
+    ///   tile1  PerColour(Green)×1:full tableau + [tile24];   G=2(cards 3,11)   → 2
+    ///   Total = 0+1+0+4+2+0+5+4+5+2 = 23
+    #[test]
+    fn known_game_score_matches_hand_calculation() {
+        use crate::cards::Wonder;
+        use crate::game::PlayerState;
+
+        let tableau = vec![
+            RegionCard { number: 3,  biome: Biome::Green,  night: false, clue: false, wonders: WonderCount::zero(), quest: WonderCount::zero(), fame: Fame::Flat(4) },
+            RegionCard { number: 9,  biome: Biome::Blue,   night: false, clue: false, wonders: WonderCount::zero(), quest: WonderCount::zero(), fame: Fame::Flat(5) },
+            RegionCard { number: 11, biome: Biome::Green,  night: false, clue: false, wonders: WonderCount::zero(), quest: WonderCount::zero(), fame: Fame::PerClue { score_per: 3 } },
+            RegionCard { number: 13, biome: Biome::Blue,   night: false, clue: false, wonders: WonderCount::zero(), quest: WonderCount::zero(), fame: Fame::PerIcon { icon: Wonder::Stone, score_per: 2 } },
+            RegionCard { number: 14, biome: Biome::Red,    night: false, clue: false, wonders: WonderCount::zero(), quest: WonderCount::zero(), fame: Fame::PerNight { score_per: 2 } },
+            RegionCard { number: 16, biome: Biome::Red,    night: false, clue: false, wonders: w(0,1,0),           quest: WonderCount::zero(), fame: Fame::PerIcon { icon: Wonder::Chimera, score_per: 2 } },
+            RegionCard { number: 25, biome: Biome::Yellow, night: true,  clue: false, wonders: WonderCount::zero(), quest: WonderCount::zero(), fame: Fame::PerColourPair { biome1: Biome::Yellow, biome2: Biome::Green, score_per: 1 } },
+            RegionCard { number: 30, biome: Biome::Red,    night: true,  clue: false, wonders: w(1,0,0),           quest: WonderCount::zero(), fame: Fame::PerIcon { icon: Wonder::Stone, score_per: 2 } },
+        ];
+        let sanctuaries = vec![
+            SanctuaryCard { tile: 24, biome: Biome::Colorless, night: false, clue: false, wonders: WonderCount::zero(), fame: Fame::Flat(5) },
+            SanctuaryCard { tile: 1,  biome: Biome::Green,     night: false, clue: false, wonders: WonderCount::zero(), fame: Fame::PerColour { biome: Biome::Green, score_per: 1 } },
+        ];
+        let player = PlayerState { seat: 0, name: "Test".into(), tableau, sanctuaries, hand: vec![], played_this_round: None };
+        assert_eq!(super::score_player(&player), 23);
+    }
+
     #[test]
     fn sanctuary_clue_in_context() {
         use crate::cards::SanctuaryCard;
