@@ -100,16 +100,18 @@ impl GameState {
         }
     }
 
-    /// Add a player to the waiting room. Returns their seat index, or an error
-    /// if the room is full or the game has already started.
+    /// Add a player to the room, or reconnect an existing player.
+    /// Returns their seat index.
     pub fn join(&mut self, name: &str) -> Result<usize, ActionError> {
+        // Reconnect: if a player with this name already exists, return their seat
+        // regardless of game phase.
+        if let Some(pos) = self.players.iter().position(|p| p.name == name) {
+            return Ok(pos);
+        }
+        // New player: only allowed during WaitingForPlayers.
         match &self.phase {
             GamePhase::WaitingForPlayers { .. } => {}
             _ => return Err(ActionError::GameAlreadyStarted),
-        }
-        if self.players.iter().any(|p| p.name == name) {
-            // Re-joining is fine — return their existing seat.
-            return Ok(self.players.iter().position(|p| p.name == name).unwrap());
         }
         if self.players.len() >= self.player_count {
             return Err(ActionError::RoomFull);

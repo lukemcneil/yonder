@@ -63,6 +63,8 @@ function connect() {
     gameBoard.classList.remove('hidden');
     state = data;
     mySeat = state.my_seat;
+    // Persist room/name in URL hash so refresh reconnects.
+    location.hash = `${encodeURIComponent(roomName)}/${encodeURIComponent(playerName)}`;
     render();
   });
 
@@ -345,10 +347,14 @@ playerNameEl.addEventListener('keydown', e => { if (e.key === 'Enter') connect()
 roomNameEl.addEventListener('keydown', e => { if (e.key === 'Enter') connect(); });
 playAgainBtn.addEventListener('click', () => location.reload());
 
-// Pre-fill from URL hash if present (e.g. #room1/Alice)
+// Pre-fill from URL hash if present (e.g. #room1/Alice) and auto-connect.
 const hash = location.hash.slice(1);
 if (hash) {
   const parts = hash.split('/');
   if (parts[0]) roomNameEl.value = decodeURIComponent(parts[0]);
   if (parts[1]) playerNameEl.value = decodeURIComponent(parts[1]);
+  // Auto-connect if both fields are filled (e.g. page refresh).
+  if (roomNameEl.value && playerNameEl.value) {
+    connect();
+  }
 }
