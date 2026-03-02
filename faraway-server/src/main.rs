@@ -49,7 +49,7 @@ async fn play_game(
                 let room = rooms.0.entry(room_name.clone()).or_insert_with(|| {
                     let (sender, _) = broadcast::channel(1);
                     GameRoom {
-                        state: GameState::new_waiting(2), // default 2-player; StartGame validates
+                        state: GameState::new_waiting(6), // up to 6 players; StartGame locks in count
                         sender,
                     }
                 });

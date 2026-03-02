@@ -88,20 +88,20 @@ pub struct GameState {
 }
 
 impl GameState {
-    pub fn new_waiting(player_count: usize) -> Self {
+    pub fn new_waiting(max_players: usize) -> Self {
         Self {
-            phase: GamePhase::WaitingForPlayers { needed: player_count },
+            phase: GamePhase::WaitingForPlayers { needed: max_players },
             round: 0,
             players: Vec::new(),
             region_deck: get_region_deck(),
             sanctuary_deck: get_sanctuary_deck(),
             market: Vec::new(),
-            player_count,
+            player_count: max_players,
         }
     }
 
-    /// Add a player to the waiting room. Returns their seat index, or None if
-    /// the room is full or a player with that name already exists.
+    /// Add a player to the waiting room. Returns their seat index, or an error
+    /// if the room is full or the game has already started.
     pub fn join(&mut self, name: &str) -> Result<usize, ActionError> {
         match &self.phase {
             GamePhase::WaitingForPlayers { .. } => {}
@@ -131,6 +131,8 @@ impl GameState {
         if self.players.len() < 2 {
             return Err(ActionError::NotEnoughPlayers);
         }
+        // Lock in player count to however many joined.
+        self.player_count = self.players.len();
         // Deal 3 cards to each player.
         for player in &mut self.players {
             for _ in 0..3 {

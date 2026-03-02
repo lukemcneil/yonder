@@ -110,8 +110,10 @@ function renderStatusBar() {
 
   if (phase === 'waiting_for_players') {
     const joined = state.players.length;
-    const needed = state.player_count;
-    statusPhase.textContent = `Waiting for players… (${joined}/${needed})${mySeat === 0 ? ' — click Start Game when ready' : ''}`;
+    const msg = joined < 2
+      ? `Waiting for players… (${joined} joined, need at least 2)`
+      : `${joined} players joined${mySeat === 0 ? ' — click Start Game when ready' : ' — waiting for host to start'}`;
+    statusPhase.textContent = msg;
   } else if (phase === 'choosing_cards') {
     const waiting = state.players.filter(p => !p.played_this_round).map(p => p.name);
     if (waiting.includes(myName())) {
