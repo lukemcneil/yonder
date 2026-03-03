@@ -21,6 +21,7 @@ pub fn score_player(player: &PlayerState) -> u32 {
     score_player_detailed(player).iter().map(|e| e.points).sum()
 }
 
+#[cfg(test)]
 fn score_region_card(
     card: &RegionCard,
     visible_regions: &[&RegionCard],

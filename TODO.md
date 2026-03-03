@@ -6,8 +6,8 @@
 
 ## Current Status
 
-**Active milestone:** M5 — Scoring UI
-**Next task:** Implement scoring screen: cards reveal right-to-left one at a time
+**Active milestone:** M6 — Polish
+**Next task:** Reconnect on refresh (store room + player name in URL hash)
 
 ---
 
@@ -74,7 +74,7 @@
 - [x] Show score gained per card with brief explanation (e.g. "+12 fame: 3 Uddu Stone × 4")
 - [x] Show running total per player as cards reveal
 - [x] Show final leaderboard with all scores and tiebreaker display
-- [ ] Verify with playwright-cli: scoring animation plays correctly
+- [x] Verify with playwright-cli: scoring animation plays correctly
 
 ## M6 — Polish
 
