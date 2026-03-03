@@ -70,10 +70,10 @@
 
 ## M5 — Scoring UI
 
-- [ ] Implement scoring screen: cards reveal right-to-left one at a time
-- [ ] Show score gained per card with brief explanation (e.g. "+12 fame: 3 Uddu Stone × 4")
-- [ ] Show running total per player as cards reveal
-- [ ] Show final leaderboard with all scores and tiebreaker display
+- [x] Implement scoring screen: cards reveal right-to-left one at a time
+- [x] Show score gained per card with brief explanation (e.g. "+12 fame: 3 Uddu Stone × 4")
+- [x] Show running total per player as cards reveal
+- [x] Show final leaderboard with all scores and tiebreaker display
 - [ ] Verify with playwright-cli: scoring animation plays correctly
 
 ## M6 — Polish

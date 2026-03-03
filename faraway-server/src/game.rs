@@ -4,6 +4,7 @@ use serde::{Deserialize, Serialize};
 
 use crate::cards::{RegionCard, SanctuaryCard};
 use crate::cards::{get_region_deck, get_sanctuary_deck};
+use crate::scoring::CardScoreEntry;
 
 // ─── Phase ───────────────────────────────────────────────────────────────────
 
@@ -362,6 +363,8 @@ pub struct ClientGameState {
     /// Present only when it's this player's turn to choose a sanctuary.
     pub sanctuary_choices: Option<Vec<SanctuaryCard>>,
     pub scores: Option<Vec<PlayerScore>>,
+    /// Per-card score breakdown for THIS player only. None during play.
+    pub my_score_detail: Option<Vec<CardScoreEntry>>,
     pub player_count: usize,
 }
 
@@ -413,6 +416,13 @@ impl GameState {
             _ => None,
         };
 
+        let my_score_detail = match &self.phase {
+            GamePhase::GameOver { .. } => {
+                self.players.get(my_seat).map(|p| crate::scoring::score_player_detailed(p))
+            }
+            _ => None,
+        };
+
         let players: Vec<ClientPlayerState> = self.players.iter().map(|p| {
             ClientPlayerState {
                 seat: p.seat,
@@ -441,6 +451,7 @@ impl GameState {
             current_drafter,
             sanctuary_choices,
             scores,
+            my_score_detail,
             player_count: self.player_count,
         }
     }

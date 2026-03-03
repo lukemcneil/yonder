@@ -421,3 +421,146 @@ body {
 }
 
 #play-again-btn:hover { background: #e0be6a; }
+
+/* ── Scoring reveal ──────────────────────────────────────────────────────── */
+
+#scoring-reveal {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  height: 100%;
+}
+
+#scoring-reveal-inner {
+  background: #1a1a2e;
+  border: 1px solid #c9a84c;
+  border-radius: 12px;
+  padding: 1.5rem 2rem;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 1rem;
+  min-width: 320px;
+  max-width: 90vw;
+}
+
+#scoring-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  width: 100%;
+}
+
+#scoring-title {
+  font-size: 1rem;
+  color: #aaa;
+}
+
+#scoring-running-total {
+  font-size: 1.4rem;
+  font-weight: 700;
+  color: #c9a84c;
+}
+
+#scoring-card-area {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.75rem;
+  width: 100%;
+}
+
+/* The big card being revealed */
+.card.scoring-reveal-card {
+  width: 120px;
+  height: 120px;
+  border: 3px solid #c9a84c;
+  animation: card-pop 0.15s ease-out;
+}
+
+.card.scoring-reveal-card.sanctuary {
+  width: 100px;
+  height: 154px;
+}
+
+@keyframes card-pop {
+  from { transform: scale(0.85); opacity: 0.4; }
+  to   { transform: scale(1);    opacity: 1; }
+}
+
+/* Score badge overlaid on the card */
+.score-badge {
+  position: absolute;
+  bottom: 4px;
+  right: 4px;
+  border-radius: 4px;
+  padding: 2px 6px;
+  font-size: 0.9rem;
+  font-weight: 700;
+  pointer-events: none;
+}
+
+.score-badge.positive {
+  background: #c9a84c;
+  color: #1a1a2e;
+}
+
+.score-badge.zero {
+  background: #444;
+  color: #888;
+}
+
+/* History row: previously revealed cards */
+#scoring-card-list {
+  display: flex;
+  gap: 4px;
+  flex-wrap: wrap;
+  justify-content: center;
+  min-height: 50px;
+}
+
+.scoring-history-card {
+  position: relative;
+}
+
+.score-badge-sm {
+  position: absolute;
+  bottom: 2px;
+  right: 2px;
+  border-radius: 3px;
+  padding: 1px 3px;
+  font-size: 0.6rem;
+  font-weight: 700;
+  pointer-events: none;
+}
+
+.score-badge-sm.positive {
+  background: #c9a84c;
+  color: #1a1a2e;
+}
+
+.score-badge-sm.zero {
+  background: #333;
+  color: #666;
+}
+
+#scoring-explanation {
+  font-size: 1rem;
+  color: #e0e0e0;
+  text-align: center;
+  min-height: 1.4em;
+}
+
+#scoring-next-btn {
+  padding: 0.6rem 1.5rem;
+  border-radius: 6px;
+  border: none;
+  background: #c9a84c;
+  color: #1a1a2e;
+  font-size: 1rem;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+#scoring-next-btn:hover { background: #e0be6a; }

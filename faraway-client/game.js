@@ -3,6 +3,7 @@
 let ws = null;
 let state = null;   // latest ClientGameState from server
 let mySeat = null;
+let scoringRevealIndex = -1;  // -1 = not started, increments on click
 
 // ── DOM refs ─────────────────────────────────────────────────────────────────
 
@@ -26,9 +27,16 @@ const myHand         = document.getElementById('my-hand');
 const sanctuaryModal   = document.getElementById('sanctuary-modal');
 const sanctuaryChoices = document.getElementById('sanctuary-choices');
 
-const gameOverOverlay = document.getElementById('game-over-overlay');
-const scoresList      = document.getElementById('scores-list');
-const playAgainBtn    = document.getElementById('play-again-btn');
+const gameOverOverlay  = document.getElementById('game-over-overlay');
+const scoringReveal    = document.getElementById('scoring-reveal');
+const scoringRunTotal  = document.getElementById('scoring-running-total');
+const scoringCardSlot  = document.getElementById('scoring-card-slot');
+const scoringCardList  = document.getElementById('scoring-card-list');
+const scoringExplanation = document.getElementById('scoring-explanation');
+const scoringNextBtn   = document.getElementById('scoring-next-btn');
+const gameOverInner    = document.getElementById('game-over-inner');
+const scoresList       = document.getElementById('scores-list');
+const playAgainBtn     = document.getElementById('play-again-btn');
 
 // ── Connection ───────────────────────────────────────────────────────────────
 
@@ -292,13 +300,101 @@ function renderSanctuaryModal() {
 function renderGameOver() {
   if (state.phase !== 'game_over' || !state.scores) {
     gameOverOverlay.classList.add('hidden');
+    scoringRevealIndex = -1;
     return;
   }
 
   gameOverOverlay.classList.remove('hidden');
+
+  const detail = state.my_score_detail;
+  if (detail && scoringRevealIndex < detail.length) {
+    // Scoring reveal stage
+    gameOverInner.classList.add('hidden');
+    scoringReveal.classList.remove('hidden');
+
+    if (scoringRevealIndex === -1) {
+      // First render: show prompt to start
+      scoringCardSlot.innerHTML = '';
+      scoringCardList.innerHTML = '';
+      scoringExplanation.textContent = 'Click to reveal your cards one by one.';
+      scoringRunTotal.textContent = '0 fame';
+      scoringNextBtn.textContent = 'Reveal first card';
+    } else {
+      showRevealStep(detail, scoringRevealIndex);
+    }
+  } else {
+    showLeaderboard();
+  }
+}
+
+function showRevealStep(detail, index) {
+  const entry = detail[index];
+  const runningTotal = detail.slice(0, index + 1).reduce((s, e) => s + e.points, 0);
+
+  // Big card in the slot
+  scoringCardSlot.innerHTML = '';
+  const cardEl = document.createElement('div');
+  const isSanctuary = entry.kind === 'sanctuary';
+  cardEl.className = 'card scoring-reveal-card' + (isSanctuary ? ' sanctuary' : '');
+  const img = document.createElement('img');
+  img.src = isSanctuary ? sanctuaryImagePath(entry.number) : regionImagePath(entry.number);
+  img.alt = isSanctuary ? `Sanctuary ${entry.number}` : `Region ${entry.number}`;
+  cardEl.appendChild(img);
+
+  // Score badge
+  const badge = document.createElement('div');
+  badge.className = 'score-badge' + (entry.points > 0 ? ' positive' : ' zero');
+  badge.textContent = entry.points > 0 ? `+${entry.points}` : '0';
+  cardEl.appendChild(badge);
+  scoringCardSlot.appendChild(cardEl);
+
+  // Explanation
+  scoringExplanation.textContent = entry.points > 0
+    ? `+${entry.points} fame: ${entry.explanation}`
+    : entry.explanation;
+
+  // Running total
+  scoringRunTotal.textContent = `${runningTotal} fame`;
+
+  // Button label
+  const isLast = index === detail.length - 1;
+  scoringNextBtn.textContent = isLast ? 'See final scores' : 'Next card';
+}
+
+function advanceScoringReveal() {
+  const detail = state.my_score_detail;
+  if (!detail) return;
+
+  if (scoringRevealIndex >= 0) {
+    // Move current card to history
+    const entry = detail[scoringRevealIndex];
+    const isSanctuary = entry.kind === 'sanctuary';
+    const thumb = document.createElement('div');
+    thumb.className = 'card sm scoring-history-card' + (isSanctuary ? ' sanctuary' : '');
+    const img = document.createElement('img');
+    img.src = isSanctuary ? sanctuaryImagePath(entry.number) : regionImagePath(entry.number);
+    thumb.appendChild(img);
+    const pts = document.createElement('div');
+    pts.className = 'score-badge-sm' + (entry.points > 0 ? ' positive' : ' zero');
+    pts.textContent = entry.points > 0 ? `+${entry.points}` : '0';
+    thumb.appendChild(pts);
+    scoringCardList.appendChild(thumb);
+  }
+
+  scoringRevealIndex++;
+
+  if (scoringRevealIndex >= detail.length) {
+    showLeaderboard();
+  } else {
+    showRevealStep(detail, scoringRevealIndex);
+  }
+}
+
+function showLeaderboard() {
+  scoringReveal.classList.add('hidden');
+  gameOverInner.classList.remove('hidden');
   scoresList.innerHTML = '';
 
-  // Sort by score desc, tiebreaker asc
   const sorted = [...state.scores].sort((a, b) => {
     if (b.total !== a.total) return b.total - a.total;
     return a.card_number_sum - b.card_number_sum;
@@ -359,6 +455,7 @@ connectBtn.addEventListener('click', connect);
 playerNameEl.addEventListener('keydown', e => { if (e.key === 'Enter') connect(); });
 roomNameEl.addEventListener('keydown', e => { if (e.key === 'Enter') connect(); });
 playAgainBtn.addEventListener('click', () => location.reload());
+scoringNextBtn.addEventListener('click', advanceScoringReveal);
 
 // Pre-fill from URL hash if present (e.g. #room1/Alice) and auto-connect.
 const hash = location.hash.slice(1);

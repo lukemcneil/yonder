@@ -1,34 +1,24 @@
+use serde::Serialize;
 use crate::cards::{Biome, Fame, RegionCard, SanctuaryCard, Wonder, WonderCount};
 use crate::game::PlayerState;
 
+/// Per-card score breakdown entry sent to the client.
+#[derive(Debug, Clone, Serialize)]
+pub struct CardScoreEntry {
+    /// "region" or "sanctuary"
+    pub kind: String,
+    /// Card number (region) or tile number (sanctuary)
+    pub number: u8,
+    /// Points scored by this card (0 if quest failed)
+    pub points: u32,
+    /// Human-readable explanation, e.g. "3 Stone × 4"
+    pub explanation: String,
+}
+
 /// Score all 8 region cards + sanctuaries for one player.
 /// Region cards are scored right-to-left (index 7 first, index 0 last).
-/// "Visible context" when scoring card at index i = cards at i..7 (itself + right) + all sanctuaries.
 pub fn score_player(player: &PlayerState) -> u32 {
-    let tableau = &player.tableau;
-    let sanctuaries = &player.sanctuaries;
-    let mut total: u32 = 0;
-
-    // Score each region card right-to-left. The card counts itself as visible.
-    let len = tableau.len();
-    for i in (0..len).rev() {
-        let visible_regions: Vec<&RegionCard> = tableau[i..].iter().collect();
-        let visible_sanctuaries: Vec<&SanctuaryCard> = sanctuaries.iter().collect();
-        total += score_region_card(&tableau[i], &visible_regions, &visible_sanctuaries);
-    }
-
-    // Score sanctuaries using full tableau + other sanctuaries.
-    for (j, sanc) in sanctuaries.iter().enumerate() {
-        let full_regions: Vec<&RegionCard> = tableau.iter().collect();
-        let other_sanctuaries: Vec<&SanctuaryCard> = sanctuaries.iter()
-            .enumerate()
-            .filter(|&(k, _)| k != j)
-            .map(|(_, s)| s)
-            .collect();
-        total += score_sanctuary(sanc, &full_regions, &other_sanctuaries);
-    }
-
-    total
+    score_player_detailed(player).iter().map(|e| e.points).sum()
 }
 
 fn score_region_card(
@@ -158,6 +148,118 @@ fn compute_fame(
             sets * score_per
         }
     }
+}
+
+fn biome_name(biome: &Biome) -> &'static str {
+    match biome {
+        Biome::Red => "Forest",
+        Biome::Green => "River",
+        Biome::Blue => "Desert",
+        Biome::Yellow => "City",
+        Biome::Colorless => "Colorless",
+    }
+}
+
+fn fame_explanation(
+    fame: &Fame,
+    visible_regions: &[&RegionCard],
+    sanctuaries: &[&SanctuaryCard],
+) -> String {
+    match fame {
+        Fame::None => "No scoring condition".to_string(),
+        Fame::Flat(v) => format!("+{} fame", v),
+        Fame::PerIcon { icon, score_per } => {
+            let count = count_icon(icon, visible_regions, sanctuaries);
+            let name = match icon {
+                Wonder::Stone => "Stone",
+                Wonder::Chimera => "Chimera",
+                Wonder::Thistle => "Thistle",
+            };
+            format!("{} {} × {}", count, name, score_per)
+        }
+        Fame::PerColour { biome, score_per } => {
+            let count = count_biome(biome, visible_regions, sanctuaries);
+            format!("{} {} × {}", count, biome_name(biome), score_per)
+        }
+        Fame::PerColourPair { biome1, biome2, score_per } => {
+            let n = count_biome(biome1, visible_regions, sanctuaries)
+                + count_biome(biome2, visible_regions, sanctuaries);
+            format!("{} {}/{} × {}", n, biome_name(biome1), biome_name(biome2), score_per)
+        }
+        Fame::PerNight { score_per } => {
+            let count = count_nights(visible_regions, sanctuaries);
+            format!("{} Night × {}", count, score_per)
+        }
+        Fame::PerClue { score_per } => {
+            let count = count_clues(visible_regions, sanctuaries);
+            format!("{} Clue × {}", count, score_per)
+        }
+        Fame::PerWonderSet { score_per } => {
+            let w = count_wonders_in_context(visible_regions, sanctuaries);
+            let sets = w.stone.min(w.chimera).min(w.thistle) as u32;
+            format!("{} Wonder sets × {}", sets, score_per)
+        }
+        Fame::PerColourSet { score_per } => {
+            let red = count_biome(&Biome::Red, visible_regions, sanctuaries);
+            let green = count_biome(&Biome::Green, visible_regions, sanctuaries);
+            let blue = count_biome(&Biome::Blue, visible_regions, sanctuaries);
+            let yellow = count_biome(&Biome::Yellow, visible_regions, sanctuaries);
+            let sets = red.min(green).min(blue).min(yellow);
+            format!("{} Colour sets × {}", sets, score_per)
+        }
+    }
+}
+
+/// Returns per-card breakdown for the scoring screen.
+/// Order: region cards right-to-left (index 7 first), then sanctuaries.
+pub fn score_player_detailed(player: &PlayerState) -> Vec<CardScoreEntry> {
+    let tableau = &player.tableau;
+    let sanctuaries = &player.sanctuaries;
+    let mut entries: Vec<CardScoreEntry> = Vec::new();
+
+    let len = tableau.len();
+    for i in (0..len).rev() {
+        let visible_regions: Vec<&RegionCard> = tableau[i..].iter().collect();
+        let visible_sanctuaries: Vec<&SanctuaryCard> = sanctuaries.iter().collect();
+        let card = &tableau[i];
+        let quest_met = prerequisites_met(&card.quest, &visible_regions, &visible_sanctuaries);
+        let points = if quest_met {
+            compute_fame(&card.fame, &visible_regions, &visible_sanctuaries)
+        } else {
+            0
+        };
+        let explanation = if !quest_met {
+            "Quest not met".to_string()
+        } else {
+            fame_explanation(&card.fame, &visible_regions, &visible_sanctuaries)
+        };
+        entries.push(CardScoreEntry {
+            kind: "region".to_string(),
+            number: card.number,
+            points,
+            explanation,
+        });
+    }
+
+    for (j, sanc) in sanctuaries.iter().enumerate() {
+        let full_regions: Vec<&RegionCard> = tableau.iter().collect();
+        let other_sanctuaries: Vec<&SanctuaryCard> = sanctuaries
+            .iter()
+            .enumerate()
+            .filter(|&(k, _)| k != j)
+            .map(|(_, s)| s)
+            .collect();
+        let points = score_sanctuary(sanc, &full_regions, &other_sanctuaries);
+        let explanation = fame_explanation(&sanc.fame, &full_regions, &other_sanctuaries);
+        entries.push(CardScoreEntry {
+            kind: "sanctuary".to_string(),
+            number: sanc.tile,
+            points,
+            explanation,
+        });
+    }
+
+    entries
 }
 
 // ─── Tests ────────────────────────────────────────────────────────────────────
@@ -319,6 +421,42 @@ mod tests {
         ];
         let player = PlayerState { seat: 0, name: "Test".into(), tableau, sanctuaries, hand: vec![], played_this_round: None };
         assert_eq!(super::score_player(&player), 28);
+    }
+
+    #[test]
+    fn detailed_breakdown_matches_total() {
+        use crate::cards::Wonder;
+        use crate::game::PlayerState;
+
+        let tableau = vec![
+            RegionCard { number: 3,  biome: Biome::Green,  night: false, clue: false, wonders: WonderCount::zero(), quest: WonderCount::zero(), fame: Fame::Flat(4) },
+            RegionCard { number: 9,  biome: Biome::Blue,   night: false, clue: false, wonders: WonderCount::zero(), quest: WonderCount::zero(), fame: Fame::Flat(5) },
+            RegionCard { number: 11, biome: Biome::Green,  night: false, clue: false, wonders: WonderCount::zero(), quest: WonderCount::zero(), fame: Fame::PerClue { score_per: 3 } },
+            RegionCard { number: 13, biome: Biome::Blue,   night: false, clue: false, wonders: WonderCount::zero(), quest: WonderCount::zero(), fame: Fame::PerIcon { icon: Wonder::Stone, score_per: 2 } },
+            RegionCard { number: 14, biome: Biome::Red,    night: false, clue: false, wonders: WonderCount::zero(), quest: WonderCount::zero(), fame: Fame::PerNight { score_per: 2 } },
+            RegionCard { number: 16, biome: Biome::Red,    night: false, clue: false, wonders: w(0,1,0),           quest: WonderCount::zero(), fame: Fame::PerIcon { icon: Wonder::Chimera, score_per: 2 } },
+            RegionCard { number: 25, biome: Biome::Yellow, night: true,  clue: false, wonders: WonderCount::zero(), quest: WonderCount::zero(), fame: Fame::PerColourPair { biome1: Biome::Yellow, biome2: Biome::Green, score_per: 1 } },
+            RegionCard { number: 30, biome: Biome::Red,    night: true,  clue: false, wonders: w(1,0,0),           quest: WonderCount::zero(), fame: Fame::PerIcon { icon: Wonder::Stone, score_per: 2 } },
+        ];
+        let sanctuaries = vec![
+            SanctuaryCard { tile: 24, biome: Biome::Colorless, night: false, clue: false, wonders: WonderCount::zero(), fame: Fame::Flat(5) },
+            SanctuaryCard { tile: 1,  biome: Biome::Green,     night: false, clue: false, wonders: WonderCount::zero(), fame: Fame::PerColour { biome: Biome::Green, score_per: 1 } },
+        ];
+        let player = PlayerState { seat: 0, name: "Test".into(), tableau, sanctuaries, hand: vec![], played_this_round: None };
+
+        let detail = super::score_player_detailed(&player);
+        // Should have 8 region + 2 sanctuary = 10 entries
+        assert_eq!(detail.len(), 10);
+        // Sum of detail points should match total
+        let detail_total: u32 = detail.iter().map(|e| e.points).sum();
+        assert_eq!(detail_total, 28);
+        // First entry should be rightmost card (#30)
+        assert_eq!(detail[0].number, 30);
+        assert_eq!(detail[0].kind, "region");
+        assert_eq!(detail[0].points, 2);
+        // Last two should be sanctuaries
+        assert_eq!(detail[8].kind, "sanctuary");
+        assert_eq!(detail[9].kind, "sanctuary");
     }
 
     /// Test Case: "Night Patrol" — a night-heavy strategy with thistle icons.
