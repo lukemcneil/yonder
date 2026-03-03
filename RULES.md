@@ -144,7 +144,7 @@ Prerequisites are wonder icons shown above a card's fame value. At scoring time,
 | **Colour-set** | `10 fame per colour set` | floor(min(red_count, green_count, blue_count, yellow_count)) × score_per |
 
 **What "visible" means:**
-- All cards to its RIGHT that have already been revealed (the card being scored itself is NOT included)
+- The card being scored itself + all cards to its RIGHT that have already been revealed
 - ALL Sanctuary cards (always face-up)
 
 Icons on Sanctuaries count for all purposes (prerequisites, wonder counts, clue counts, night counts, biome counts if they have a biome).

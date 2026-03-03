@@ -3,16 +3,16 @@ use crate::game::PlayerState;
 
 /// Score all 8 region cards + sanctuaries for one player.
 /// Region cards are scored right-to-left (index 7 first, index 0 last).
-/// "Visible context" when scoring card at index i = cards at i+1..7 + all sanctuaries.
+/// "Visible context" when scoring card at index i = cards at i..7 (itself + right) + all sanctuaries.
 pub fn score_player(player: &PlayerState) -> u32 {
     let tableau = &player.tableau;
     let sanctuaries = &player.sanctuaries;
     let mut total: u32 = 0;
 
-    // Score each region card right-to-left.
+    // Score each region card right-to-left. The card counts itself as visible.
     let len = tableau.len();
     for i in (0..len).rev() {
-        let visible_regions: Vec<&RegionCard> = tableau[i + 1..].iter().collect();
+        let visible_regions: Vec<&RegionCard> = tableau[i..].iter().collect();
         let visible_sanctuaries: Vec<&SanctuaryCard> = sanctuaries.iter().collect();
         total += score_region_card(&tableau[i], &visible_regions, &visible_sanctuaries);
     }
@@ -285,19 +285,19 @@ mod tests {
     ///
     /// Sanctuaries: tile24 Flat(5), tile1 PerColour(Green)×1
     ///
-    /// Hand-calculated total = 23:
-    /// (Sanctuaries are always in visible context when scoring region cards.)
-    ///   i=7 PerIcon(Stone)×2:     visible=[]+sancts;         stone=0           → 0
-    ///   i=6 PerColourPair(Y+G)×1: visible=[30]+sancts;       Y=0,G=1(tile1)    → 1
-    ///   i=5 PerIcon(Chimera)×2:   visible=[25,30]+sancts;    chimera=0         → 0
-    ///   i=4 PerNight×2:           visible=[16,25,30]+sancts; nights=2(25,30)   → 4
-    ///   i=3 PerIcon(Stone)×2:     visible=[14,16,25,30]+s;   stone=1(30)       → 2
-    ///   i=2 PerClue×3:            visible=[13..30]+sancts;   clues=0           → 0
-    ///   i=1 Flat(5):              no quest                                     → 5
-    ///   i=0 Flat(4):              no quest                                     → 4
-    ///   tile24 Flat(5):           full tableau + [tile1]                       → 5
-    ///   tile1  PerColour(Green)×1:full tableau + [tile24];   G=2(cards 3,11)   → 2
-    ///   Total = 0+1+0+4+2+0+5+4+5+2 = 23
+    /// Hand-calculated total = 28:
+    /// (Each card counts itself + cards to its right + all sanctuaries.)
+    ///   i=7 PerIcon(Stone)×2:     visible=[30]+sancts;          stone=1(30)       → 2
+    ///   i=6 PerColourPair(Y+G)×1: visible=[25,30]+sancts;      Y=1(25),G=1(t1)  → 2
+    ///   i=5 PerIcon(Chimera)×2:   visible=[16,25,30]+sancts;   chimera=1(16)     → 2
+    ///   i=4 PerNight×2:           visible=[14,16,25,30]+sancts; nights=2(25,30)  → 4
+    ///   i=3 PerIcon(Stone)×2:     visible=[13,14,16,25,30]+s;  stone=1(30)       → 2
+    ///   i=2 PerClue×3:            visible=[11..30]+sancts;     clues=0            → 0
+    ///   i=1 Flat(5):              no quest                                        → 5
+    ///   i=0 Flat(4):              no quest                                        → 4
+    ///   tile24 Flat(5):           full tableau + [tile1]                          → 5
+    ///   tile1  PerColour(Green)×1:full tableau + [tile24];     G=2(cards 3,11)   → 2
+    ///   Total = 2+2+2+4+2+0+5+4+5+2 = 28
     #[test]
     fn known_game_score_matches_hand_calculation() {
         use crate::cards::Wonder;
@@ -318,7 +318,282 @@ mod tests {
             SanctuaryCard { tile: 1,  biome: Biome::Green,     night: false, clue: false, wonders: WonderCount::zero(), fame: Fame::PerColour { biome: Biome::Green, score_per: 1 } },
         ];
         let player = PlayerState { seat: 0, name: "Test".into(), tableau, sanctuaries, hand: vec![], played_this_round: None };
-        assert_eq!(super::score_player(&player), 23);
+        assert_eq!(super::score_player(&player), 28);
+    }
+
+    /// Test Case: "Night Patrol" — a night-heavy strategy with thistle icons.
+    ///
+    /// Tableau (played order, left-to-right; scored RIGHT-to-LEFT):
+    ///
+    ///   ┌──────────┬──────────┬──────────┬──────────┬──────────┬──────────┬──────────┬──────────┐
+    ///   │ #10      │ #14      │ #22      │ #26      │ #29      │ #12      │ #7       │ #1       │
+    ///   │ Red      │ Red      │ Green    │ Red      │ Yellow   │ Yellow   │ Red      │ Red      │
+    ///   │          │          │ 🌙 📎   │ 🌙       │ 🌙       │ 📎      │          │          │
+    ///   │          │          │          │ chimera:1│ thistle:1│ thistle:1│ chim:1   │ stone:1  │
+    ///   │          │          │          │          │          │          │ thist:1  │ chim:1   │
+    ///   │ PerNight │ PerNight │ PerClue  │ PerIcon  │ PerIcon  │ (none)   │ (none)   │ (none)   │
+    ///   │ ×3       │ ×2       │ ×1       │ Thistle  │ Thistle  │          │          │          │
+    ///   │          │          │          │ ×3       │ ×2       │          │          │          │
+    ///   └──────────┴──────────┴──────────┴──────────┴──────────┴──────────┴──────────┴──────────┘
+    ///     scored     scored     scored     scored     scored     scored     scored     scored
+    ///     last(8th)  7th        6th        5th        4th        3rd        2nd        1st
+    ///
+    /// Sanctuaries: tile34 (Green, PerNight×1), tile42 (Red, night=🌙)
+    ///
+    /// Scoring (right-to-left, card counts itself + cards to right + sanctuaries):
+    ///   #1  (1st): Fame::None                                                       → 0 pts
+    ///   #7  (2nd): Fame::None                                                       → 0 pts
+    ///   #12 (3rd): Fame::None                                                       → 0 pts
+    ///   #29 (4th): PerIcon(Thistle)×2, thistle: #29(1)+#12(1)+#7(1) = 3            → 6 pts
+    ///   #26 (5th): PerIcon(Thistle)×3, thistle: #29(1)+#12(1)+#7(1) = 3 (#26=0)   → 9 pts
+    ///   #22 (6th): PerClue×1, clues: #22(1)+#12(1) = 2                             → 2 pts
+    ///   #14 (7th): PerNight×2, nights: #22+#26+#29+tile42 = 4                      → 8 pts
+    ///   #10 (8th): PerNight×3, nights: #22+#26+#29+tile42 = 4                      → 12 pts
+    ///   tile34:    PerNight×1, all nights: #22+#26+#29+tile42 = 4                   → 4 pts
+    ///   tile42:    Fame::None                                                       → 0 pts
+    ///                                                                         Total: 41 pts
+    #[test]
+    fn visual_scoring_night_patrol() {
+        use crate::cards::SanctuaryCard;
+        use crate::game::PlayerState;
+
+        let tableau = vec![
+            // [0] #10 Red — PerNight×3
+            RegionCard { number: 10, biome: Biome::Red, night: false, clue: false,
+                wonders: WonderCount::zero(), quest: WonderCount::zero(),
+                fame: Fame::PerNight { score_per: 3 } },
+            // [1] #14 Red — PerNight×2
+            RegionCard { number: 14, biome: Biome::Red, night: false, clue: false,
+                wonders: WonderCount::zero(), quest: WonderCount::zero(),
+                fame: Fame::PerNight { score_per: 2 } },
+            // [2] #22 Green — night, clue, PerClue×1
+            RegionCard { number: 22, biome: Biome::Green, night: true, clue: true,
+                wonders: WonderCount::zero(), quest: WonderCount::zero(),
+                fame: Fame::PerClue { score_per: 1 } },
+            // [3] #26 Red — night, chimera:1, PerIcon(Thistle)×3
+            RegionCard { number: 26, biome: Biome::Red, night: true, clue: false,
+                wonders: w(0,1,0), quest: WonderCount::zero(),
+                fame: Fame::PerIcon { icon: Wonder::Thistle, score_per: 3 } },
+            // [4] #29 Yellow — night, thistle:1, PerIcon(Thistle)×2
+            RegionCard { number: 29, biome: Biome::Yellow, night: true, clue: false,
+                wonders: w(0,0,1), quest: WonderCount::zero(),
+                fame: Fame::PerIcon { icon: Wonder::Thistle, score_per: 2 } },
+            // [5] #12 Yellow — clue, thistle:1, no fame
+            RegionCard { number: 12, biome: Biome::Yellow, night: false, clue: true,
+                wonders: w(0,0,1), quest: WonderCount::zero(),
+                fame: Fame::None },
+            // [6] #7 Red — chimera:1 thistle:1, no fame
+            RegionCard { number: 7, biome: Biome::Red, night: false, clue: false,
+                wonders: w(0,1,1), quest: WonderCount::zero(),
+                fame: Fame::None },
+            // [7] #1 Red — stone:1 chimera:1, no fame
+            RegionCard { number: 1, biome: Biome::Red, night: false, clue: false,
+                wonders: w(1,1,0), quest: WonderCount::zero(),
+                fame: Fame::None },
+        ];
+        let sanctuaries = vec![
+            // tile34 Green — PerNight×1
+            SanctuaryCard { tile: 34, biome: Biome::Green, night: false, clue: false,
+                wonders: WonderCount::zero(),
+                fame: Fame::PerNight { score_per: 1 } },
+            // tile42 Red — night
+            SanctuaryCard { tile: 42, biome: Biome::Red, night: true, clue: false,
+                wonders: WonderCount::zero(),
+                fame: Fame::None },
+        ];
+
+        let player = PlayerState {
+            seat: 0, name: "NightPatrol".into(),
+            tableau, sanctuaries, hand: vec![], played_this_round: None,
+        };
+
+        // Per-card breakdown:  0 + 0 + 0 + 6 + 9 + 2 + 8 + 12 + (sanct: 4 + 0) = 41
+        assert_eq!(score_player(&player), 41);
+    }
+
+    /// Test Case: "Quest Master" — quest-heavy strategy with stone/chimera providers.
+    ///
+    /// Tableau (played order, left-to-right; scored RIGHT-to-LEFT):
+    ///
+    ///   ┌──────────┬──────────┬──────────┬──────────┬──────────┬──────────┬──────────┬──────────┐
+    ///   │ #46      │ #21      │ #20      │ #38      │ #4       │ #8       │ #19      │ #2       │
+    ///   │ Blue     │ Blue     │ Green    │ Green    │ Red      │ Green    │ Red      │ Blue     │
+    ///   │ 📎      │ 🌙      │ 🌙 📎   │ 🌙       │          │ 📎      │ thistle:1│ stone:2  │
+    ///   │          │          │          │          │ stone:1  │ chim:1   │          │          │
+    ///   │          │          │          │          │ chim:1   │          │          │          │
+    ///   │ quest:   │ quest:   │ quest:   │ quest:   │          │          │ PerIcon  │          │
+    ///   │ 🪨🪨🐉 │ 🪨🪨    │ 🪨      │ 🐉🌿    │ (none)   │ (none)   │ Thistle  │ (none)   │
+    ///   │ Flat(10) │ Flat(8)  │ PerNight │ PerClue  │          │          │ ×2       │          │
+    ///   │          │          │ ×2       │ ×3       │          │          │          │          │
+    ///   └──────────┴──────────┴──────────┴──────────┴──────────┴──────────┴──────────┴──────────┘
+    ///     scored     scored     scored     scored     scored     scored     scored     scored
+    ///     last(8th)  7th        6th        5th        4th        3rd        2nd        1st
+    ///
+    /// (🪨 = stone, 🐉 = chimera, 🌿 = thistle in quest requirements)
+    ///
+    /// Sanctuaries: tile28 (Colorless, 📎, thistle:1), tile32 (Colorless, PerClue×2)
+    ///
+    /// Scoring (right-to-left, card counts itself + cards to right + sanctuaries):
+    ///   #2  (1st): Fame::None                                                            → 0 pts
+    ///   #19 (2nd): PerIcon(Thistle)×2, thistle: #19(1)+tile28(1) = 2                    → 4 pts
+    ///   #8  (3rd): Fame::None                                                            → 0 pts
+    ///   #4  (4th): Fame::None                                                            → 0 pts
+    ///   #38 (5th): PerClue×3, quest=(🐉🌿), chimera=2✓ thistle=2✓ → MET
+    ///              clues: #8(1)+tile28(1) = 2                                            → 6 pts
+    ///   #20 (6th): PerNight×2, quest=(🪨), stone=3✓ → MET
+    ///              nights: #20(1)+#38(1) = 2                                             → 4 pts
+    ///   #21 (7th): Flat(8), quest=(🪨🪨), stone=3✓ → MET                               → 8 pts
+    ///   #46 (8th): Flat(10), quest=(🪨🪨🐉), stone=3✓ chimera=2✓ → MET                → 10 pts
+    ///   tile28:    Fame::None                                                            → 0 pts
+    ///   tile32:    PerClue×2, all clues: #46(1)+#20(1)+#8(1)+tile28(1) = 4              → 8 pts
+    ///                                                                              Total: 40 pts
+    #[test]
+    fn visual_scoring_quest_master() {
+        use crate::cards::SanctuaryCard;
+        use crate::game::PlayerState;
+
+        let tableau = vec![
+            // [0] #46 Blue — clue, quest=(2,1,0), Flat(10)
+            RegionCard { number: 46, biome: Biome::Blue, night: false, clue: true,
+                wonders: WonderCount::zero(), quest: w(2,1,0),
+                fame: Fame::Flat(10) },
+            // [1] #21 Blue — night, quest=(2,0,0), Flat(8)
+            RegionCard { number: 21, biome: Biome::Blue, night: true, clue: false,
+                wonders: WonderCount::zero(), quest: w(2,0,0),
+                fame: Fame::Flat(8) },
+            // [2] #20 Green — night, clue, quest=(1,0,0), PerNight×2
+            RegionCard { number: 20, biome: Biome::Green, night: true, clue: true,
+                wonders: WonderCount::zero(), quest: w(1,0,0),
+                fame: Fame::PerNight { score_per: 2 } },
+            // [3] #38 Green — night, quest=(0,1,1), PerClue×3
+            RegionCard { number: 38, biome: Biome::Green, night: true, clue: false,
+                wonders: WonderCount::zero(), quest: w(0,1,1),
+                fame: Fame::PerClue { score_per: 3 } },
+            // [4] #4 Red — stone:1 chimera:1
+            RegionCard { number: 4, biome: Biome::Red, night: false, clue: false,
+                wonders: w(1,1,0), quest: WonderCount::zero(),
+                fame: Fame::None },
+            // [5] #8 Green — clue, chimera:1
+            RegionCard { number: 8, biome: Biome::Green, night: false, clue: true,
+                wonders: w(0,1,0), quest: WonderCount::zero(),
+                fame: Fame::None },
+            // [6] #19 Red — thistle:1, PerIcon(Thistle)×2
+            RegionCard { number: 19, biome: Biome::Red, night: false, clue: false,
+                wonders: w(0,0,1), quest: WonderCount::zero(),
+                fame: Fame::PerIcon { icon: Wonder::Thistle, score_per: 2 } },
+            // [7] #2 Blue — stone:2
+            RegionCard { number: 2, biome: Biome::Blue, night: false, clue: false,
+                wonders: w(2,0,0), quest: WonderCount::zero(),
+                fame: Fame::None },
+        ];
+        let sanctuaries = vec![
+            // tile28 Colorless — clue, thistle:1
+            SanctuaryCard { tile: 28, biome: Biome::Colorless, night: false, clue: true,
+                wonders: w(0,0,1),
+                fame: Fame::None },
+            // tile32 Colorless — PerClue×2
+            SanctuaryCard { tile: 32, biome: Biome::Colorless, night: false, clue: false,
+                wonders: WonderCount::zero(),
+                fame: Fame::PerClue { score_per: 2 } },
+        ];
+
+        let player = PlayerState {
+            seat: 0, name: "QuestMaster".into(),
+            tableau, sanctuaries, hand: vec![], played_this_round: None,
+        };
+
+        // Per-card breakdown:  0 + 4 + 0 + 0 + 6 + 4 + 8 + 10 + (sanct: 0 + 8) = 40
+        assert_eq!(score_player(&player), 40);
+    }
+
+    /// Test Case: "Failed Expedition" — big quest cards that don't find enough icons.
+    ///
+    /// Tableau (played order, left-to-right; scored RIGHT-to-LEFT):
+    ///
+    ///   ┌──────────┬──────────┬──────────┬──────────┬──────────┬──────────┬──────────┬──────────┐
+    ///   │ #68      │ #51      │ #21      │ #9       │ #6       │ #12      │ #3       │ #5       │
+    ///   │ Blue     │ Blue     │ Blue     │ Blue     │ Blue     │ Yellow   │ Green    │ Green    │
+    ///   │          │ stone:1  │ 🌙      │          │ 📎      │ 📎      │          │ chim:1   │
+    ///   │          │          │          │          │ stone:1  │ thistle:1│          │          │
+    ///   │ quest:   │ quest:   │ quest:   │          │          │          │          │          │
+    ///   │ 🪨🪨🪨  │ 🪨🪨🪨  │ 🪨🪨    │          │          │          │          │          │
+    ///   │ 🪨🪨    │ 🪨      │          │          │          │          │          │          │
+    ///   │ Flat(24) │ Flat(14) │ Flat(8)  │ Flat(5)  │ (none)   │ (none)   │ Flat(4)  │ (none)   │
+    ///   └──────────┴──────────┴──────────┴──────────┴──────────┴──────────┴──────────┴──────────┘
+    ///     scored     scored     scored     scored     scored     scored     scored     scored
+    ///     last(8th)  7th        6th        5th        4th        3rd        2nd        1st
+    ///
+    /// Sanctuaries: tile12 (Blue, stone:1), tile3 (Blue, PerColour(Blue)×1)
+    ///
+    /// Scoring (right-to-left, card counts itself + cards to right + sanctuaries):
+    ///   #5  (1st): Fame::None                                                            → 0 pts
+    ///   #3  (2nd): Flat(4), no quest                                                     → 4 pts
+    ///   #12 (3rd): Fame::None                                                            → 0 pts
+    ///   #6  (4th): Fame::None                                                            → 0 pts
+    ///   #9  (5th): Flat(5), no quest                                                     → 5 pts
+    ///   #21 (6th): Flat(8), quest=(🪨🪨), stone: #6(1)+tile12(1) = 2 MET               → 8 pts
+    ///   #51 (7th): Flat(14), quest=(🪨🪨🪨🪨), stone: #51(1)+#6(1)+tile12(1) = 3 FAIL → 0 pts
+    ///   #68 (8th): Flat(24), quest=(🪨🪨🪨🪨🪨), stone: #51(1)+#6(1)+tile12(1) = 3 FAIL → 0 pts
+    ///   tile12:    Fame::None                                                            → 0 pts
+    ///   tile3:     PerColour(Blue)×1, blue: #68+#51+#21+#9+#6+tile12 = 6               → 6 pts
+    ///                                                                              Total: 23 pts
+    #[test]
+    fn visual_scoring_failed_expedition() {
+        use crate::cards::SanctuaryCard;
+        use crate::game::PlayerState;
+
+        let tableau = vec![
+            // [0] #68 Blue — quest=(5,0,0), Flat(24) — needs 5 stone
+            RegionCard { number: 68, biome: Biome::Blue, night: false, clue: false,
+                wonders: WonderCount::zero(), quest: w(5,0,0),
+                fame: Fame::Flat(24) },
+            // [1] #51 Blue — stone:1, quest=(4,0,0), Flat(14) — needs 4 stone
+            RegionCard { number: 51, biome: Biome::Blue, night: false, clue: false,
+                wonders: w(1,0,0), quest: w(4,0,0),
+                fame: Fame::Flat(14) },
+            // [2] #21 Blue — night, quest=(2,0,0), Flat(8)
+            RegionCard { number: 21, biome: Biome::Blue, night: true, clue: false,
+                wonders: WonderCount::zero(), quest: w(2,0,0),
+                fame: Fame::Flat(8) },
+            // [3] #9 Blue — Flat(5)
+            RegionCard { number: 9, biome: Biome::Blue, night: false, clue: false,
+                wonders: WonderCount::zero(), quest: WonderCount::zero(),
+                fame: Fame::Flat(5) },
+            // [4] #6 Blue — clue, stone:1
+            RegionCard { number: 6, biome: Biome::Blue, night: false, clue: true,
+                wonders: w(1,0,0), quest: WonderCount::zero(),
+                fame: Fame::None },
+            // [5] #12 Yellow — clue, thistle:1
+            RegionCard { number: 12, biome: Biome::Yellow, night: false, clue: true,
+                wonders: w(0,0,1), quest: WonderCount::zero(),
+                fame: Fame::None },
+            // [6] #3 Green — Flat(4)
+            RegionCard { number: 3, biome: Biome::Green, night: false, clue: false,
+                wonders: WonderCount::zero(), quest: WonderCount::zero(),
+                fame: Fame::Flat(4) },
+            // [7] #5 Green — chimera:1
+            RegionCard { number: 5, biome: Biome::Green, night: false, clue: false,
+                wonders: w(0,1,0), quest: WonderCount::zero(),
+                fame: Fame::None },
+        ];
+        let sanctuaries = vec![
+            // tile12 Blue — stone:1
+            SanctuaryCard { tile: 12, biome: Biome::Blue, night: false, clue: false,
+                wonders: w(1,0,0),
+                fame: Fame::None },
+            // tile3 Blue — PerColour(Blue)×1
+            SanctuaryCard { tile: 3, biome: Biome::Blue, night: false, clue: false,
+                wonders: WonderCount::zero(),
+                fame: Fame::PerColour { biome: Biome::Blue, score_per: 1 } },
+        ];
+
+        let player = PlayerState {
+            seat: 0, name: "FailedExpedition".into(),
+            tableau, sanctuaries, hand: vec![], played_this_round: None,
+        };
+
+        // Per-card breakdown:  0 + 4 + 0 + 0 + 5 + 8 + 0 + 0 + (sanct: 0 + 6) = 23
+        assert_eq!(score_player(&player), 23);
     }
 
     #[test]

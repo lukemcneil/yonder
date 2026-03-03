@@ -1,0 +1,280 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<title>Scoring Test Cases — Visual Reference</title>
+<style>
+  body { font-family: system-ui, sans-serif; background: #1a1a2e; color: #e0e0e0; padding: 2rem; }
+  h1 { color: #c9a84c; }
+  h2 { color: #c9a84c; margin-top: 2rem; }
+  .test-case { margin-bottom: 3rem; }
+  .tableau { display: flex; gap: 6px; align-items: flex-start; margin: 1rem 0; }
+  .card-slot { text-align: center; }
+  .card-slot img { width: 100px; height: 100px; border-radius: 6px; border: 2px solid #444; }
+  .card-slot.sanctuary img { width: 68px; height: 105px; }
+  .card-slot .label { font-size: 11px; color: #aaa; margin-top: 2px; }
+  .card-slot .pts { font-size: 14px; font-weight: bold; color: #c9a84c; margin-top: 2px; }
+  .card-slot .pts.zero { color: #666; }
+  .arrow { font-size: 24px; color: #c9a84c; align-self: center; margin: 0 4px; }
+  .section-label { font-size: 13px; color: #888; margin-bottom: 4px; text-transform: uppercase; letter-spacing: 1px; }
+  .scoring-order { font-size: 12px; color: #888; margin: 4px 0; }
+  .total { font-size: 20px; font-weight: bold; color: #c9a84c; margin-top: 1rem; }
+  .divider { border: none; border-top: 1px solid #333; margin: 2rem 0; }
+  table { border-collapse: collapse; margin: 1rem 0; }
+  td, th { padding: 4px 10px; text-align: left; border-bottom: 1px solid #333; font-size: 13px; }
+  th { color: #c9a84c; }
+  .met { color: #4caf50; }
+  .not-met { color: #f44336; }
+</style>
+</head>
+<body>
+
+<h1>Scoring Test Cases</h1>
+<p>Cards are scored <strong>right-to-left</strong> (last played scored first). Each card sees <strong>itself + cards to its right + all sanctuaries</strong>.</p>
+
+<!-- ═══════════════════════════════════════════════════════════════════ -->
+<div class="test-case">
+<h2>Test 1: "Night Patrol" — 41 pts</h2>
+
+<div class="section-label">Tableau (play order: left-to-right)</div>
+<div class="scoring-order">Scoring order: #1 &larr; #7 &larr; #12 &larr; #29 &larr; #26 &larr; #22 &larr; #14 &larr; #10</div>
+<div class="tableau">
+  <div class="card-slot">
+    <img src="../../faraway-client/region/tile010.jpg" alt="#10">
+    <div class="label">#10 Red<br>PerNight &times;3</div>
+    <div class="pts">12 pts</div>
+  </div>
+  <div class="card-slot">
+    <img src="../../faraway-client/region/tile014.jpg" alt="#14">
+    <div class="label">#14 Red<br>PerNight &times;2</div>
+    <div class="pts">8 pts</div>
+  </div>
+  <div class="card-slot">
+    <img src="../../faraway-client/region/tile022.jpg" alt="#22">
+    <div class="label">#22 Green<br>PerClue &times;1</div>
+    <div class="pts">2 pts</div>
+  </div>
+  <div class="card-slot">
+    <img src="../../faraway-client/region/tile026.jpg" alt="#26">
+    <div class="label">#26 Red<br>PerIcon(Thistle) &times;3</div>
+    <div class="pts">9 pts</div>
+  </div>
+  <div class="card-slot">
+    <img src="../../faraway-client/region/tile029.jpg" alt="#29">
+    <div class="label">#29 Yellow<br>PerIcon(Thistle) &times;2</div>
+    <div class="pts">6 pts</div>
+  </div>
+  <div class="card-slot">
+    <img src="../../faraway-client/region/tile012.jpg" alt="#12">
+    <div class="label">#12 Yellow<br>(none)</div>
+    <div class="pts zero">0 pts</div>
+  </div>
+  <div class="card-slot">
+    <img src="../../faraway-client/region/tile007.jpg" alt="#7">
+    <div class="label">#7 Red<br>(none)</div>
+    <div class="pts zero">0 pts</div>
+  </div>
+  <div class="card-slot">
+    <img src="../../faraway-client/region/tile001.jpg" alt="#1">
+    <div class="label">#1 Red<br>(none)</div>
+    <div class="pts zero">0 pts</div>
+  </div>
+</div>
+
+<div class="section-label">Sanctuaries</div>
+<div class="tableau">
+  <div class="card-slot sanctuary">
+    <img src="../../faraway-client/sanctuary/tile034.jpg" alt="S34">
+    <div class="label">tile34 Green<br>PerNight &times;1</div>
+    <div class="pts">4 pts</div>
+  </div>
+  <div class="card-slot sanctuary">
+    <img src="../../faraway-client/sanctuary/tile042.jpg" alt="S42">
+    <div class="label">tile42 Red<br>(none)</div>
+    <div class="pts zero">0 pts</div>
+  </div>
+</div>
+
+<table>
+  <tr><th>Card</th><th>Fame</th><th>Visible context</th><th>Pts</th></tr>
+  <tr><td>#1 (scored 1st)</td><td>None</td><td>&mdash;</td><td>0</td></tr>
+  <tr><td>#7 (scored 2nd)</td><td>None</td><td>&mdash;</td><td>0</td></tr>
+  <tr><td>#12 (scored 3rd)</td><td>None</td><td>&mdash;</td><td>0</td></tr>
+  <tr><td>#29 (scored 4th)</td><td>PerIcon(Thistle) &times;2</td><td>thistle: #29(1) + #12(1) + #7(1) = 3</td><td>6</td></tr>
+  <tr><td>#26 (scored 5th)</td><td>PerIcon(Thistle) &times;3</td><td>thistle: #29(1) + #12(1) + #7(1) = 3</td><td>9</td></tr>
+  <tr><td>#22 (scored 6th)</td><td>PerClue &times;1</td><td>clues: #22(1) + #12(1) = 2</td><td>2</td></tr>
+  <tr><td>#14 (scored 7th)</td><td>PerNight &times;2</td><td>nights: #22 + #26 + #29 + tile42 = 4</td><td>8</td></tr>
+  <tr><td>#10 (scored 8th)</td><td>PerNight &times;3</td><td>nights: #22 + #26 + #29 + tile42 = 4</td><td>12</td></tr>
+  <tr><td>tile34</td><td>PerNight &times;1</td><td>all nights: #22 + #26 + #29 + tile42 = 4</td><td>4</td></tr>
+  <tr><td>tile42</td><td>None</td><td>&mdash;</td><td>0</td></tr>
+</table>
+
+<div class="total">Total: 0 + 0 + 0 + 6 + 9 + 2 + 8 + 12 + 4 + 0 = 41</div>
+</div>
+
+<hr class="divider">
+
+<!-- ═══════════════════════════════════════════════════════════════════ -->
+<div class="test-case">
+<h2>Test 2: "Quest Master" — 40 pts</h2>
+
+<div class="section-label">Tableau (play order: left-to-right)</div>
+<div class="scoring-order">Scoring order: #2 &larr; #19 &larr; #8 &larr; #4 &larr; #38 &larr; #20 &larr; #21 &larr; #46</div>
+<div class="tableau">
+  <div class="card-slot">
+    <img src="../../faraway-client/region/tile046.jpg" alt="#46">
+    <div class="label">#46 Blue<br>quest: 🪨🪨🐉<br>Flat(10)</div>
+    <div class="pts">10 pts</div>
+  </div>
+  <div class="card-slot">
+    <img src="../../faraway-client/region/tile021.jpg" alt="#21">
+    <div class="label">#21 Blue<br>quest: 🪨🪨<br>Flat(8)</div>
+    <div class="pts">8 pts</div>
+  </div>
+  <div class="card-slot">
+    <img src="../../faraway-client/region/tile020.jpg" alt="#20">
+    <div class="label">#20 Green<br>quest: 🪨<br>PerNight &times;2</div>
+    <div class="pts">4 pts</div>
+  </div>
+  <div class="card-slot">
+    <img src="../../faraway-client/region/tile038.jpg" alt="#38">
+    <div class="label">#38 Green<br>quest: 🐉🌿<br>PerClue &times;3</div>
+    <div class="pts">6 pts</div>
+  </div>
+  <div class="card-slot">
+    <img src="../../faraway-client/region/tile004.jpg" alt="#4">
+    <div class="label">#4 Red<br>(none)</div>
+    <div class="pts zero">0 pts</div>
+  </div>
+  <div class="card-slot">
+    <img src="../../faraway-client/region/tile008.jpg" alt="#8">
+    <div class="label">#8 Green<br>(none)</div>
+    <div class="pts zero">0 pts</div>
+  </div>
+  <div class="card-slot">
+    <img src="../../faraway-client/region/tile019.jpg" alt="#19">
+    <div class="label">#19 Red<br>PerIcon(Thistle) &times;2</div>
+    <div class="pts">4 pts</div>
+  </div>
+  <div class="card-slot">
+    <img src="../../faraway-client/region/tile002.jpg" alt="#2">
+    <div class="label">#2 Blue<br>(none)</div>
+    <div class="pts zero">0 pts</div>
+  </div>
+</div>
+
+<div class="section-label">Sanctuaries</div>
+<div class="tableau">
+  <div class="card-slot sanctuary">
+    <img src="../../faraway-client/sanctuary/tile028.jpg" alt="S28">
+    <div class="label">tile28 Colorless<br>(none)</div>
+    <div class="pts zero">0 pts</div>
+  </div>
+  <div class="card-slot sanctuary">
+    <img src="../../faraway-client/sanctuary/tile032.jpg" alt="S32">
+    <div class="label">tile32 Colorless<br>PerClue &times;2</div>
+    <div class="pts">8 pts</div>
+  </div>
+</div>
+
+<table>
+  <tr><th>Card</th><th>Fame</th><th>Quest</th><th>Visible context</th><th>Pts</th></tr>
+  <tr><td>#2 (scored 1st)</td><td>None</td><td>&mdash;</td><td>&mdash;</td><td>0</td></tr>
+  <tr><td>#19 (scored 2nd)</td><td>PerIcon(Thistle) &times;2</td><td>&mdash;</td><td>thistle: #19(1) + tile28(1) = 2</td><td>4</td></tr>
+  <tr><td>#8 (scored 3rd)</td><td>None</td><td>&mdash;</td><td>&mdash;</td><td>0</td></tr>
+  <tr><td>#4 (scored 4th)</td><td>None</td><td>&mdash;</td><td>&mdash;</td><td>0</td></tr>
+  <tr><td>#38 (scored 5th)</td><td>PerClue &times;3</td><td class="met">🐉1 🌿1 — chimera:2 thistle:2 MET</td><td>clues: #8(1) + tile28(1) = 2</td><td>6</td></tr>
+  <tr><td>#20 (scored 6th)</td><td>PerNight &times;2</td><td class="met">🪨1 — stone:3 MET</td><td>nights: #20(1) + #38(1) = 2</td><td>4</td></tr>
+  <tr><td>#21 (scored 7th)</td><td>Flat(8)</td><td class="met">🪨2 — stone:3 MET</td><td>&mdash;</td><td>8</td></tr>
+  <tr><td>#46 (scored 8th)</td><td>Flat(10)</td><td class="met">🪨2 🐉1 — stone:3 chimera:2 MET</td><td>&mdash;</td><td>10</td></tr>
+  <tr><td>tile28</td><td>None</td><td>&mdash;</td><td>&mdash;</td><td>0</td></tr>
+  <tr><td>tile32</td><td>PerClue &times;2</td><td>&mdash;</td><td>clues: #46 + #20 + #8 + tile28 = 4</td><td>8</td></tr>
+</table>
+
+<div class="total">Total: 0 + 4 + 0 + 0 + 6 + 4 + 8 + 10 + 0 + 8 = 40</div>
+</div>
+
+<hr class="divider">
+
+<!-- ═══════════════════════════════════════════════════════════════════ -->
+<div class="test-case">
+<h2>Test 3: "Failed Expedition" — 23 pts</h2>
+
+<div class="section-label">Tableau (play order: left-to-right)</div>
+<div class="scoring-order">Scoring order: #5 &larr; #3 &larr; #12 &larr; #6 &larr; #9 &larr; #21 &larr; #51 &larr; #68</div>
+<div class="tableau">
+  <div class="card-slot">
+    <img src="../../faraway-client/region/tile068.jpg" alt="#68">
+    <div class="label">#68 Blue<br>quest: 🪨🪨🪨🪨🪨<br>Flat(24)</div>
+    <div class="pts not-met">0 pts (FAIL)</div>
+  </div>
+  <div class="card-slot">
+    <img src="../../faraway-client/region/tile051.jpg" alt="#51">
+    <div class="label">#51 Blue<br>quest: 🪨🪨🪨🪨<br>Flat(14)</div>
+    <div class="pts not-met">0 pts (FAIL)</div>
+  </div>
+  <div class="card-slot">
+    <img src="../../faraway-client/region/tile021.jpg" alt="#21">
+    <div class="label">#21 Blue<br>quest: 🪨🪨<br>Flat(8)</div>
+    <div class="pts">8 pts</div>
+  </div>
+  <div class="card-slot">
+    <img src="../../faraway-client/region/tile009.jpg" alt="#9">
+    <div class="label">#9 Blue<br>Flat(5)</div>
+    <div class="pts">5 pts</div>
+  </div>
+  <div class="card-slot">
+    <img src="../../faraway-client/region/tile006.jpg" alt="#6">
+    <div class="label">#6 Blue<br>(none)</div>
+    <div class="pts zero">0 pts</div>
+  </div>
+  <div class="card-slot">
+    <img src="../../faraway-client/region/tile012.jpg" alt="#12">
+    <div class="label">#12 Yellow<br>(none)</div>
+    <div class="pts zero">0 pts</div>
+  </div>
+  <div class="card-slot">
+    <img src="../../faraway-client/region/tile003.jpg" alt="#3">
+    <div class="label">#3 Green<br>Flat(4)</div>
+    <div class="pts">4 pts</div>
+  </div>
+  <div class="card-slot">
+    <img src="../../faraway-client/region/tile005.jpg" alt="#5">
+    <div class="label">#5 Green<br>(none)</div>
+    <div class="pts zero">0 pts</div>
+  </div>
+</div>
+
+<div class="section-label">Sanctuaries</div>
+<div class="tableau">
+  <div class="card-slot sanctuary">
+    <img src="../../faraway-client/sanctuary/tile012.jpg" alt="S12">
+    <div class="label">tile12 Blue<br>(none)</div>
+    <div class="pts zero">0 pts</div>
+  </div>
+  <div class="card-slot sanctuary">
+    <img src="../../faraway-client/sanctuary/tile003.jpg" alt="S3">
+    <div class="label">tile3 Blue<br>PerColour(Blue) &times;1</div>
+    <div class="pts">6 pts</div>
+  </div>
+</div>
+
+<table>
+  <tr><th>Card</th><th>Fame</th><th>Quest</th><th>Visible context</th><th>Pts</th></tr>
+  <tr><td>#5 (scored 1st)</td><td>None</td><td>&mdash;</td><td>&mdash;</td><td>0</td></tr>
+  <tr><td>#3 (scored 2nd)</td><td>Flat(4)</td><td>&mdash;</td><td>&mdash;</td><td>4</td></tr>
+  <tr><td>#12 (scored 3rd)</td><td>None</td><td>&mdash;</td><td>&mdash;</td><td>0</td></tr>
+  <tr><td>#6 (scored 4th)</td><td>None</td><td>&mdash;</td><td>&mdash;</td><td>0</td></tr>
+  <tr><td>#9 (scored 5th)</td><td>Flat(5)</td><td>&mdash;</td><td>&mdash;</td><td>5</td></tr>
+  <tr><td>#21 (scored 6th)</td><td>Flat(8)</td><td class="met">🪨2 — stone: #6(1)+tile12(1) = 2 MET</td><td>&mdash;</td><td>8</td></tr>
+  <tr><td>#51 (scored 7th)</td><td>Flat(14)</td><td class="not-met">🪨4 — stone: #51(1)+#6(1)+tile12(1) = 3 FAIL</td><td>&mdash;</td><td>0</td></tr>
+  <tr><td>#68 (scored 8th)</td><td>Flat(24)</td><td class="not-met">🪨5 — stone: #51(1)+#6(1)+tile12(1) = 3 FAIL</td><td>&mdash;</td><td>0</td></tr>
+  <tr><td>tile12</td><td>None</td><td>&mdash;</td><td>&mdash;</td><td>0</td></tr>
+  <tr><td>tile3</td><td>PerColour(Blue) &times;1</td><td>&mdash;</td><td>blue: #68+#51+#21+#9+#6+tile12 = 6</td><td>6</td></tr>
+</table>
+
+<div class="total">Total: 0 + 4 + 0 + 0 + 5 + 8 + 0 + 0 + 0 + 6 = 23</div>
+</div>
+
+</body>
+</html>
