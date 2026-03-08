@@ -194,7 +194,7 @@ function renderOpponents() {
     const tableau = document.createElement('div');
     tableau.className = 'opponent-tableau';
     for (const card of p.tableau) {
-      tableau.appendChild(regionCardEl(card, 'sm', false));
+      tableau.appendChild(regionCardEl(card, 'sm', false, true));
     }
     // Played-this-round placeholder
     if (p.played_this_round && state.phase === 'choosing_cards') {
@@ -210,7 +210,7 @@ function renderOpponents() {
       const sancts = document.createElement('div');
       sancts.className = 'opponent-sanctuaries';
       for (const s of p.sanctuaries) {
-        sancts.appendChild(sanctuaryCardEl(s, 'sm'));
+        sancts.appendChild(sanctuaryCardEl(s, 'sm', true));
       }
       panel.appendChild(sancts);
     }
@@ -232,8 +232,9 @@ function renderMarket() {
   const isDrafting = state.phase === 'drafting' && state.current_drafter === mySeat;
 
   state.market.forEach((card, idx) => {
-    const el = regionCardEl(card, 'md', isDrafting);
+    const el = regionCardEl(card, 'lg', false);
     if (isDrafting) {
+      el.classList.add('draftable');
       el.addEventListener('click', () => send({ action: 'DraftCard', market_index: idx }));
     }
     marketCards.appendChild(el);
@@ -248,7 +249,7 @@ function renderMyArea() {
   const me = state.players.find(p => p.seat === mySeat);
   if (me) {
     for (const card of me.tableau) {
-      myTableau.appendChild(regionCardEl(card, 'md', false));
+      myTableau.appendChild(regionCardEl(card, 'lg', false));
     }
   }
 
@@ -256,7 +257,7 @@ function renderMyArea() {
   mySanctuaries.innerHTML = '';
   if (me) {
     for (const s of me.sanctuaries) {
-      mySanctuaries.appendChild(sanctuaryCardEl(s, 'md'));
+      mySanctuaries.appendChild(sanctuaryCardEl(s, 'lg'));
     }
   }
 
@@ -265,7 +266,7 @@ function renderMyArea() {
   const canPlay = state.phase === 'choosing_cards' && !(me && me.played_this_round);
 
   state.my_hand.forEach((card, idx) => {
-    const el = regionCardEl(card, 'lg', canPlay);
+    const el = regionCardEl(card, 'xl', canPlay);
     if (canPlay) {
       el.addEventListener('click', () => send({ action: 'PlayCard', card_index: idx }));
     }
@@ -469,24 +470,60 @@ function showLeaderboard() {
 
 // ── Card helpers ──────────────────────────────────────────────────────────────
 
-function regionCardEl(card, size, clickable) {
+function regionCardEl(card, size, clickable, zoomable) {
   const el = document.createElement('div');
   el.className = `card ${size}` + (clickable ? ' playable' : '');
   const img = document.createElement('img');
   img.src = regionImagePath(card.number);
   img.alt = `Region ${card.number}`;
   el.appendChild(img);
+  if (zoomable) attachZoom(el, regionImagePath(card.number), 'region');
   return el;
 }
 
-function sanctuaryCardEl(card, size) {
+function sanctuaryCardEl(card, size, zoomable) {
   const el = document.createElement('div');
   el.className = `card sanctuary ${size}`;
   const img = document.createElement('img');
   img.src = sanctuaryImagePath(card.tile);
   img.alt = `Sanctuary ${card.tile}`;
   el.appendChild(img);
+  if (zoomable) attachZoom(el, sanctuaryImagePath(card.tile), 'sanctuary');
   return el;
+}
+
+// ── Hover zoom ───────────────────────────────────────────────────────────────
+
+const cardZoom = document.getElementById('card-zoom');
+const cardZoomImg = cardZoom.querySelector('img');
+
+function attachZoom(el, imgSrc, kind) {
+  el.addEventListener('mouseenter', (e) => {
+    cardZoomImg.src = imgSrc;
+    cardZoom.className = kind + ' visible';
+    positionZoom(e);
+  });
+  el.addEventListener('mousemove', positionZoom);
+  el.addEventListener('mouseleave', () => {
+    cardZoom.className = '';
+  });
+}
+
+function positionZoom(e) {
+  const pad = 12;
+  const zw = cardZoom.classList.contains('sanctuary') ? 140 : 180;
+  const zh = cardZoom.classList.contains('sanctuary') ? 216 : 180;
+
+  let x = e.clientX + pad;
+  let y = e.clientY - zh / 2;
+
+  // Keep within viewport
+  if (x + zw > window.innerWidth) x = e.clientX - zw - pad;
+  if (y < 4) y = 4;
+  if (y + zh > window.innerHeight - 4) y = window.innerHeight - zh - 4;
+
+  cardZoom.style.left = x + 'px';
+  cardZoom.style.top = y + 'px';
 }
 
 function regionImagePath(number) {
