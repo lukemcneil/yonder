@@ -264,6 +264,12 @@ impl GameState {
         }
         let kept = choices[sanctuary_index].clone();
         self.player_mut(seat)?.sanctuaries.push(kept);
+        // Put unchosen sanctuary cards back at the bottom of the deck.
+        for (i, card) in choices.into_iter().enumerate() {
+            if i != sanctuary_index {
+                self.sanctuary_deck.insert(0, card);
+            }
+        }
         // If all players have chosen, advance to drafting.
         let all_done = match &self.phase {
             GamePhase::Playing(RoundPhase::SanctuaryChoice { pending }) => pending.is_empty(),
