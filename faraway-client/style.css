@@ -191,7 +191,7 @@ body {
   flex-direction: column;
   padding: 0.5rem 1rem;
   gap: 0.5rem;
-  overflow: hidden;
+  overflow-y: auto;
 }
 
 #my-tableau-row {
@@ -451,38 +451,153 @@ body {
   margin-bottom: 0.5rem;
 }
 
-/* ── Game over overlay ────────────────────────────────────────────────────── */
+/* ── Inline scoring ───────────────────────────────────────────────────────── */
 
-#game-over-overlay {
-  position: fixed;
-  inset: 0;
-  background: rgba(0,0,0,0.8);
+/* Face-down cards during scoring */
+.card.scoring-card-slot.face-down {
+  opacity: 0.7;
+  border-color: #333;
+}
+
+/* Revealed card with flip animation */
+.card.scoring-card-slot.scoring-revealed {
+  border-color: #555;
+}
+
+.card.scoring-card-slot.just-revealed {
+  border: 2px solid #c9a84c;
+  animation: card-pop 0.25s ease-out;
+}
+
+@keyframes card-pop {
+  from { transform: scale(0.9); opacity: 0.4; }
+  to   { transform: scale(1);    opacity: 1; }
+}
+
+/* Score badge overlaid on the card */
+.score-badge {
+  position: absolute;
+  bottom: 4px;
+  left: 4px;
+  border-radius: 4px;
+  padding: 2px 6px;
+  font-size: 0.9rem;
+  font-weight: 700;
+  pointer-events: none;
+}
+
+.score-badge.positive {
+  background: rgba(0, 0, 0, 0.75);
+  color: #fff;
+}
+
+.score-badge.zero {
+  background: #444;
+  color: #888;
+}
+
+.score-badge-sm {
+  position: absolute;
+  bottom: 2px;
+  left: 2px;
+  border-radius: 3px;
+  padding: 1px 3px;
+  font-size: 0.6rem;
+  font-weight: 700;
+  pointer-events: none;
+}
+
+.score-badge-sm.positive {
+  background: rgba(0, 0, 0, 0.75);
+  color: #fff;
+}
+
+.score-badge-sm.zero {
+  background: #333;
+  color: #666;
+}
+
+/* ── Scoring bar (below tableau during reveal) ───────────────────────────── */
+
+.scoring-bar {
   display: flex;
   align-items: center;
-  justify-content: center;
-  z-index: 200;
+  justify-content: space-between;
+  gap: 1rem;
+  padding: 0.6rem 1rem;
+  background: #1a1a30;
+  border: 1px solid #2a2a44;
+  border-radius: 8px;
+  flex-shrink: 0;
 }
 
-#game-over-inner {
-  background: #1a1a2e;
-  border: 1px solid #c9a84c;
-  border-radius: 12px;
-  padding: 2rem 2.5rem;
-  text-align: center;
-  min-width: 260px;
+.scoring-bar-left {
+  display: flex;
+  align-items: baseline;
+  gap: 1rem;
+  flex: 1;
+  min-width: 0;
 }
 
-#game-over-inner h2 {
+.scoring-bar-total {
+  font-size: 1.3rem;
+  font-weight: 700;
   color: #c9a84c;
-  font-size: 1.8rem;
-  margin-bottom: 1rem;
+  flex-shrink: 0;
 }
 
-#scores-list {
+.scoring-bar-explain {
+  font-size: 0.9rem;
+  color: #ccc;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.scoring-bar button,
+.play-again-btn {
+  padding: 0.5rem 1.2rem;
+  border-radius: 6px;
+  border: none;
+  background: #c9a84c;
+  color: #1a1a2e;
+  font-size: 0.9rem;
+  font-weight: 600;
+  cursor: pointer;
+  flex-shrink: 0;
+}
+
+.scoring-bar button:hover,
+.play-again-btn:hover {
+  background: #e0be6a;
+}
+
+/* ── Inline leaderboard (after scoring complete) ─────────────────────────── */
+
+#scoring-leaderboard {
   display: flex;
   flex-direction: column;
-  gap: 0.5rem;
-  margin-bottom: 1.5rem;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 1rem;
+  background: #1a1a30;
+  border: 1px solid #c9a84c;
+  border-radius: 8px;
+  flex-shrink: 0;
+}
+
+.leaderboard-title {
+  font-size: 1.3rem;
+  font-weight: 700;
+  color: #c9a84c;
+}
+
+.leaderboard-rows {
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
+  width: 100%;
+  max-width: 400px;
 }
 
 .score-row {
@@ -501,162 +616,6 @@ body {
   font-size: 0.75rem;
   color: #888;
 }
-
-#play-again-btn {
-  padding: 0.6rem 1.5rem;
-  border-radius: 6px;
-  border: none;
-  background: #c9a84c;
-  color: #1a1a2e;
-  font-size: 1rem;
-  font-weight: 600;
-  cursor: pointer;
-}
-
-#play-again-btn:hover { background: #e0be6a; }
-
-/* ── Scoring reveal ──────────────────────────────────────────────────────── */
-
-#scoring-reveal {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  width: 100%;
-  height: 100%;
-}
-
-#scoring-reveal-inner {
-  background: #1a1a2e;
-  border: 1px solid #c9a84c;
-  border-radius: 12px;
-  padding: 1.5rem 2rem;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 1rem;
-  min-width: 320px;
-  max-width: 90vw;
-}
-
-#scoring-header {
-  display: flex;
-  justify-content: space-between;
-  align-items: baseline;
-  width: 100%;
-}
-
-#scoring-title {
-  font-size: 1rem;
-  color: #aaa;
-}
-
-#scoring-running-total {
-  font-size: 1.4rem;
-  font-weight: 700;
-  color: #c9a84c;
-}
-
-#scoring-card-area {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 0.75rem;
-  width: 100%;
-}
-
-/* The big card being revealed */
-.card.scoring-reveal-card {
-  width: 120px;
-  height: 120px;
-  border: 3px solid #c9a84c;
-  animation: card-pop 0.15s ease-out;
-}
-
-.card.scoring-reveal-card.sanctuary {
-  width: 100px;
-  height: 154px;
-}
-
-@keyframes card-pop {
-  from { transform: scale(0.85); opacity: 0.4; }
-  to   { transform: scale(1);    opacity: 1; }
-}
-
-/* Score badge overlaid on the card */
-.score-badge {
-  position: absolute;
-  bottom: 4px;
-  right: 4px;
-  border-radius: 4px;
-  padding: 2px 6px;
-  font-size: 0.9rem;
-  font-weight: 700;
-  pointer-events: none;
-}
-
-.score-badge.positive {
-  background: #c9a84c;
-  color: #1a1a2e;
-}
-
-.score-badge.zero {
-  background: #444;
-  color: #888;
-}
-
-/* History row: previously revealed cards */
-#scoring-card-list {
-  display: flex;
-  gap: 4px;
-  flex-wrap: wrap;
-  justify-content: center;
-  min-height: 50px;
-}
-
-.scoring-history-card {
-  position: relative;
-}
-
-.score-badge-sm {
-  position: absolute;
-  bottom: 2px;
-  right: 2px;
-  border-radius: 3px;
-  padding: 1px 3px;
-  font-size: 0.6rem;
-  font-weight: 700;
-  pointer-events: none;
-}
-
-.score-badge-sm.positive {
-  background: #c9a84c;
-  color: #1a1a2e;
-}
-
-.score-badge-sm.zero {
-  background: #333;
-  color: #666;
-}
-
-#scoring-explanation {
-  font-size: 1rem;
-  color: #e0e0e0;
-  text-align: center;
-  min-height: 1.4em;
-}
-
-#scoring-next-btn {
-  padding: 0.6rem 1.5rem;
-  border-radius: 6px;
-  border: none;
-  background: #c9a84c;
-  color: #1a1a2e;
-  font-size: 1rem;
-  font-weight: 600;
-  cursor: pointer;
-}
-
-#scoring-next-btn:hover { background: #e0be6a; }
 
 /* ── Card hover zoom popover ─────────────────────────────────────────────── */
 
@@ -761,15 +720,14 @@ body {
   #advanced-modal-inner { padding: 1rem 1rem; }
   #advanced-modal-inner h2 { font-size: 1.1rem; }
 
-  /* Game over */
-  #game-over-inner { padding: 1.2rem 1rem; min-width: 220px; }
-  #game-over-inner h2 { font-size: 1.3rem; }
+  /* Inline scoring */
+  .scoring-bar { padding: 0.4rem 0.6rem; gap: 0.5rem; }
+  .scoring-bar-total { font-size: 1rem; }
+  .scoring-bar-explain { font-size: 0.75rem; }
+  .scoring-bar button { padding: 0.4rem 0.8rem; font-size: 0.8rem; }
   .score-row { gap: 1rem; font-size: 0.9rem; }
-
-  /* Scoring reveal */
-  #scoring-reveal-inner { min-width: 260px; padding: 1rem 1rem; }
-  .card.scoring-reveal-card { width: 80px; height: 80px; }
-  .card.scoring-reveal-card.sanctuary { width: 66px; height: 102px; }
+  #scoring-leaderboard { padding: 0.75rem; }
+  .leaderboard-title { font-size: 1.1rem; }
 
   /* Card zoom — smaller on mobile */
   #card-zoom.region { width: 130px; height: 130px; }

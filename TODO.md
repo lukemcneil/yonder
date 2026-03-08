@@ -95,7 +95,8 @@ _(Add tasks here as they are discovered during implementation)_
 - [x] Mobile support: make the game playable on mobile devices (responsive layout, touch interactions)
 - [x] Remove white corners on card images (round corners or mask to match card art)
 - [x] Put sanctuary cards on a separate row below region cards in the tableau
-- [ ] Rework scoring animation: flip all 8 region cards face-down in place, then reveal right-to-left with score animations and running totals below each card. Add a scoring table on the side with 9 rows (one per region card + one for all sanctuaries) and a column per player.
+- [x] Rework scoring animation: flip all 8 region cards face-down in place, then reveal right-to-left with score animations and running totals below each card (inline, no popup overlay).
+- [ ] Add scoring table on the side with 9 rows (one per region card + one for all sanctuaries) and a column per player (needs server to send all_score_details for all players).
 
 ---
 
