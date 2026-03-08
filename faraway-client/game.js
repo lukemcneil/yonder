@@ -457,12 +457,16 @@ function showLeaderboard() {
     return a.card_number_sum - b.card_number_sum;
   });
 
+  const totals = sorted.map(s => s.total);
+  const hasTie = (t) => totals.filter(v => v === t).length > 1;
+
   sorted.forEach((s, i) => {
     const row = document.createElement('div');
     row.className = 'score-row' + (i === 0 ? ' winner' : '');
+    const tie = hasTie(s.total) ? ` <span class="tiebreaker">(sum: ${s.card_number_sum})</span>` : '';
     row.innerHTML = `
       <span>${i === 0 ? '🏆 ' : ''}${s.name}</span>
-      <span>${s.total} fame <span class="tiebreaker">(sum: ${s.card_number_sum})</span></span>
+      <span>${s.total} fame${tie}</span>
     `;
     scoresList.appendChild(row);
   });
