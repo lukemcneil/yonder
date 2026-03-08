@@ -492,22 +492,53 @@ function sanctuaryCardEl(card, size, zoomable) {
   return el;
 }
 
-// ── Hover zoom ───────────────────────────────────────────────────────────────
+// ── Hover / tap zoom ────────────────────────────────────────────────────────
 
 const cardZoom = document.getElementById('card-zoom');
 const cardZoomImg = cardZoom.querySelector('img');
+const cardZoomBackdrop = document.getElementById('card-zoom-backdrop');
+const isTouchDevice = window.matchMedia('(hover: none) and (pointer: coarse)').matches;
 
 function attachZoom(el, imgSrc, kind) {
-  el.addEventListener('mouseenter', (e) => {
-    cardZoomImg.src = imgSrc;
-    cardZoom.className = kind + ' visible';
-    positionZoom(e);
-  });
-  el.addEventListener('mousemove', positionZoom);
-  el.addEventListener('mouseleave', () => {
-    cardZoom.className = '';
-  });
+  if (isTouchDevice) {
+    // Mobile: tap to show centered zoom overlay
+    el.addEventListener('click', (e) => {
+      // Don't intercept clicks on actionable cards (playable/draftable)
+      if (el.classList.contains('playable') || el.classList.contains('draftable')) return;
+      e.stopPropagation();
+      cardZoomImg.src = imgSrc;
+      cardZoom.className = kind + ' visible';
+      // Center in viewport
+      cardZoom.style.left = '50%';
+      cardZoom.style.top = '50%';
+      cardZoom.style.transform = 'translate(-50%, -50%)';
+      cardZoomBackdrop.classList.remove('hidden');
+    });
+  } else {
+    // Desktop: hover to show zoom near cursor
+    el.addEventListener('mouseenter', (e) => {
+      cardZoomImg.src = imgSrc;
+      cardZoom.className = kind + ' visible';
+      cardZoom.style.transform = '';
+      positionZoom(e);
+    });
+    el.addEventListener('mousemove', positionZoom);
+    el.addEventListener('mouseleave', () => {
+      cardZoom.className = '';
+    });
+  }
 }
+
+function dismissZoom() {
+  cardZoom.className = '';
+  cardZoom.style.left = '';
+  cardZoom.style.top = '';
+  cardZoom.style.transform = '';
+  cardZoomBackdrop.classList.add('hidden');
+}
+
+cardZoomBackdrop.addEventListener('click', dismissZoom);
+cardZoom.addEventListener('click', dismissZoom);
 
 function positionZoom(e) {
   const pad = 12;
