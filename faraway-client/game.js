@@ -355,6 +355,7 @@ function renderGameOver() {
     scoringRevealIndex = 0;
     if (scoringBar) scoringBar.remove();
     document.getElementById('scoring-leaderboard')?.remove();
+    document.getElementById('scoring-table')?.remove();
     // Show normal game elements
     document.getElementById('market-area').classList.remove('hidden');
     document.getElementById('my-hand-row').classList.remove('hidden');
@@ -452,6 +453,9 @@ function renderGameOver() {
     document.getElementById('scoring-leaderboard')?.remove();
     renderScoringBar(regionEntries, sanctuaryEntries, runningTotal);
   }
+
+  // Scoring table (all players)
+  renderScoringTable();
 }
 
 function renderScoringBar(regionEntries, sanctuaryEntries, runningTotal) {
@@ -508,6 +512,87 @@ function computeRunningTotal(regionEntries, sanctuaryEntries, revealIdx) {
 function advanceScoringReveal() {
   scoringRevealIndex++;
   renderGameOver();
+}
+
+function renderScoringTable() {
+  if (!state.all_score_details) return;
+
+  let table = document.getElementById('scoring-table');
+  if (!table) {
+    table = document.createElement('div');
+    table.id = 'scoring-table';
+    document.getElementById('my-area').appendChild(table);
+  }
+
+  const details = state.all_score_details;
+  // All players have same number of region entries; use first player to get row count
+  const firstPlayer = details[0];
+  const regionCount = firstPlayer.entries.filter(e => e.kind === 'region').length;
+  const hasSanctuaries = firstPlayer.entries.some(e => e.kind === 'sanctuary');
+
+  // Figure out how many rows are revealed based on scoringRevealIndex
+  // (matches the inline reveal logic: 0=none, 1..N=regions, N+1=sanctuaries)
+  const revealedRegions = Math.min(scoringRevealIndex, regionCount);
+  const sanctuariesScored = scoringRevealIndex > regionCount;
+
+  // Build table HTML
+  let html = '<table><thead><tr><th></th>';
+  for (const p of details) {
+    const isMe = p.seat === mySeat;
+    html += `<th class="${isMe ? 'me' : ''}">${p.name}</th>`;
+  }
+  html += '</tr></thead><tbody>';
+
+  // Region rows (right-to-left, matching reveal order)
+  for (let r = 0; r < regionCount; r++) {
+    const revealed = r < revealedRegions;
+    html += `<tr class="${revealed ? 'revealed' : 'hidden-row'}">`;
+    html += `<td class="row-label">Card ${r + 1}</td>`;
+    for (const p of details) {
+      const entry = p.entries[r]; // entries are already right-to-left
+      if (revealed) {
+        const cls = entry.points > 0 ? 'pts positive' : 'pts zero';
+        html += `<td class="${cls}" title="${entry.explanation}">${entry.points > 0 ? '+' + entry.points : '0'}</td>`;
+      } else {
+        html += '<td class="pts hidden-cell">—</td>';
+      }
+    }
+    html += '</tr>';
+  }
+
+  // Sanctuary row
+  if (hasSanctuaries) {
+    html += `<tr class="${sanctuariesScored ? 'revealed' : 'hidden-row'}">`;
+    html += '<td class="row-label">Sanct.</td>';
+    for (const p of details) {
+      const sanctEntries = p.entries.filter(e => e.kind === 'sanctuary');
+      const sanctTotal = sanctEntries.reduce((s, e) => s + e.points, 0);
+      const sanctExp = sanctEntries.map(e => `${e.number}: ${e.points > 0 ? '+' + e.points : '0'}`).join(', ');
+      if (sanctuariesScored) {
+        const cls = sanctTotal > 0 ? 'pts positive' : 'pts zero';
+        html += `<td class="${cls}" title="${sanctExp}">${sanctTotal > 0 ? '+' + sanctTotal : '0'}</td>`;
+      } else {
+        html += '<td class="pts hidden-cell">—</td>';
+      }
+    }
+    html += '</tr>';
+  }
+
+  // Total row
+  html += '<tr class="total-row"><td class="row-label">Total</td>';
+  for (const p of details) {
+    const regionPts = p.entries.filter(e => e.kind === 'region').slice(0, revealedRegions)
+      .reduce((s, e) => s + e.points, 0);
+    const sanctPts = sanctuariesScored
+      ? p.entries.filter(e => e.kind === 'sanctuary').reduce((s, e) => s + e.points, 0)
+      : 0;
+    const total = regionPts + sanctPts;
+    html += `<td class="pts total">${total}</td>`;
+  }
+  html += '</tr>';
+
+  html += '</tbody></table>';
+  table.innerHTML = html;
 }
 
 function renderInlineLeaderboard() {

@@ -2,6 +2,15 @@ use serde::Serialize;
 use crate::cards::{Biome, Fame, RegionCard, SanctuaryCard, Wonder, WonderCount};
 use crate::game::PlayerState;
 
+/// Per-player score detail (for the scoring table visible to all).
+#[derive(Debug, Clone, Serialize)]
+pub struct PlayerScoreDetail {
+    pub seat: usize,
+    pub name: String,
+    pub entries: Vec<CardScoreEntry>,
+    pub total: u32,
+}
+
 /// Per-card score breakdown entry sent to the client.
 #[derive(Debug, Clone, Serialize)]
 pub struct CardScoreEntry {

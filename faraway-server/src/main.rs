@@ -173,6 +173,24 @@ async fn apply_action(
     }
 }
 
+// ─── Demo endpoint ────────────────────────────────────────────────────────────
+
+/// GET /demo/<room_name> — create a room with a pre-completed game for testing scoring UI.
+#[get("/demo/<room_name>")]
+async fn demo_game(
+    room_name: &str,
+    rooms_state: &State<Arc<Mutex<Rooms>>>,
+) -> String {
+    let mut rooms = rooms_state.lock().await;
+    let room_name = room_name.to_string();
+    let (sender, _) = broadcast::channel(1);
+    rooms.0.insert(room_name.clone(), GameRoom {
+        state: GameState::new_demo(),
+        sender,
+    });
+    format!("Demo game created in room '{}'. Connect as Alice or Bob.", room_name)
+}
+
 // ─── Health check ─────────────────────────────────────────────────────────────
 
 #[get("/")]
@@ -185,7 +203,7 @@ fn index() -> &'static str {
 #[launch]
 fn rocket() -> _ {
     rocket::build()
-        .mount("/", routes![index, play_game])
+        .mount("/", routes![index, play_game, demo_game])
         .configure(rocket::Config {
             address: "0.0.0.0".parse().unwrap(),
             port: std::env::var("ROCKET_PORT")

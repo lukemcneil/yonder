@@ -617,6 +617,78 @@ body {
   color: #888;
 }
 
+/* ── Scoring table ────────────────────────────────────────────────────────── */
+
+#scoring-table {
+  flex-shrink: 0;
+  overflow-x: auto;
+}
+
+#scoring-table table {
+  border-collapse: collapse;
+  font-size: 0.8rem;
+  width: auto;
+}
+
+#scoring-table th,
+#scoring-table td {
+  padding: 0.25rem 0.5rem;
+  text-align: center;
+  border: 1px solid #2a2a44;
+}
+
+#scoring-table th {
+  background: #1a1a30;
+  color: #aaa;
+  font-weight: 600;
+}
+
+#scoring-table th.me {
+  color: #c9a84c;
+}
+
+#scoring-table .row-label {
+  text-align: right;
+  color: #888;
+  font-size: 0.7rem;
+  white-space: nowrap;
+}
+
+#scoring-table .pts {
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+}
+
+#scoring-table .pts.positive {
+  color: #6fdc6f;
+}
+
+#scoring-table .pts.zero {
+  color: #555;
+}
+
+#scoring-table .pts.hidden-cell {
+  color: #333;
+}
+
+#scoring-table .pts.total {
+  color: #c9a84c;
+  font-size: 0.9rem;
+}
+
+#scoring-table .hidden-row {
+  opacity: 0.4;
+}
+
+#scoring-table .total-row {
+  border-top: 2px solid #c9a84c;
+}
+
+#scoring-table .total-row .row-label {
+  color: #c9a84c;
+  font-weight: 700;
+}
+
 /* ── Card hover zoom popover ─────────────────────────────────────────────── */
 
 #card-zoom {
@@ -728,6 +800,10 @@ body {
   .score-row { gap: 1rem; font-size: 0.9rem; }
   #scoring-leaderboard { padding: 0.75rem; }
   .leaderboard-title { font-size: 1.1rem; }
+
+  /* Scoring table */
+  #scoring-table table { font-size: 0.7rem; }
+  #scoring-table th, #scoring-table td { padding: 0.15rem 0.3rem; }
 
   /* Card zoom — smaller on mobile */
   #card-zoom.region { width: 130px; height: 130px; }

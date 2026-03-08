@@ -413,6 +413,37 @@ impl GameState {
         self.phase = GamePhase::GameOver { scores };
     }
 
+    /// Create a demo game already in GameOver state with 2 players and real cards.
+    pub fn new_demo() -> Self {
+        let region_deck = get_region_deck();
+        let sanctuary_deck = get_sanctuary_deck();
+
+        // Deal 8 region cards to each player, plus a few sanctuaries.
+        let mut gs = Self {
+            phase: GamePhase::WaitingForPlayers { needed: 2 },
+            round: 8,
+            players: vec![
+                PlayerState::new(0, "Alice".to_string()),
+                PlayerState::new(1, "Bob".to_string()),
+            ],
+            region_deck: Vec::new(),
+            sanctuary_deck: Vec::new(),
+            market: Vec::new(),
+            player_count: 2,
+        };
+
+        // Give Alice first 8 cards, Bob next 8
+        gs.players[0].tableau = region_deck[0..8].to_vec();
+        gs.players[1].tableau = region_deck[8..16].to_vec();
+
+        // Give each player 2 sanctuaries
+        gs.players[0].sanctuaries = sanctuary_deck[0..2].to_vec();
+        gs.players[1].sanctuaries = sanctuary_deck[2..4].to_vec();
+
+        gs.finalize_scores();
+        gs
+    }
+
     fn require_phase_choosing_cards(&self) -> Result<(), ActionError> {
         match &self.phase {
             GamePhase::Playing(RoundPhase::ChoosingCards) => Ok(()),
@@ -447,6 +478,8 @@ pub struct ClientGameState {
     pub scores: Option<Vec<PlayerScore>>,
     /// Per-card score breakdown for THIS player only. None during play.
     pub my_score_detail: Option<Vec<CardScoreEntry>>,
+    /// Per-card score breakdown for ALL players (for scoring table). None during play.
+    pub all_score_details: Option<Vec<crate::scoring::PlayerScoreDetail>>,
     pub player_count: usize,
 }
 
@@ -510,6 +543,22 @@ impl GameState {
             _ => None,
         };
 
+        let all_score_details = match &self.phase {
+            GamePhase::GameOver { .. } => {
+                Some(self.players.iter().map(|p| {
+                    let entries = crate::scoring::score_player_detailed(p);
+                    let total = entries.iter().map(|e| e.points).sum();
+                    crate::scoring::PlayerScoreDetail {
+                        seat: p.seat,
+                        name: p.name.clone(),
+                        entries,
+                        total,
+                    }
+                }).collect())
+            }
+            _ => None,
+        };
+
         let players: Vec<ClientPlayerState> = self.players.iter().map(|p| {
             ClientPlayerState {
                 seat: p.seat,
@@ -540,6 +589,7 @@ impl GameState {
             sanctuary_choices,
             scores,
             my_score_detail,
+            all_score_details,
             player_count: self.player_count,
         }
     }
