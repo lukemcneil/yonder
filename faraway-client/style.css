@@ -234,7 +234,7 @@ body {
 /* ── Card ─────────────────────────────────────────────────────────────────── */
 
 .card {
-  border-radius: 5px;
+  border-radius: 10%;
   overflow: hidden;
   flex-shrink: 0;
   position: relative;
@@ -358,7 +358,7 @@ body {
 
 .sanctuary-choice-card {
   cursor: pointer;
-  border-radius: 6px;
+  border-radius: 10%;
   overflow: hidden;
   border: 3px solid transparent;
   width: 80px;
@@ -655,7 +655,7 @@ body {
   position: fixed;
   z-index: 500;
   pointer-events: none;
-  border-radius: 8px;
+  border-radius: 10%;
   overflow: hidden;
   border: 2px solid #c9a84c;
   box-shadow: 0 8px 32px rgba(0,0,0,0.7);

@@ -92,6 +92,10 @@ _(Add tasks here as they are discovered during implementation)_
 
 - [ ] Decide: serve frontend as static files from Rocket, or run separately?
 - [ ] Decide: how to handle a player disconnecting mid-game?
+- [ ] Mobile support: make the game playable on mobile devices (responsive layout, touch interactions)
+- [x] Remove white corners on card images (round corners or mask to match card art)
+- [ ] Put sanctuary cards visually under/behind region cards in the tableau
+- [ ] Rework scoring animation: flip all 8 region cards face-down in place, then reveal right-to-left with score animations and running totals below each card. Add a scoring table on the side with 9 rows (one per region card + one for all sanctuaries) and a column per player.
 
 ---
 
