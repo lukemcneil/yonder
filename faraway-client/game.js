@@ -578,7 +578,10 @@ function showStatus(msg) {
 connectBtn.addEventListener('click', connect);
 playerNameEl.addEventListener('keydown', e => { if (e.key === 'Enter') connect(); });
 roomNameEl.addEventListener('keydown', e => { if (e.key === 'Enter') connect(); });
-playAgainBtn.addEventListener('click', () => location.reload());
+playAgainBtn.addEventListener('click', () => {
+  location.hash = '';
+  location.reload();
+});
 scoringNextBtn.addEventListener('click', advanceScoringReveal);
 
 // Pre-fill from URL hash if present (e.g. #room1/Alice) and auto-connect.
