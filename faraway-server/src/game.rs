@@ -321,8 +321,7 @@ impl GameState {
         use crate::scoring::score_player;
         let scores: Vec<PlayerScore> = self.players.iter().map(|p| {
             let total = score_player(p);
-            let card_number_sum = p.tableau.iter().map(|c| c.number as u32).sum::<u32>()
-                + p.sanctuaries.iter().map(|c| c.tile as u32).sum::<u32>();
+            let card_number_sum = p.tableau.iter().map(|c| c.number as u32).sum::<u32>();
             PlayerScore {
                 seat: p.seat,
                 name: p.name.clone(),
