@@ -232,7 +232,7 @@ function renderMarket() {
   const isDrafting = state.phase === 'drafting' && state.current_drafter === mySeat;
 
   state.market.forEach((card, idx) => {
-    const el = regionCardEl(card, 'lg', false);
+    const el = regionCardEl(card, 'xl', false);
     if (isDrafting) {
       el.classList.add('draftable');
       el.addEventListener('click', () => send({ action: 'DraftCard', market_index: idx }));
@@ -249,7 +249,7 @@ function renderMyArea() {
   const me = state.players.find(p => p.seat === mySeat);
   if (me) {
     for (const card of me.tableau) {
-      myTableau.appendChild(regionCardEl(card, 'lg', false));
+      myTableau.appendChild(regionCardEl(card, 'xl', false));
     }
   }
 
@@ -257,7 +257,7 @@ function renderMyArea() {
   mySanctuaries.innerHTML = '';
   if (me) {
     for (const s of me.sanctuaries) {
-      mySanctuaries.appendChild(sanctuaryCardEl(s, 'lg'));
+      mySanctuaries.appendChild(sanctuaryCardEl(s, 'md'));
     }
   }
 

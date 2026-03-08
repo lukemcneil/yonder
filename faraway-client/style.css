@@ -201,6 +201,14 @@ body {
   overflow-x: auto;
 }
 
+#my-sanctuaries-row {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  flex-shrink: 0;
+  overflow-x: auto;
+}
+
 #my-tableau-label, #my-sanctuaries-label {
   font-size: 0.75rem;
   color: #888;
