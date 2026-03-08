@@ -78,10 +78,10 @@
 
 ## M6 — Polish
 
-- [ ] Reconnect on refresh (store room + player name in URL hash)
+- [x] Reconnect on refresh (store room + player name in URL hash)
 - [ ] Spectator mode (join after game started → read-only view, no actions)
 - [ ] Card tooltip on hover (show card data: wonders, quest, scoring condition)
-- [ ] Advanced setup variant (deal 5, keep 3 — add toggle on lobby screen)
+- [x] Advanced setup variant (deal 5, keep 3 — add toggle on lobby screen)
 - [ ] Game cleanup: remove rooms after game ends + 1 hour idle timeout
 
 ---

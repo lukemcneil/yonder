@@ -24,6 +24,11 @@ const myTableau      = document.getElementById('my-tableau');
 const mySanctuaries  = document.getElementById('my-sanctuaries');
 const myHand         = document.getElementById('my-hand');
 
+const advancedCheckbox   = document.getElementById('advanced-variant');
+const advancedModal      = document.getElementById('advanced-modal');
+const advancedChoicesEl  = document.getElementById('advanced-choices');
+const advancedConfirmBtn = document.getElementById('advanced-confirm-btn');
+
 const sanctuaryModal   = document.getElementById('sanctuary-modal');
 const sanctuaryChoices = document.getElementById('sanctuary-choices');
 
@@ -119,6 +124,7 @@ function render() {
   renderOpponents();
   renderMarket();
   renderMyArea();
+  renderAdvancedSetupModal();
   renderSanctuaryModal();
   renderGameOver();
 }
@@ -137,6 +143,12 @@ function renderStatusBar() {
       ? `Waiting for players… (${joined} joined, need at least 2)`
       : `${joined} players joined${mySeat === 0 ? ' — click Start Game when ready' : ' — waiting for host to start'}`;
     statusPhase.textContent = msg;
+  } else if (phase === 'advanced_setup') {
+    if (state.advanced_setup_choices) {
+      statusPhase.textContent = 'Advanced setup: choose 3 cards to keep.';
+    } else {
+      statusPhase.textContent = 'Advanced setup: waiting for other players to choose…';
+    }
   } else if (phase === 'choosing_cards') {
     const waiting = state.players.filter(p => !p.played_this_round).map(p => p.name);
     if (waiting.includes(myName())) {
@@ -269,10 +281,54 @@ function renderMyArea() {
     btn.id = startBtnId;
     btn.textContent = 'Start Game';
     btn.style.cssText = 'padding:0.5rem 1.2rem;background:#c9a84c;color:#1a1a2e;border:none;border-radius:6px;font-weight:700;cursor:pointer;margin-left:1rem;';
-    btn.addEventListener('click', () => send({ action: 'StartGame' }));
+    btn.addEventListener('click', () => send({ action: 'StartGame', advanced: advancedCheckbox.checked }));
     myHand.appendChild(btn);
   }
 }
+
+// ── Advanced setup modal ──────────────────────────────────────────────────────
+
+let advancedSelected = new Set();
+
+function renderAdvancedSetupModal() {
+  if (state.phase !== 'advanced_setup' || !state.advanced_setup_choices) {
+    advancedModal.classList.add('hidden');
+    advancedSelected.clear();
+    return;
+  }
+
+  advancedModal.classList.remove('hidden');
+  advancedChoicesEl.innerHTML = '';
+  advancedSelected.clear();
+  updateAdvancedConfirmBtn();
+
+  state.advanced_setup_choices.forEach((card, idx) => {
+    const el = regionCardEl(card, 'lg', true);
+    el.dataset.idx = idx;
+    el.addEventListener('click', () => {
+      if (advancedSelected.has(idx)) {
+        advancedSelected.delete(idx);
+        el.classList.remove('selected');
+      } else if (advancedSelected.size < 3) {
+        advancedSelected.add(idx);
+        el.classList.add('selected');
+      }
+      updateAdvancedConfirmBtn();
+    });
+    advancedChoicesEl.appendChild(el);
+  });
+}
+
+function updateAdvancedConfirmBtn() {
+  const n = advancedSelected.size;
+  advancedConfirmBtn.disabled = n !== 3;
+  advancedConfirmBtn.textContent = `Keep selected (${n} / 3)`;
+}
+
+advancedConfirmBtn.addEventListener('click', () => {
+  const indices = Array.from(advancedSelected);
+  send({ action: 'KeepCards', indices });
+});
 
 // ── Sanctuary modal ───────────────────────────────────────────────────────────
 

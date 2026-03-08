@@ -68,7 +68,7 @@ mod tests {
         let mut gs = GameState::new_waiting(2);
         gs.join("Alice").unwrap();
         gs.join("Bob").unwrap();
-        gs.start_game(0).unwrap();
+        gs.start_game(0, false).unwrap();
         assert_eq!(gs.players[0].hand.len(), 3);
         assert_eq!(gs.players[1].hand.len(), 3);
         assert_eq!(gs.market.len(), 3); // 2 players + 1
@@ -79,7 +79,7 @@ mod tests {
         let mut gs = GameState::new_waiting(2);
         gs.join("Alice").unwrap();
         gs.join("Bob").unwrap();
-        gs.start_game(0).unwrap();
+        gs.start_game(0, false).unwrap();
         assert_eq!(gs.round, 1);
         assert!(matches!(gs.phase, GamePhase::Playing(RoundPhase::ChoosingCards)));
     }
@@ -88,7 +88,7 @@ mod tests {
     fn start_game_requires_at_least_2_players() {
         let mut gs = GameState::new_waiting(2);
         gs.join("Alice").unwrap();
-        let err = gs.start_game(0).unwrap_err();
+        let err = gs.start_game(0, false).unwrap_err();
         assert!(matches!(err, ActionError::NotEnoughPlayers));
     }
 
@@ -97,7 +97,7 @@ mod tests {
         let mut gs = GameState::new_waiting(2);
         gs.join("Alice").unwrap();
         gs.join("Bob").unwrap();
-        let err = gs.start_game(1).unwrap_err();
+        let err = gs.start_game(1, false).unwrap_err();
         assert!(matches!(err, ActionError::NotYourTurn));
     }
 
@@ -106,9 +106,53 @@ mod tests {
         let mut gs = GameState::new_waiting(2);
         gs.join("Alice").unwrap();
         gs.join("Bob").unwrap();
-        gs.start_game(0).unwrap();
-        let err = gs.start_game(0).unwrap_err();
+        gs.start_game(0, false).unwrap();
+        let err = gs.start_game(0, false).unwrap_err();
         assert!(matches!(err, ActionError::GameAlreadyStarted));
+    }
+
+    // ─── advanced setup ───────────────────────────────────────────────────────
+
+    #[test]
+    fn advanced_start_deals_5_and_enters_setup_phase() {
+        let mut gs = GameState::new_waiting(2);
+        gs.join("Alice").unwrap();
+        gs.join("Bob").unwrap();
+        gs.start_game(0, true).unwrap();
+        assert!(matches!(gs.phase, GamePhase::AdvancedSetup { .. }));
+        // Players have no hand yet; choices are in pending.
+        assert_eq!(gs.players[0].hand.len(), 0);
+        assert_eq!(gs.players[1].hand.len(), 0);
+        let client = gs.to_client_state(0);
+        assert!(client.advanced_setup_choices.is_some());
+        assert_eq!(client.advanced_setup_choices.unwrap().len(), 5);
+    }
+
+    #[test]
+    fn advanced_setup_keep_cards_transitions_to_choosing_when_all_done() {
+        let mut gs = GameState::new_waiting(2);
+        gs.join("Alice").unwrap();
+        gs.join("Bob").unwrap();
+        gs.start_game(0, true).unwrap();
+        gs.keep_cards(0, &[0, 1, 2]).unwrap();
+        // Bob still pending — still in AdvancedSetup.
+        assert!(matches!(gs.phase, GamePhase::AdvancedSetup { .. }));
+        gs.keep_cards(1, &[0, 2, 4]).unwrap();
+        // Both done — should be in ChoosingCards now.
+        assert!(matches!(gs.phase, GamePhase::Playing(RoundPhase::ChoosingCards)));
+        assert_eq!(gs.players[0].hand.len(), 3);
+        assert_eq!(gs.players[1].hand.len(), 3);
+        assert_eq!(gs.round, 1);
+    }
+
+    #[test]
+    fn advanced_setup_reject_duplicate_indices() {
+        let mut gs = GameState::new_waiting(2);
+        gs.join("Alice").unwrap();
+        gs.join("Bob").unwrap();
+        gs.start_game(0, true).unwrap();
+        let err = gs.keep_cards(0, &[0, 0, 1]).unwrap_err();
+        assert!(matches!(err, ActionError::InvalidCardIndex));
     }
 
     // ─── play_card ────────────────────────────────────────────────────────────
@@ -541,7 +585,7 @@ mod tests {
         let mut gs = GameState::new_waiting(2);
         gs.join("Alice").unwrap();
         gs.join("Bob").unwrap();
-        gs.start_game(0).unwrap();
+        gs.start_game(0, false).unwrap();
         let err = gs.join("Carol").unwrap_err();
         assert!(matches!(err, ActionError::GameAlreadyStarted));
     }

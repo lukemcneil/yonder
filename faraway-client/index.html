@@ -18,6 +18,11 @@
       <label for="room-name">Room</label>
       <input type="text" id="room-name" placeholder="room1" maxlength="30">
 
+      <label class="checkbox-label">
+        <input type="checkbox" id="advanced-variant">
+        Advanced variant (deal 5, keep 3)
+      </label>
+
       <button id="connect-btn">Join Game</button>
       <div id="lobby-status"></div>
     </div>
@@ -57,6 +62,16 @@
       </div>
     </div>
 
+  </div>
+
+  <!-- Advanced setup modal: pick 3 from 5 -->
+  <div id="advanced-modal" class="hidden">
+    <div id="advanced-modal-inner">
+      <h2>Advanced Setup</h2>
+      <p>Choose 3 cards to keep. The other 2 will be shuffled back into the deck.</p>
+      <div id="advanced-choices"></div>
+      <button id="advanced-confirm-btn" disabled>Keep selected (0 / 3)</button>
+    </div>
   </div>
 
   <!-- Sanctuary choice modal -->

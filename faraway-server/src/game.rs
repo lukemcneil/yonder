@@ -11,6 +11,8 @@ use crate::scoring::CardScoreEntry;
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub enum GamePhase {
     WaitingForPlayers { needed: usize },
+    /// Advanced variant: each player has 5 cards and must keep exactly 3.
+    AdvancedSetup { pending: HashMap<usize, Vec<RegionCard>> },
     Playing(RoundPhase),
     GameOver { scores: Vec<PlayerScore> },
 }
@@ -122,8 +124,8 @@ impl GameState {
         Ok(seat)
     }
 
-    /// Start the game. Deals 3 cards to each player, reveals market.
-    pub fn start_game(&mut self, seat: usize) -> Result<(), ActionError> {
+    /// Start the game. Deals 3 cards to each player (or 5 in advanced mode), reveals market.
+    pub fn start_game(&mut self, seat: usize, advanced: bool) -> Result<(), ActionError> {
         if seat != 0 {
             return Err(ActionError::NotYourTurn);
         }
@@ -136,20 +138,93 @@ impl GameState {
         }
         // Lock in player count to however many joined.
         self.player_count = self.players.len();
-        // Deal 3 cards to each player.
+
+        if advanced {
+            // Deal 5 cards to each player; they must keep exactly 3.
+            let mut pending = HashMap::new();
+            for player in &mut self.players {
+                let mut dealt = Vec::new();
+                for _ in 0..5 {
+                    let card = self.region_deck.pop().ok_or(ActionError::DeckEmpty)?;
+                    dealt.push(card);
+                }
+                pending.insert(player.seat, dealt);
+            }
+            self.phase = GamePhase::AdvancedSetup { pending };
+        } else {
+            self.begin_normal_start()?;
+        }
+        Ok(())
+    }
+
+    /// Deal 3 cards per player, reveal market, start round 1.
+    fn begin_normal_start(&mut self) -> Result<(), ActionError> {
         for player in &mut self.players {
             for _ in 0..3 {
                 let card = self.region_deck.pop().ok_or(ActionError::DeckEmpty)?;
                 player.hand.push(card);
             }
         }
+        self.begin_round_1()
+    }
+
+    /// Reveal market and start round 1 (hands already filled).
+    fn begin_round_1(&mut self) -> Result<(), ActionError> {
         // Reveal market: player_count + 1 cards.
-        for _ in 0..=self.players.len() {
+        for _ in 0..=self.player_count {
             let card = self.region_deck.pop().ok_or(ActionError::DeckEmpty)?;
             self.market.push(card);
         }
         self.round = 1;
         self.phase = GamePhase::Playing(RoundPhase::ChoosingCards);
+        Ok(())
+    }
+
+    /// Advanced setup: player keeps exactly 3 cards from their dealt 5 by index.
+    pub fn keep_cards(&mut self, seat: usize, indices: &[usize; 3]) -> Result<(), ActionError> {
+        let pending = match &mut self.phase {
+            GamePhase::AdvancedSetup { pending } => pending,
+            _ => return Err(ActionError::WrongPhase),
+        };
+        let dealt = pending.remove(&seat).ok_or(ActionError::NotYourTurn)?;
+
+        // Validate indices are in-bounds and distinct.
+        let mut sorted = *indices;
+        sorted.sort();
+        if sorted[2] >= dealt.len() || sorted[0] == sorted[1] || sorted[1] == sorted[2] {
+            // Put choices back so player can retry.
+            if let GamePhase::AdvancedSetup { pending } = &mut self.phase {
+                pending.insert(seat, dealt);
+            }
+            return Err(ActionError::InvalidCardIndex);
+        }
+
+        // Separate kept vs discarded.
+        let kept: Vec<RegionCard> = indices.iter().map(|&i| dealt[i].clone()).collect();
+        let discarded: Vec<RegionCard> = dealt.into_iter().enumerate()
+            .filter(|(i, _)| !indices.contains(i))
+            .map(|(_, c)| c)
+            .collect();
+
+        // Give the player their 3 kept cards.
+        self.player_mut(seat)?.hand = kept;
+
+        // Shuffle discards back into the region deck.
+        use rand::seq::SliceRandom;
+        let mut rng = rand::thread_rng();
+        let mut deck_with_discards = discarded;
+        deck_with_discards.extend(self.region_deck.drain(..));
+        deck_with_discards.shuffle(&mut rng);
+        self.region_deck = deck_with_discards;
+
+        // If all players have chosen, reveal market and start round 1.
+        let all_done = match &self.phase {
+            GamePhase::AdvancedSetup { pending } => pending.is_empty(),
+            _ => false,
+        };
+        if all_done {
+            self.begin_round_1()?;
+        }
         Ok(())
     }
 
@@ -359,6 +434,8 @@ pub struct ClientGameState {
     pub sanctuary_deck_size: usize,
     pub draft_order: Vec<usize>,
     pub current_drafter: Option<usize>,
+    /// Present only during AdvancedSetup for this player (the 5 dealt cards).
+    pub advanced_setup_choices: Option<Vec<RegionCard>>,
     /// Present only when it's this player's turn to choose a sanctuary.
     pub sanctuary_choices: Option<Vec<SanctuaryCard>>,
     pub scores: Option<Vec<PlayerScore>>,
@@ -381,6 +458,7 @@ pub struct ClientPlayerState {
 #[serde(rename_all = "snake_case")]
 pub enum ClientPhase {
     WaitingForPlayers,
+    AdvancedSetup,
     ChoosingCards,
     SanctuaryChoice,
     Drafting,
@@ -389,25 +467,29 @@ pub enum ClientPhase {
 
 impl GameState {
     pub fn to_client_state(&self, my_seat: usize) -> ClientGameState {
-        let (phase, draft_order, current_drafter, sanctuary_choices) = match &self.phase {
+        let (phase, draft_order, current_drafter, sanctuary_choices, advanced_setup_choices) = match &self.phase {
             GamePhase::WaitingForPlayers { .. } => {
-                (ClientPhase::WaitingForPlayers, vec![], None, None)
+                (ClientPhase::WaitingForPlayers, vec![], None, None, None)
+            }
+            GamePhase::AdvancedSetup { pending } => {
+                let my_choices = pending.get(&my_seat).cloned();
+                (ClientPhase::AdvancedSetup, vec![], None, None, my_choices)
             }
             GamePhase::Playing(RoundPhase::ChoosingCards) => {
-                (ClientPhase::ChoosingCards, vec![], None, None)
+                (ClientPhase::ChoosingCards, vec![], None, None, None)
             }
             GamePhase::Playing(RoundPhase::RevealingAndSanctuaries) => {
-                (ClientPhase::ChoosingCards, vec![], None, None)
+                (ClientPhase::ChoosingCards, vec![], None, None, None)
             }
             GamePhase::Playing(RoundPhase::SanctuaryChoice { pending }) => {
                 let my_choices = pending.get(&my_seat).cloned();
-                (ClientPhase::SanctuaryChoice, vec![], None, my_choices)
+                (ClientPhase::SanctuaryChoice, vec![], None, my_choices, None)
             }
             GamePhase::Playing(RoundPhase::Drafting { order, current }) => {
                 let drafter = order.get(*current).copied();
-                (ClientPhase::Drafting, order.clone(), drafter, None)
+                (ClientPhase::Drafting, order.clone(), drafter, None, None)
             }
-            GamePhase::GameOver { .. } => (ClientPhase::GameOver, vec![], None, None),
+            GamePhase::GameOver { .. } => (ClientPhase::GameOver, vec![], None, None, None),
         };
 
         let scores = match &self.phase {
@@ -448,6 +530,7 @@ impl GameState {
             sanctuary_deck_size: self.sanctuary_deck.len(),
             draft_order,
             current_drafter,
+            advanced_setup_choices,
             sanctuary_choices,
             scores,
             my_score_detail,
@@ -461,7 +544,8 @@ impl GameState {
 #[derive(Debug, Deserialize)]
 #[serde(tag = "action")]
 pub enum ClientAction {
-    StartGame,
+    StartGame { advanced: bool },
+    KeepCards { indices: [usize; 3] },
     PlayCard { card_index: usize },
     ChooseSanctuary { sanctuary_index: usize },
     DraftCard { market_index: usize },
