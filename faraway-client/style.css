@@ -496,6 +496,31 @@ body {
   color: #888;
 }
 
+/* Live score badges (during gameplay, more subtle) */
+.score-badge.live {
+  font-size: 0.7rem;
+  padding: 1px 4px;
+  opacity: 0.85;
+}
+
+/* Floating score tooltip (click card to show) */
+#score-tip {
+  position: fixed;
+  transform: translate(-50%, -100%);
+  background: rgba(0, 0, 0, 0.92);
+  color: #fff;
+  font-size: 0.8rem;
+  padding: 5px 10px;
+  border-radius: 5px;
+  white-space: nowrap;
+  z-index: 400;
+  pointer-events: none;
+}
+
+#score-tip.hidden {
+  display: none;
+}
+
 .score-badge-sm {
   position: absolute;
   bottom: 2px;

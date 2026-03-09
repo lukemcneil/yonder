@@ -50,6 +50,25 @@ fn score_sanctuary(
     compute_fame(&card.fame, visible_regions, other_sanctuaries)
 }
 
+fn quest_not_met_explanation(
+    quest: &WonderCount,
+    visible_regions: &[&RegionCard],
+    sanctuaries: &[&SanctuaryCard],
+) -> String {
+    let have = count_wonders_in_context(visible_regions, sanctuaries);
+    let mut missing = Vec::new();
+    if have.stone < quest.stone {
+        missing.push(format!("need {} Stone, have {}", quest.stone, have.stone));
+    }
+    if have.chimera < quest.chimera {
+        missing.push(format!("need {} Chimera, have {}", quest.chimera, have.chimera));
+    }
+    if have.thistle < quest.thistle {
+        missing.push(format!("need {} Thistle, have {}", quest.thistle, have.thistle));
+    }
+    format!("Quest not met: {}", missing.join(", "))
+}
+
 fn prerequisites_met(
     quest: &WonderCount,
     visible_regions: &[&RegionCard],
@@ -162,9 +181,9 @@ fn compute_fame(
 
 fn biome_name(biome: &Biome) -> &'static str {
     match biome {
-        Biome::Red => "Forest",
-        Biome::Green => "River",
-        Biome::Blue => "Desert",
+        Biome::Red => "Desert",
+        Biome::Green => "Forest",
+        Biome::Blue => "River",
         Biome::Yellow => "City",
         Biome::Colorless => "Colorless",
     }
@@ -239,7 +258,7 @@ pub fn score_player_detailed(player: &PlayerState) -> Vec<CardScoreEntry> {
             0
         };
         let explanation = if !quest_met {
-            "Quest not met".to_string()
+            quest_not_met_explanation(&card.quest, &visible_regions, &visible_sanctuaries)
         } else {
             fame_explanation(&card.fame, &visible_regions, &visible_sanctuaries)
         };

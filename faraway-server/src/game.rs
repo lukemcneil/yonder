@@ -536,12 +536,10 @@ impl GameState {
             _ => None,
         };
 
-        let my_score_detail = match &self.phase {
-            GamePhase::GameOver { .. } => {
-                self.players.get(my_seat).map(|p| crate::scoring::score_player_detailed(p))
-            }
-            _ => None,
-        };
+        // Live score detail: always computed when the player has cards in their tableau.
+        let my_score_detail = self.players.get(my_seat)
+            .filter(|p| !p.tableau.is_empty())
+            .map(|p| crate::scoring::score_player_detailed(p));
 
         let all_score_details = match &self.phase {
             GamePhase::GameOver { .. } => {

@@ -237,20 +237,56 @@ function renderMyArea() {
   // During game_over, renderGameOver handles the tableau/sanctuaries
   if (state.phase === 'game_over') return;
 
-  // Tableau
+  // Tableau (with live score badges)
   myTableau.innerHTML = '';
   const me = state.players.find(p => p.seat === mySeat);
+  const liveRegionEntries = state.my_score_detail
+    ? state.my_score_detail.filter(e => e.kind === 'region')
+    : [];
   if (me) {
-    for (const card of me.tableau) {
-      myTableau.appendChild(regionCardEl(card, 'xl', false));
+    for (let i = 0; i < me.tableau.length; i++) {
+      const card = me.tableau[i];
+      const el = regionCardEl(card, 'xl', false);
+      // Map tableau index to detail: detail is right-to-left, tableau is left-to-right
+      const detailIdx = liveRegionEntries.length - 1 - i;
+      if (detailIdx >= 0 && detailIdx < liveRegionEntries.length) {
+        const entry = liveRegionEntries[detailIdx];
+        const badge = document.createElement('div');
+        badge.className = 'score-badge live' + (entry.points > 0 ? ' positive' : ' zero');
+        badge.textContent = entry.points > 0 ? `+${entry.points}` : '0';
+        el.appendChild(badge);
+        el.style.cursor = 'pointer';
+        el.addEventListener('click', (e) => {
+          e.stopPropagation();
+          showScoreTip(el, entry.explanation);
+        });
+      }
+      myTableau.appendChild(el);
     }
   }
 
-  // Sanctuaries
+  // Sanctuaries (with live score badges)
   mySanctuaries.innerHTML = '';
+  const liveSanctEntries = state.my_score_detail
+    ? state.my_score_detail.filter(e => e.kind === 'sanctuary')
+    : [];
   if (me) {
-    for (const s of me.sanctuaries) {
-      mySanctuaries.appendChild(sanctuaryCardEl(s, 'md'));
+    for (let i = 0; i < me.sanctuaries.length; i++) {
+      const s = me.sanctuaries[i];
+      const el = sanctuaryCardEl(s, 'md');
+      if (i < liveSanctEntries.length) {
+        const entry = liveSanctEntries[i];
+        const badge = document.createElement('div');
+        badge.className = 'score-badge-sm live' + (entry.points > 0 ? ' positive' : ' zero');
+        badge.textContent = entry.points > 0 ? `+${entry.points}` : '0';
+        el.appendChild(badge);
+        el.style.cursor = 'pointer';
+        el.addEventListener('click', (e) => {
+          e.stopPropagation();
+          showScoreTip(el, entry.explanation);
+        });
+      }
+      mySanctuaries.appendChild(el);
     }
   }
 
@@ -739,6 +775,32 @@ function showStatus(msg) {
 }
 
 // ── Wire up ───────────────────────────────────────────────────────────────────
+
+// ── Score tooltip (floating, click to show) ──────────────────────────────────
+
+const scoreTip = document.createElement('div');
+scoreTip.id = 'score-tip';
+scoreTip.className = 'hidden';
+document.body.appendChild(scoreTip);
+
+function showScoreTip(anchorEl, text) {
+  const wasVisible = !scoreTip.classList.contains('hidden') && scoreTip._anchor === anchorEl;
+  hideScoreTip();
+  if (wasVisible) return; // toggle off
+  scoreTip.textContent = text;
+  scoreTip.classList.remove('hidden');
+  scoreTip._anchor = anchorEl;
+  const rect = anchorEl.getBoundingClientRect();
+  scoreTip.style.left = (rect.left + rect.width / 2) + 'px';
+  scoreTip.style.top = (rect.top - 6) + 'px';
+}
+
+function hideScoreTip() {
+  scoreTip.classList.add('hidden');
+  scoreTip._anchor = null;
+}
+
+document.addEventListener('click', hideScoreTip);
 
 connectBtn.addEventListener('click', connect);
 playerNameEl.addEventListener('keydown', e => { if (e.key === 'Enter') connect(); });
