@@ -104,7 +104,7 @@ fn regions() -> Vec<RegionCard> {
         RegionCard { number: 15, biome: Biome::Green, night: false, clue: true, wonders: WonderCount::zero(), quest: WonderCount::zero(), fame: Fame::PerIcon { icon: Wonder::Chimera, score_per: 2 } },
         RegionCard { number: 16, biome: Biome::Red, night: false, clue: false, wonders: w(0,1,0), quest: WonderCount::zero(), fame: Fame::PerIcon { icon: Wonder::Chimera, score_per: 2 } },
         RegionCard { number: 17, biome: Biome::Blue, night: false, clue: false, wonders: w(1,0,0), quest: w(0,2,0), fame: Fame::PerIcon { icon: Wonder::Stone, score_per: 3 } },
-        RegionCard { number: 18, biome: Biome::Green, night: false, clue: false, wonders: w(0,1,0), quest: WonderCount::zero(), fame: Fame::PerWonderSet { score_per: 10 } },
+        RegionCard { number: 18, biome: Biome::Green, night: false, clue: false, wonders: w(0,1,0), quest: WonderCount::zero(), fame: Fame::PerColourSet { score_per: 10 } },
         RegionCard { number: 19, biome: Biome::Red, night: false, clue: false, wonders: w(0,0,1), quest: WonderCount::zero(), fame: Fame::PerIcon { icon: Wonder::Thistle, score_per: 2 } },
         RegionCard { number: 20, biome: Biome::Green, night: true, clue: true, wonders: WonderCount::zero(), quest: w(1,0,0), fame: Fame::PerNight { score_per: 2 } },
         RegionCard { number: 21, biome: Biome::Blue, night: true, clue: false, wonders: WonderCount::zero(), quest: w(2,0,0), fame: Fame::Flat(8) },

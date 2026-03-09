@@ -270,16 +270,11 @@ pub fn score_player_detailed(player: &PlayerState) -> Vec<CardScoreEntry> {
         });
     }
 
-    for (j, sanc) in sanctuaries.iter().enumerate() {
+    for (_j, sanc) in sanctuaries.iter().enumerate() {
         let full_regions: Vec<&RegionCard> = tableau.iter().collect();
-        let other_sanctuaries: Vec<&SanctuaryCard> = sanctuaries
-            .iter()
-            .enumerate()
-            .filter(|&(k, _)| k != j)
-            .map(|(_, s)| s)
-            .collect();
-        let points = score_sanctuary(sanc, &full_regions, &other_sanctuaries);
-        let explanation = fame_explanation(&sanc.fame, &full_regions, &other_sanctuaries);
+        let all_sanctuaries: Vec<&SanctuaryCard> = sanctuaries.iter().collect();
+        let points = score_sanctuary(sanc, &full_regions, &all_sanctuaries);
+        let explanation = fame_explanation(&sanc.fame, &full_regions, &all_sanctuaries);
         entries.push(CardScoreEntry {
             kind: "sanctuary".to_string(),
             number: sanc.tile,
@@ -449,7 +444,7 @@ mod tests {
             SanctuaryCard { tile: 1,  biome: Biome::Green,     night: false, clue: false, wonders: WonderCount::zero(), fame: Fame::PerColour { biome: Biome::Green, score_per: 1 } },
         ];
         let player = PlayerState { seat: 0, name: "Test".into(), tableau, sanctuaries, hand: vec![], played_this_round: None };
-        assert_eq!(super::score_player(&player), 28);
+        assert_eq!(super::score_player(&player), 29);
     }
 
     #[test]
@@ -478,7 +473,7 @@ mod tests {
         assert_eq!(detail.len(), 10);
         // Sum of detail points should match total
         let detail_total: u32 = detail.iter().map(|e| e.points).sum();
-        assert_eq!(detail_total, 28);
+        assert_eq!(detail_total, 29);
         // First entry should be rightmost card (#30)
         assert_eq!(detail[0].number, 30);
         assert_eq!(detail[0].kind, "region");
@@ -759,8 +754,9 @@ mod tests {
             tableau, sanctuaries, hand: vec![], played_this_round: None,
         };
 
-        // Per-card breakdown:  0 + 4 + 0 + 0 + 5 + 8 + 0 + 0 + (sanct: 0 + 6) = 23
-        assert_eq!(score_player(&player), 23);
+        // Per-card breakdown:  0 + 4 + 0 + 0 + 5 + 8 + 0 + 0 + (sanct: 0 + 7) = 24
+        // (sanct tile3 Blue×1: 5 blue regions + 2 blue sanctuaries incl. self = 7)
+        assert_eq!(score_player(&player), 24);
     }
 
     #[test]

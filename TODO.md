@@ -101,6 +101,7 @@ _(Add tasks here as they are discovered during implementation)_
 - [ ] When you play a card, show it immediately in your tableau (face-down) instead of waiting for all players to reveal.
 - [ ] Draft phase: show each player's highest region number so you can tell draft order at a glance.
 - [ ] Live stats sidebar: show the current player's resource counts (stone, chimera, thistle), color counts (red, green, blue, yellow), clue count, and night/day count. Visible during gameplay on the right side.
+- [ ] Add option to play with expansion cards
 - [x] Live card scores during play: each region card in the tableau shows its current score (based on regions to the right + sanctuaries). Hover/tooltip gives details (e.g. "quest not met yet" or "3 stone × 4 = 12").
 
 ---
