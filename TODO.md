@@ -98,10 +98,11 @@ _(Add tasks here as they are discovered during implementation)_
 - [x] Rework scoring animation: flip all 8 region cards face-down in place, then reveal right-to-left with score animations and running totals below each card (inline, no popup overlay).
 - [x] Add scoring table on the side with 9 rows (one per region card + one for all sanctuaries) and a column per player (needs server to send all_score_details for all players).
 - [x] Audit all 45 sanctuary cards against images (like the region card audit that found 6 errors).
-- [x] When you play a card, show it immediately in your tableau (face-down) instead of waiting for all players to reveal.
+- [x] When you play a card, show it immediately face-up in your tableau with live score badge (opponents see face-down).
 - [ ] Draft phase: show each player's highest region number so you can tell draft order at a glance.
 - [ ] Live stats sidebar: show the current player's resource counts (stone, chimera, thistle), color counts (red, green, blue, yellow), clue count, and night/day count. Visible during gameplay on the right side.
 - [ ] Add option to play with expansion cards
+- [ ] Shouldn't see start game button with 1 person
 - [x] Live card scores during play: each region card in the tableau shows its current score (based on regions to the right + sanctuaries). Hover/tooltip gives details (e.g. "quest not met yet" or "3 stone × 4 = 12").
 
 ---

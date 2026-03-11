@@ -263,12 +263,25 @@ function renderMyArea() {
       }
       myTableau.appendChild(el);
     }
-    // Show face-down placeholder immediately after playing a card
-    if (me.played_this_round && state.phase === 'choosing_cards') {
-      const ph = document.createElement('div');
-      ph.className = 'card xl played-overlay';
-      ph.innerHTML = '<img src="region/card-back.png" alt="face-down">';
-      myTableau.appendChild(ph);
+    // Show the played card face-up immediately (with live score badge)
+    if (state.my_played_card && state.phase === 'choosing_cards') {
+      const card = state.my_played_card;
+      const el = regionCardEl(card, 'xl', false);
+      el.classList.add('played-overlay');
+      // The score detail includes this card — it's the first entry (rightmost = just played)
+      if (liveRegionEntries.length > 0) {
+        const entry = liveRegionEntries[0];
+        const badge = document.createElement('div');
+        badge.className = 'score-badge live' + (entry.points > 0 ? ' positive' : ' zero');
+        badge.textContent = entry.points > 0 ? `+${entry.points}` : '0';
+        el.appendChild(badge);
+        el.style.cursor = 'pointer';
+        el.addEventListener('click', (e) => {
+          e.stopPropagation();
+          showScoreTip(el, entry.explanation);
+        });
+      }
+      myTableau.appendChild(el);
     }
   }
 

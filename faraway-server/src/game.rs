@@ -480,6 +480,8 @@ pub struct ClientGameState {
     pub my_score_detail: Option<Vec<CardScoreEntry>>,
     /// Per-card score breakdown for ALL players (for scoring table). None during play.
     pub all_score_details: Option<Vec<crate::scoring::PlayerScoreDetail>>,
+    /// The card this player played this round (face-up to them only, before reveal).
+    pub my_played_card: Option<RegionCard>,
     pub player_count: usize,
 }
 
@@ -536,10 +538,25 @@ impl GameState {
             _ => None,
         };
 
-        // Live score detail: always computed when the player has cards in their tableau.
+        // The card this player played this round (visible only to them).
+        let my_played_card = self.players.get(my_seat)
+            .and_then(|p| p.played_this_round.clone());
+
+        // Live score detail: include the played-but-not-yet-revealed card so
+        // scores update immediately when the player places a card.
         let my_score_detail = self.players.get(my_seat)
-            .filter(|p| !p.tableau.is_empty())
-            .map(|p| crate::scoring::score_player_detailed(p));
+            .filter(|p| !p.tableau.is_empty() || p.played_this_round.is_some())
+            .map(|p| {
+                if p.played_this_round.is_some() {
+                    let mut tmp = p.clone();
+                    if let Some(card) = tmp.played_this_round.take() {
+                        tmp.tableau.push(card);
+                    }
+                    crate::scoring::score_player_detailed(&tmp)
+                } else {
+                    crate::scoring::score_player_detailed(p)
+                }
+            });
 
         let all_score_details = match &self.phase {
             GamePhase::GameOver { .. } => {
@@ -588,6 +605,7 @@ impl GameState {
             scores,
             my_score_detail,
             all_score_details,
+            my_played_card,
             player_count: self.player_count,
         }
     }
