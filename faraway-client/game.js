@@ -263,6 +263,13 @@ function renderMyArea() {
       }
       myTableau.appendChild(el);
     }
+    // Show face-down placeholder immediately after playing a card
+    if (me.played_this_round && state.phase === 'choosing_cards') {
+      const ph = document.createElement('div');
+      ph.className = 'card xl played-overlay';
+      ph.innerHTML = '<img src="region/card-back.png" alt="face-down">';
+      myTableau.appendChild(ph);
+    }
   }
 
   // Sanctuaries (with live score badges)
