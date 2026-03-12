@@ -935,16 +935,21 @@ body {
     aspect-ratio: 1;
   }
 
-  /* Sanctuaries row: full width grid */
+  /* Sanctuaries row: 7-column grid */
   #my-sanctuaries-row {
     overflow-x: visible;
     padding: 0 3px;
   }
   #my-sanctuaries {
     display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(50px, 1fr));
+    grid-template-columns: repeat(7, 1fr);
     gap: 3px;
     width: 100%;
+  }
+  #my-sanctuaries .card.sanctuary.md {
+    width: 100%;
+    height: auto;
+    aspect-ratio: 189 / 291;
   }
 
   /* Card sizes — shrink ~40-45% */
