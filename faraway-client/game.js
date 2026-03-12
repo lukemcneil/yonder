@@ -256,12 +256,6 @@ function renderOpponents() {
       panel.appendChild(sancts);
     }
 
-    // Meta
-    const meta = document.createElement('div');
-    meta.className = 'opponent-meta';
-    meta.textContent = `Hand: ${p.hand_size}`;
-    panel.appendChild(meta);
-
     opponentsArea.appendChild(panel);
   }
 }
