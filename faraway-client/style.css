@@ -322,6 +322,7 @@ body {
   display: flex;
   gap: 8px;
   flex-wrap: nowrap;
+  justify-content: center;
 }
 
 /* ── Card ─────────────────────────────────────────────────────────────────── */
