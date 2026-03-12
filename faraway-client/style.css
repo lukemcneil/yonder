@@ -197,7 +197,9 @@ body {
   background: #14142a;
   border-bottom: 1px solid #333;
   overflow-x: auto;
-  flex-shrink: 0;
+  overflow-y: auto;
+  flex: 1;
+  min-height: 0;
 }
 
 .opponent-panel {
@@ -270,12 +272,11 @@ body {
 /* ── My area ──────────────────────────────────────────────────────────────── */
 
 #my-area {
-  flex: 1;
   display: flex;
   flex-direction: column;
   padding: 0.5rem 1rem;
   gap: 0.5rem;
-  overflow-y: auto;
+  flex-shrink: 0;
 }
 
 #my-tableau-row {
