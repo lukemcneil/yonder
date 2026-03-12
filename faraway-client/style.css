@@ -698,6 +698,29 @@ body {
   background: #e0be6a;
 }
 
+.play-again-btn.secondary {
+  background: transparent;
+  color: #aaa;
+  border: 1px solid #444;
+}
+
+.play-again-btn.secondary:hover {
+  background: #2a2a3e;
+  color: #e0e0e0;
+}
+
+.leaderboard-buttons {
+  display: flex;
+  gap: 0.5rem;
+  width: 100%;
+  max-width: 400px;
+  margin-top: 0.5rem;
+}
+
+.leaderboard-buttons .play-again-btn {
+  flex: 1;
+}
+
 /* ── Inline leaderboard (after scoring complete) ─────────────────────────── */
 
 #scoring-leaderboard {
