@@ -502,6 +502,11 @@ function renderGameOver() {
       badge.className = 'score-badge' + (entry.points > 0 ? ' positive' : ' zero');
       badge.textContent = entry.points > 0 ? `+${entry.points}` : '0';
       el.appendChild(badge);
+      el.style.cursor = 'pointer';
+      el.addEventListener('click', (e) => {
+        e.stopPropagation();
+        showScoreTip(el, entry.explanation);
+      });
       // Highlight the just-revealed card
       if (revealOrder === scoringRevealIndex - 1) {
         el.classList.add('just-revealed');
@@ -535,6 +540,11 @@ function renderGameOver() {
       badge.className = 'score-badge-sm' + (entry.points > 0 ? ' positive' : ' zero');
       badge.textContent = entry.points > 0 ? `+${entry.points}` : '0';
       el.appendChild(badge);
+      el.style.cursor = 'pointer';
+      el.addEventListener('click', (e) => {
+        e.stopPropagation();
+        showScoreTip(el, entry.explanation);
+      });
     }
     mySanctuaries.appendChild(el);
   }
