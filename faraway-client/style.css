@@ -885,13 +885,13 @@ body {
   #market-area { padding: 0.3rem 3px; gap: 0.3rem; flex-direction: column; }
   #market-label { display: none; }
   #market-cards {
-    display: grid;
-    grid-template-columns: repeat(4, 1fr);
+    display: flex;
+    flex-wrap: wrap;
     gap: 3px;
-    width: 100%;
+    justify-content: center;
   }
   #market-cards .card.xl {
-    width: 100%;
+    width: calc((100vw - 15px) / 4);
     height: auto;
     aspect-ratio: 1;
   }
@@ -900,13 +900,13 @@ body {
   #my-area { padding: 0.3rem 0; gap: 0.2rem; }
   #my-hand-row { gap: 0.4rem; padding: 0 3px; }
   #my-hand {
-    display: grid;
-    grid-template-columns: repeat(4, 1fr);
+    display: flex;
+    flex-wrap: wrap;
     gap: 3px;
-    width: 100%;
+    justify-content: center;
   }
   #my-hand .card.xl {
-    width: 100%;
+    width: calc((100vw - 15px) / 4);
     height: auto;
     aspect-ratio: 1;
   }
