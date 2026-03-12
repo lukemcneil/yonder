@@ -110,6 +110,24 @@ function render() {
   lobby.classList.add('hidden');
   gameBoard.classList.remove('hidden');
 
+  const waitingRoom = document.getElementById('waiting-room');
+  const gameUI = [
+    document.getElementById('status-bar'),
+    document.getElementById('opponents-area'),
+    document.getElementById('market-area'),
+    document.getElementById('my-area'),
+  ];
+
+  if (state.phase === 'waiting_for_players') {
+    waitingRoom.classList.remove('hidden');
+    gameUI.forEach(el => el.classList.add('hidden'));
+    renderWaitingRoom();
+    return;
+  }
+
+  waitingRoom.classList.add('hidden');
+  gameUI.forEach(el => el.classList.remove('hidden'));
+
   renderStatusBar();
   renderOpponents();
   renderMarket();
@@ -117,6 +135,40 @@ function render() {
   renderAdvancedSetupModal();
   renderSanctuaryModal();
   renderGameOver();
+}
+
+// ── Waiting room ─────────────────────────────────────────────────────────────
+
+function renderWaitingRoom() {
+  const roomName = decodeURIComponent(location.hash.split('/')[0].replace('#', ''));
+  document.getElementById('waiting-room-name').textContent = `Room: ${roomName}`;
+
+  const playersEl = document.getElementById('waiting-players');
+  playersEl.innerHTML = '';
+  for (const p of state.players) {
+    const row = document.createElement('div');
+    row.className = 'waiting-player' + (p.seat === 0 ? ' host' : '');
+    row.textContent = p.name + (p.seat === 0 ? ' (host)' : '');
+    playersEl.appendChild(row);
+  }
+
+  const controls = document.getElementById('waiting-controls');
+  const startBtn = document.getElementById('waiting-start-btn');
+  const advToggle = document.getElementById('waiting-advanced');
+  const hint = document.getElementById('waiting-hint');
+
+  if (mySeat === 0) {
+    controls.classList.remove('hidden');
+    startBtn.disabled = state.players.length < 2;
+    startBtn.textContent = state.players.length < 2
+      ? 'Need at least 2 players'
+      : `Start Game (${state.players.length} players)`;
+    startBtn.onclick = () => send({ action: 'StartGame', advanced: advToggle.checked });
+    hint.textContent = '';
+  } else {
+    controls.classList.add('hidden');
+    hint.textContent = 'Waiting for host to start the game…';
+  }
 }
 
 // ── Status bar ───────────────────────────────────────────────────────────────
@@ -322,18 +374,6 @@ function renderMyArea() {
     myHand.appendChild(el);
   });
 
-  // If waiting for players and I'm seat 0, show a Start Game button.
-  // (Server will reject if not enough players have joined yet.)
-  const startBtnId = 'start-game-btn';
-  document.getElementById(startBtnId)?.remove();
-  if (state.phase === 'waiting_for_players' && mySeat === 0 && state.players.length >= 2) {
-    const btn = document.createElement('button');
-    btn.id = startBtnId;
-    btn.textContent = 'Start Game';
-    btn.style.cssText = 'padding:0.5rem 1.2rem;background:#c9a84c;color:#1a1a2e;border:none;border-radius:6px;font-weight:700;cursor:pointer;margin-left:1rem;';
-    btn.addEventListener('click', () => send({ action: 'StartGame', advanced: advancedCheckbox.checked }));
-    myHand.appendChild(btn);
-  }
 }
 
 // ── Advanced setup modal ──────────────────────────────────────────────────────

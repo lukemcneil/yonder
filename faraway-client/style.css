@@ -72,6 +72,90 @@ body {
   min-height: 1.2em;
 }
 
+/* ── Waiting room ─────────────────────────────────────────────────────────── */
+
+#waiting-room {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  min-height: 100vh;
+  gap: 1.2rem;
+}
+
+#waiting-room h1 {
+  font-size: 3rem;
+  letter-spacing: 0.1em;
+  color: #c9a84c;
+  margin: 0;
+}
+
+#waiting-room-name {
+  font-size: 1rem;
+  color: #888;
+  letter-spacing: 0.05em;
+}
+
+#waiting-players {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.4rem;
+  margin: 0.8rem 0;
+  min-width: 200px;
+}
+
+.waiting-player {
+  padding: 0.5rem 1.2rem;
+  background: #2a2a3e;
+  border: 1px solid #444;
+  border-radius: 8px;
+  font-size: 1rem;
+  color: #e0e0e0;
+  width: 100%;
+  text-align: center;
+}
+
+.waiting-player.host {
+  border-color: #c9a84c;
+  color: #c9a84c;
+}
+
+#waiting-controls {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.8rem;
+  margin-top: 0.5rem;
+}
+
+#waiting-controls .checkbox-label {
+  font-size: 0.9rem;
+  color: #aaa;
+  cursor: pointer;
+}
+
+#waiting-start-btn {
+  padding: 0.7rem 2rem;
+  border-radius: 8px;
+  border: none;
+  background: #c9a84c;
+  color: #1a1a2e;
+  font-size: 1.1rem;
+  font-weight: 700;
+  cursor: pointer;
+  transition: background 0.15s;
+}
+
+#waiting-start-btn:hover { background: #e0be6a; }
+#waiting-start-btn:disabled { background: #555; color: #999; cursor: default; }
+
+#waiting-hint {
+  font-size: 0.9rem;
+  color: #888;
+  font-style: italic;
+}
+
 /* ── Game board layout ────────────────────────────────────────────────────── */
 
 #game-board {

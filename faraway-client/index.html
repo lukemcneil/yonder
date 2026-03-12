@@ -31,6 +31,21 @@
   <!-- Game board (hidden until connected) -->
   <div id="game-board" class="hidden">
 
+    <!-- Waiting room (shown before game starts) -->
+    <div id="waiting-room" class="hidden">
+      <h1>Faraway</h1>
+      <div id="waiting-room-name"></div>
+      <div id="waiting-players"></div>
+      <div id="waiting-controls">
+        <label class="checkbox-label">
+          <input type="checkbox" id="waiting-advanced">
+          Advanced variant (deal 5, keep 3)
+        </label>
+        <button id="waiting-start-btn">Start Game</button>
+      </div>
+      <div id="waiting-hint"></div>
+    </div>
+
     <!-- Status bar -->
     <div id="status-bar">
       <span id="status-phase"></span>
