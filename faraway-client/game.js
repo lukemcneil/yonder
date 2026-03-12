@@ -295,6 +295,10 @@ function renderMyArea() {
     ? state.my_score_detail.filter(e => e.kind === 'region')
     : [];
   if (me) {
+    const isMobile = window.innerWidth <= 600;
+    const filledCount = me.tableau.length +
+      (state.my_played_card && state.phase === 'choosing_cards' ? 1 : 0);
+
     for (let i = 0; i < me.tableau.length; i++) {
       const card = me.tableau[i];
       const el = regionCardEl(card, 'xl', false);
@@ -333,6 +337,15 @@ function renderMyArea() {
         });
       }
       myTableau.appendChild(el);
+    }
+    // On mobile, fill remaining slots with empty numbered placeholders
+    if (isMobile) {
+      for (let i = filledCount; i < 8; i++) {
+        const slot = document.createElement('div');
+        slot.className = 'card-slot';
+        slot.textContent = i + 1;
+        myTableau.appendChild(slot);
+      }
     }
   }
 

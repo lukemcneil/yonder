@@ -866,20 +866,92 @@ body {
   .opponent-meta { font-size: 0.6rem; }
 
   /* Market */
-  #market-area { padding: 0.4rem 0.5rem; gap: 0.4rem; }
+  #market-area { padding: 0.3rem 3px; gap: 0.3rem; flex-direction: column; }
   #market-label { display: none; }
-  #market-cards { gap: 4px; }
+  #market-cards {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(60px, 1fr));
+    gap: 3px;
+    width: 100%;
+  }
+  #market-cards .card.xl {
+    width: 100%;
+    height: auto;
+    aspect-ratio: 1;
+  }
 
   /* My area */
-  #my-area { padding: 0.3rem 0.5rem; gap: 0.3rem; }
-  #my-hand-row { gap: 0.4rem; }
-  #my-hand { gap: 4px; }
-  #my-hand-label, #my-tableau-label, #my-sanctuaries-label { font-size: 0.65rem; }
+  #my-area { padding: 0.3rem 0; gap: 0.2rem; }
+  #my-hand-row { gap: 0.4rem; padding: 0 3px; }
+  #my-hand {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 3px;
+    width: 100%;
+  }
+  #my-hand .card.xl {
+    width: 100%;
+    height: auto;
+    aspect-ratio: 1;
+  }
+
+  /* Hide labels on mobile */
+  #my-hand-label, #my-tableau-label, #my-sanctuaries-label { display: none; }
+
+  /* Tableau: 4-column grid filling full width */
+  #my-tableau-row {
+    overflow-x: visible;
+  }
+  #my-tableau {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 3px;
+    width: 100%;
+    padding: 0 3px;
+  }
+
+  /* Tableau cards fill their grid cell */
+  #my-tableau .card.xl,
+  #my-tableau .card-slot {
+    width: 100%;
+    height: auto;
+    aspect-ratio: 1;
+  }
+  #my-tableau .card.xl img {
+    width: 100%;
+    height: 100%;
+  }
+
+  /* Empty slot placeholder */
+  .card-slot {
+    border-radius: 10%;
+    border: 2px dashed #333;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1.2rem;
+    font-weight: 700;
+    color: #333;
+    aspect-ratio: 1;
+  }
+
+  /* Sanctuaries row: full width grid */
+  #my-sanctuaries-row {
+    overflow-x: visible;
+    padding: 0 3px;
+  }
+  #my-sanctuaries {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(50px, 1fr));
+    gap: 3px;
+    width: 100%;
+  }
 
   /* Card sizes — shrink ~40-45% */
   .card.sm  { width: 30px;  height: 30px; }
   .card.md  { width: 40px;  height: 40px; }
   .card.lg  { width: 56px;  height: 56px; }
+  /* xl handled by grid above for tableau, keep fallback for hand */
   .card.xl  { width: 70px;  height: 70px; }
 
   .card.sanctuary    { width: 30px; height: 46px; }
