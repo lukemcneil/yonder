@@ -161,9 +161,8 @@ body {
 #game-board {
   display: flex;
   flex-direction: column;
-  height: 100vh;
-  height: 100dvh;
-  overflow: hidden;
+  min-height: 100vh;
+  min-height: 100dvh;
 }
 
 /* ── Status bar ───────────────────────────────────────────────────────────── */
@@ -197,9 +196,7 @@ body {
   background: #14142a;
   border-bottom: 1px solid #333;
   overflow-x: auto;
-  overflow-y: auto;
-  flex: 1;
-  min-height: 0;
+  flex-shrink: 0;
 }
 
 .opponent-panel {
