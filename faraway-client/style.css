@@ -870,7 +870,7 @@ body {
   #market-label { display: none; }
   #market-cards {
     display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(60px, 1fr));
+    grid-template-columns: repeat(4, 1fr);
     gap: 3px;
     width: 100%;
   }
@@ -885,7 +885,7 @@ body {
   #my-hand-row { gap: 0.4rem; padding: 0 3px; }
   #my-hand {
     display: grid;
-    grid-template-columns: repeat(3, 1fr);
+    grid-template-columns: repeat(4, 1fr);
     gap: 3px;
     width: 100%;
   }
