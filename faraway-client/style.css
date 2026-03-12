@@ -904,6 +904,7 @@ body {
     flex-wrap: wrap;
     gap: 3px;
     justify-content: center;
+    width: 100%;
   }
   #my-hand .card.xl {
     width: calc((100vw - 15px) / 4);
