@@ -410,6 +410,21 @@ body {
   font-size: 1.2rem;
 }
 
+/* Empty tableau slot placeholder */
+.card-slot {
+  width: 120px;
+  height: 120px;
+  border-radius: 10%;
+  border: 2px dashed #333;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1.4rem;
+  font-weight: 700;
+  color: #333;
+  flex-shrink: 0;
+}
+
 /* ── Sanctuary modal ──────────────────────────────────────────────────────── */
 
 #sanctuary-modal {
@@ -920,19 +935,6 @@ body {
   #my-tableau .card.xl img {
     width: 100%;
     height: 100%;
-  }
-
-  /* Empty slot placeholder */
-  .card-slot {
-    border-radius: 10%;
-    border: 2px dashed #333;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    font-size: 1.2rem;
-    font-weight: 700;
-    color: #333;
-    aspect-ratio: 1;
   }
 
   /* Sanctuaries row: 7-column grid */
