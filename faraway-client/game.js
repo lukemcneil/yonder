@@ -741,7 +741,7 @@ function renderInlineLeaderboard() {
   html += '</div>';
   html += '<div class="leaderboard-buttons">';
   html += '<button id="back-to-scores-btn" class="play-again-btn secondary">Back to Scores</button>';
-  html += '<button id="play-again-btn-inline" class="play-again-btn">New Game</button>';
+  html += '<button id="play-again-btn-inline" class="play-again-btn">Back to Lobby</button>';
   html += '</div>';
   lb.innerHTML = html;
   document.getElementById('back-to-scores-btn').addEventListener('click', () => {
