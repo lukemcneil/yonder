@@ -724,17 +724,22 @@ function renderInlineLeaderboard() {
   const totals = sorted.map(s => s.total);
   const hasTie = (t) => totals.filter(v => v === t).length > 1;
 
-  let html = '<div class="leaderboard-title">Final Scores</div><div class="leaderboard-rows">';
+  const medals = ['&#x1f947;', '&#x1f948;', '&#x1f949;'];
+  let html = '<div class="leaderboard-title">Game Over</div>';
+  html += `<div class="leaderboard-winner">${sorted[0].name}</div>`;
+  html += `<div class="leaderboard-winner-score">${sorted[0].total} fame</div>`;
+  html += '<div class="leaderboard-rows">';
   sorted.forEach((s, i) => {
-    const isWinner = i === 0;
-    const tie = hasTie(s.total) ? ` <span class="tiebreaker">(sum: ${s.card_number_sum})</span>` : '';
-    html += `<div class="score-row${isWinner ? ' winner' : ''}">
-      <span>${isWinner ? '&#x1f3c6; ' : ''}${s.name}</span>
-      <span>${s.total} fame${tie}</span>
+    const medal = i < 3 ? medals[i] : `${i + 1}.`;
+    const tie = hasTie(s.total) ? ` <span class="tiebreaker">(tiebreak: ${s.card_number_sum})</span>` : '';
+    html += `<div class="score-row${i === 0 ? ' winner' : ''}">
+      <span class="score-rank">${medal}</span>
+      <span class="score-name">${s.name}</span>
+      <span class="score-pts">${s.total}${tie}</span>
     </div>`;
   });
   html += '</div>';
-  html += '<button id="play-again-btn-inline" class="play-again-btn">Play Again</button>';
+  html += '<button id="play-again-btn-inline" class="play-again-btn">New Game</button>';
   lb.innerHTML = html;
   document.getElementById('play-again-btn-inline').addEventListener('click', () => {
     location.hash = '';

@@ -704,43 +704,87 @@ body {
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 0.75rem;
-  padding: 1rem;
-  background: #1a1a30;
-  border: 1px solid #c9a84c;
-  border-radius: 8px;
+  gap: 0.5rem;
+  padding: 1.2rem 1.5rem;
+  background: linear-gradient(180deg, #1a1a30 0%, #0d0d1e 100%);
+  border: 2px solid #c9a84c;
+  border-radius: 12px;
   flex-shrink: 0;
 }
 
 .leaderboard-title {
-  font-size: 1.3rem;
+  font-size: 1rem;
+  font-weight: 600;
+  color: #888;
+  text-transform: uppercase;
+  letter-spacing: 0.15em;
+}
+
+.leaderboard-winner {
+  font-size: 1.8rem;
   font-weight: 700;
   color: #c9a84c;
+}
+
+.leaderboard-winner-score {
+  font-size: 1.2rem;
+  color: #e0be6a;
+  margin-bottom: 0.5rem;
 }
 
 .leaderboard-rows {
   display: flex;
   flex-direction: column;
-  gap: 0.4rem;
+  gap: 0.35rem;
   width: 100%;
   max-width: 400px;
 }
 
 .score-row {
   display: flex;
-  justify-content: space-between;
-  gap: 2rem;
-  font-size: 1rem;
+  align-items: center;
+  gap: 0.5rem;
+  font-size: 0.95rem;
+  padding: 0.4rem 0.6rem;
+  background: #1a1a30;
+  border-radius: 6px;
+  border: 1px solid #2a2a44;
 }
 
 .score-row.winner {
+  background: rgba(201, 168, 76, 0.1);
+  border-color: #c9a84c;
+}
+
+.score-rank {
+  flex-shrink: 0;
+  width: 1.8em;
+  text-align: center;
+}
+
+.score-name {
+  flex: 1;
+  color: #e0e0e0;
+}
+
+.score-row.winner .score-name {
   color: #c9a84c;
   font-weight: 700;
 }
 
+.score-pts {
+  font-weight: 600;
+  color: #aaa;
+  font-variant-numeric: tabular-nums;
+}
+
+.score-row.winner .score-pts {
+  color: #c9a84c;
+}
+
 .score-row .tiebreaker {
-  font-size: 0.75rem;
-  color: #888;
+  font-size: 0.7rem;
+  color: #666;
 }
 
 /* ── Scoring table ────────────────────────────────────────────────────────── */
@@ -1021,8 +1065,9 @@ body {
     padding: 1rem 0.75rem;
     margin: 0 3px;
   }
-  .leaderboard-title { font-size: 1.3rem; }
-  .score-row { gap: 1rem; font-size: 1rem; }
+  .leaderboard-winner { font-size: 1.5rem; }
+  .leaderboard-winner-score { font-size: 1.1rem; }
+  .score-row { font-size: 0.9rem; }
   .play-again-btn {
     width: 100%;
     padding: 0.7rem;
