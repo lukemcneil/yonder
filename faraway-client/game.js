@@ -24,7 +24,6 @@ const myTableau      = document.getElementById('my-tableau');
 const mySanctuaries  = document.getElementById('my-sanctuaries');
 const myHand         = document.getElementById('my-hand');
 
-const advancedCheckbox   = document.getElementById('advanced-variant');
 const advancedModal      = document.getElementById('advanced-modal');
 const advancedChoicesEl  = document.getElementById('advanced-choices');
 const advancedConfirmBtn = document.getElementById('advanced-confirm-btn');
