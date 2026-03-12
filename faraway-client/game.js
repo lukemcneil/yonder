@@ -326,7 +326,7 @@ function renderMyArea() {
   // (Server will reject if not enough players have joined yet.)
   const startBtnId = 'start-game-btn';
   document.getElementById(startBtnId)?.remove();
-  if (state.phase === 'waiting_for_players' && mySeat === 0) {
+  if (state.phase === 'waiting_for_players' && mySeat === 0 && state.players.length >= 2) {
     const btn = document.createElement('button');
     btn.id = startBtnId;
     btn.textContent = 'Start Game';
