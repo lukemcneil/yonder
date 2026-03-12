@@ -778,6 +778,7 @@ body {
   color: #888;
   font-size: 0.7rem;
   white-space: nowrap;
+  width: 1%;
 }
 
 #scoring-table .pts {
