@@ -854,8 +854,21 @@ function showScoreTip(anchorEl, text) {
   scoreTip.classList.remove('hidden');
   scoreTip._anchor = anchorEl;
   const rect = anchorEl.getBoundingClientRect();
-  scoreTip.style.left = (rect.left + rect.width / 2) + 'px';
-  scoreTip.style.top = (rect.top - 6) + 'px';
+  // Position above card center, then clamp within viewport
+  let left = rect.left + rect.width / 2;
+  let top = rect.top - 6;
+  scoreTip.style.left = left + 'px';
+  scoreTip.style.top = top + 'px';
+  // After rendering, check if it overflows and adjust
+  const tipRect = scoreTip.getBoundingClientRect();
+  if (tipRect.left < 4) {
+    scoreTip.style.left = (4 + tipRect.width / 2) + 'px';
+  } else if (tipRect.right > window.innerWidth - 4) {
+    scoreTip.style.left = (window.innerWidth - 4 - tipRect.width / 2) + 'px';
+  }
+  if (tipRect.top < 4) {
+    scoreTip.style.top = (rect.bottom + 6) + 'px';
+  }
 }
 
 function hideScoreTip() {
