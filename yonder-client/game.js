@@ -45,7 +45,8 @@ function connect() {
   lobbyStatus.textContent = 'Connecting…';
   connectBtn.disabled = true;
 
-  const serverBase = `ws://${location.hostname || 'localhost'}:8000`;
+  const wsProto = location.protocol === 'https:' ? 'wss:' : 'ws:';
+  const serverBase = `${wsProto}//${location.host}`;
   const url = `${serverBase}/game/${encodeURIComponent(roomName)}?player=${encodeURIComponent(playerName)}`;
 
   ws = new WebSocket(url);

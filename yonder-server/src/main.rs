@@ -7,6 +7,9 @@ use std::sync::Arc;
 use game::{ActionError, ClientAction, GameState};
 use rocket::futures::{SinkExt, StreamExt};
 use rocket::tokio::sync::broadcast::{self, Sender};
+use rocket::fs::FileServer;
+use rocket::http::Status;
+use rocket::request::Request;
 use rocket::{futures::lock::Mutex, tokio::select, State};
 use ws::{stream::DuplexStream, Message};
 
@@ -193,17 +196,30 @@ async fn demo_game(
 
 // ─── Health check ─────────────────────────────────────────────────────────────
 
-#[get("/")]
-fn index() -> &'static str {
+#[get("/health")]
+fn health() -> &'static str {
     "yonder-server ok"
+}
+
+// ─── 404 catcher ─────────────────────────────────────────────────────────────
+
+#[catch(404)]
+fn not_found(req: &Request) -> (Status, String) {
+    (Status::NotFound, format!("Not found: {}", req.uri()))
 }
 
 // ─── Launch ───────────────────────────────────────────────────────────────────
 
 #[launch]
 fn rocket() -> _ {
+    let client_dir = std::env::var("YONDER_CLIENT_DIR")
+        .unwrap_or_else(|_| "../yonder-client".to_string());
+    println!("Serving static files from: {}", client_dir);
+
     rocket::build()
-        .mount("/", routes![index, play_game, demo_game])
+        .mount("/", routes![health, play_game, demo_game])
+        .mount("/", FileServer::from(&client_dir))
+        .register("/", catchers![not_found])
         .configure(rocket::Config {
             address: "0.0.0.0".parse().unwrap(),
             port: std::env::var("ROCKET_PORT")
