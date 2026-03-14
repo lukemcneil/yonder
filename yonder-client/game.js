@@ -4,8 +4,6 @@ let ws = null;
 let state = null;   // latest ClientGameState from server
 let mySeat = null;
 let scoringRevealIndex = 0;  // 0 = not started, increments on click (N = N cards revealed)
-let prevSanctuaryCount = 0;   // track auto-assigned sanctuary animations
-let prevPhase = null;         // track phase transitions
 
 // ── DOM refs ─────────────────────────────────────────────────────────────────
 
@@ -78,16 +76,6 @@ function connect() {
     }
     lobby.classList.add('hidden');
     gameBoard.classList.remove('hidden');
-    // Track sanctuary count before updating state (for auto-assign animation).
-    // Only update prevSanctuaryCount when the new data has a DIFFERENT count,
-    // so rapid re-renders from broadcasts don't kill the animation.
-    if (state) {
-      const oldMe = state.players.find(p => p.seat === mySeat);
-      const newMe = data.players.find(p => p.seat === (data.my_seat));
-      if (oldMe && newMe && oldMe.sanctuaries.length !== newMe.sanctuaries.length) {
-        prevSanctuaryCount = oldMe.sanctuaries.length;
-      }
-    }
     state = data;
     mySeat = state.my_seat;
     // Persist room/name in URL hash so refresh reconnects.
@@ -357,13 +345,9 @@ function renderMyArea() {
     ? state.my_score_detail.filter(e => e.kind === 'sanctuary')
     : [];
   if (me) {
-    const newlyAdded = me.sanctuaries.length > prevSanctuaryCount && !state.sanctuary_choices;
     for (let i = 0; i < me.sanctuaries.length; i++) {
       const s = me.sanctuaries[i];
       const el = sanctuaryCardEl(s, 'md');
-      if (newlyAdded && i >= prevSanctuaryCount) {
-        el.classList.add('sanctuary-auto-assigned');
-      }
       if (i < liveSanctEntries.length) {
         const entry = liveSanctEntries[i];
         const badge = document.createElement('div');
