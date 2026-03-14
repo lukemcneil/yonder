@@ -76,53 +76,61 @@ async def main():
 
         print(f"  Phase after reveal: alice={alice_state['phase']}, bob={bob_state['phase']}")
 
-        # Handle sanctuary choices — drive off alice_state (she gets all broadcasts)
-        sanctuary_iters = 0
-        while alice_state["phase"] == "sanctuary_choice":
-            sanctuary_iters += 1
-            if sanctuary_iters > 30:
-                raise RuntimeError("Sanctuary choice stuck")
-
-            if alice_state.get("sanctuary_choices"):
-                print(f"  Alice chooses sanctuary (from {len(alice_state['sanctuary_choices'])} options)")
-                alice_state = await send_action(alice_ws, {"action": "ChooseSanctuary", "sanctuary_index": 0})
-                if "Err" in alice_state:
-                    raise RuntimeError(f"Alice ChooseSanctuary failed: {alice_state}")
-                bob_state = (await drain(bob_ws)) or bob_state
-            elif bob_state.get("sanctuary_choices"):
-                print(f"  Bob chooses sanctuary (from {len(bob_state['sanctuary_choices'])} options)")
-                bob_state = await send_action(bob_ws, {"action": "ChooseSanctuary", "sanctuary_index": 0})
-                if "Err" in bob_state:
-                    raise RuntimeError(f"Bob ChooseSanctuary failed: {bob_state}")
-                alice_state = (await drain(alice_ws)) or alice_state
-            else:
-                # Alice phase says sanctuary_choice but bob_state is stale — drain bob
-                b = await drain(bob_ws, timeout=1.0)
-                if b:
-                    bob_state = b
-                else:
-                    raise RuntimeError(f"Sanctuary choice stuck: alice={alice_state.get('sanctuary_choices')}, bob={bob_state.get('sanctuary_choices')}")
-
-            print(f"  After sanctuary action: alice={alice_state['phase']}, bob={bob_state['phase']}")
-
         if game_round == 8:
+            # Round 8: may need sanctuary choices but no drafting.
+            # Handle any sanctuary choices that appear during round 8 drafting.
+            for _ in range(10):  # safety limit
+                if alice_state["phase"] != "drafting":
+                    break
+                if alice_state.get("sanctuary_choices"):
+                    print(f"  Alice chooses sanctuary (round 8)")
+                    alice_state = await send_action(alice_ws, {"action": "ChooseSanctuary", "sanctuary_index": 0})
+                    bob_state = (await drain(bob_ws)) or bob_state
+                elif bob_state.get("sanctuary_choices"):
+                    print(f"  Bob chooses sanctuary (round 8)")
+                    bob_state = await send_action(bob_ws, {"action": "ChooseSanctuary", "sanctuary_index": 0})
+                    alice_state = (await drain(alice_ws)) or alice_state
+                else:
+                    break
             print(f"  Round 8 complete. Phase: {alice_state['phase']}")
             break
 
-        # Drafting
+        # Drafting (rounds 1-7)
         assert alice_state["phase"] == "drafting", f"Expected drafting, got alice={alice_state['phase']}, bob={bob_state['phase']}"
         draft_order = alice_state["draft_order"]
         print(f"  Drafting order: {draft_order}")
 
         for i, seat in enumerate(draft_order):
             if seat == 0:  # Alice
+                # Choose sanctuary early if available (before drafting)
+                if alice_state.get("sanctuary_choices"):
+                    print(f"  Alice chooses sanctuary early (from {len(alice_state['sanctuary_choices'])} options)")
+                    alice_state = await send_action(alice_ws, {"action": "ChooseSanctuary", "sanctuary_index": 0})
+                    bob_state = (await drain(bob_ws)) or bob_state
+
                 alice_state = await send_action(alice_ws, {"action": "DraftCard", "market_index": 0})
                 assert "Err" not in alice_state
                 bob_state = (await drain(bob_ws)) or bob_state
+
+                # If sanctuary pending after draft, must choose now
+                if alice_state.get("sanctuary_choices"):
+                    print(f"  Alice chooses sanctuary after draft (from {len(alice_state['sanctuary_choices'])} options)")
+                    alice_state = await send_action(alice_ws, {"action": "ChooseSanctuary", "sanctuary_index": 0})
+                    bob_state = (await drain(bob_ws)) or bob_state
             else:  # Bob
+                if bob_state.get("sanctuary_choices"):
+                    print(f"  Bob chooses sanctuary early (from {len(bob_state['sanctuary_choices'])} options)")
+                    bob_state = await send_action(bob_ws, {"action": "ChooseSanctuary", "sanctuary_index": 0})
+                    alice_state = (await drain(alice_ws)) or alice_state
+
                 bob_state = await send_action(bob_ws, {"action": "DraftCard", "market_index": 0})
                 assert "Err" not in bob_state
                 alice_state = (await drain(alice_ws)) or alice_state
+
+                if bob_state.get("sanctuary_choices"):
+                    print(f"  Bob chooses sanctuary after draft (from {len(bob_state['sanctuary_choices'])} options)")
+                    bob_state = await send_action(bob_ws, {"action": "ChooseSanctuary", "sanctuary_index": 0})
+                    alice_state = (await drain(alice_ws)) or alice_state
 
         # Final sync after drafting
         a = await drain(alice_ws, timeout=1.0)

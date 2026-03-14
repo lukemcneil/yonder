@@ -105,6 +105,7 @@ _(Add tasks here as they are discovered during implementation)_
 - [x] Make it one player possible
 - [x] Shouldn't see start game button with 1 person
 - [x] Live card scores during play: each region card in the tableau shows its current score (based on regions to the right + sanctuaries). Hover/tooltip gives details (e.g. "quest not met yet" or "3 stone × 4 = 12").
+- [ ] fix bug about running out of sanctuaries to draw
 
 ---
 

@@ -75,39 +75,45 @@ async def main():
         bob_state = await send_action(bob_ws, {"action": "PlayCard", "card_index": 0})
         alice_state = (await drain(alice_ws)) or alice_state
 
-        # Handle sanctuary choices
-        for _ in range(30):
-            if alice_state["phase"] != "sanctuary_choice":
-                break
-            if alice_state.get("sanctuary_choices"):
-                alice_state = await send_action(alice_ws, {"action": "ChooseSanctuary", "sanctuary_index": 0})
-                bob_state = (await drain(bob_ws)) or bob_state
-            elif bob_state.get("sanctuary_choices"):
-                bob_state = await send_action(bob_ws, {"action": "ChooseSanctuary", "sanctuary_index": 0})
-                alice_state = (await drain(alice_ws)) or alice_state
-            else:
-                b = await drain(bob_ws, timeout=0.1)
-                if b:
-                    bob_state = b
-                a = await drain(alice_ws, timeout=0.1)
-                if a:
-                    alice_state = a
-
         if game_round == 8:
+            # Round 8: handle any sanctuary choices, no market draft.
+            for _ in range(10):
+                if alice_state["phase"] != "drafting":
+                    break
+                if alice_state.get("sanctuary_choices"):
+                    alice_state = await send_action(alice_ws, {"action": "ChooseSanctuary", "sanctuary_index": 0})
+                    bob_state = (await drain(bob_ws)) or bob_state
+                elif bob_state.get("sanctuary_choices"):
+                    bob_state = await send_action(bob_ws, {"action": "ChooseSanctuary", "sanctuary_index": 0})
+                    alice_state = (await drain(alice_ws)) or alice_state
+                else:
+                    break
             break
 
-        # Drafting
+        # Drafting (rounds 1-7)
         if alice_state["phase"] != "drafting":
             print(f"  Warning: expected drafting, got {alice_state['phase']}")
             break
 
         for seat in alice_state["draft_order"]:
             if seat == 0:
+                if alice_state.get("sanctuary_choices"):
+                    alice_state = await send_action(alice_ws, {"action": "ChooseSanctuary", "sanctuary_index": 0})
+                    bob_state = (await drain(bob_ws)) or bob_state
                 alice_state = await send_action(alice_ws, {"action": "DraftCard", "market_index": 0})
                 bob_state = (await drain(bob_ws)) or bob_state
+                if alice_state.get("sanctuary_choices"):
+                    alice_state = await send_action(alice_ws, {"action": "ChooseSanctuary", "sanctuary_index": 0})
+                    bob_state = (await drain(bob_ws)) or bob_state
             else:
+                if bob_state.get("sanctuary_choices"):
+                    bob_state = await send_action(bob_ws, {"action": "ChooseSanctuary", "sanctuary_index": 0})
+                    alice_state = (await drain(alice_ws)) or alice_state
                 bob_state = await send_action(bob_ws, {"action": "DraftCard", "market_index": 0})
                 alice_state = (await drain(alice_ws)) or alice_state
+                if bob_state.get("sanctuary_choices"):
+                    bob_state = await send_action(bob_ws, {"action": "ChooseSanctuary", "sanctuary_index": 0})
+                    alice_state = (await drain(alice_ws)) or alice_state
 
         # Final sync after drafting
         a = await drain(alice_ws, timeout=0.1)

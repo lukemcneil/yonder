@@ -198,19 +198,19 @@ function renderStatusBar() {
     } else {
       statusPhase.textContent = `Waiting for: ${waiting.join(', ')}`;
     }
-  } else if (phase === 'sanctuary_choice') {
-    if (state.sanctuary_choices) {
-      statusPhase.textContent = 'You found a Sanctuary! Choose one to keep.';
-    } else {
-      statusPhase.textContent = 'Waiting for other players to choose a sanctuary…';
-    }
   } else if (phase === 'drafting') {
     const drafter = state.current_drafter;
-    if (drafter === mySeat) {
+    if (state.sanctuary_choices) {
+      statusPhase.textContent = 'You found a Sanctuary! Choose one to keep.';
+    } else if (drafter === mySeat) {
       statusPhase.textContent = 'Your turn to draft — pick a card from the market.';
     } else {
       const drafter_name = state.players.find(p => p.seat === drafter)?.name ?? '?';
-      statusPhase.textContent = `${drafter_name} is drafting…`;
+      if (state.drafter_choosing_sanctuary) {
+        statusPhase.textContent = `${drafter_name} is choosing a sanctuary…`;
+      } else {
+        statusPhase.textContent = `${drafter_name} is drafting…`;
+      }
     }
   } else if (phase === 'game_over') {
     statusPhase.textContent = 'Game over!';
@@ -265,7 +265,7 @@ function renderOpponents() {
 
 function renderMarket() {
   marketCards.innerHTML = '';
-  const isDrafting = state.phase === 'drafting' && state.current_drafter === mySeat;
+  const isDrafting = state.phase === 'drafting' && state.current_drafter === mySeat && !state.drafter_choosing_sanctuary;
 
   state.market.forEach((card, idx) => {
     const el = regionCardEl(card, 'xl', false);
@@ -427,7 +427,7 @@ advancedConfirmBtn.addEventListener('click', () => {
 // ── Sanctuary modal ───────────────────────────────────────────────────────────
 
 function renderSanctuaryModal() {
-  if (state.phase === 'sanctuary_choice' && state.sanctuary_choices) {
+  if (state.phase === 'drafting' && state.sanctuary_choices) {
     sanctuaryModal.classList.remove('hidden');
     sanctuaryChoices.innerHTML = '';
     state.sanctuary_choices.forEach((card, idx) => {
