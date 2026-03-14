@@ -390,28 +390,41 @@ impl GameState {
     }
 
     /// Deal sanctuary cards to as many waiting players as possible (in draft order).
-    /// Stops when the deck can't fulfill the next player's full draw.
-    /// Auto-assigns single-card draws.
+    /// Deal sanctuary cards to waiting players. Gives full draws when the deck
+    /// has enough. Only the current drafter gets a partial draw (whatever's left)
+    /// since the game can't progress past them — other players wait for discards.
     fn deal_available_sanctuaries(&mut self) {
         loop {
-            // Find the next waiting player and how many they need.
-            let (seat, draw_count) = match &self.phase {
-                GamePhase::Playing(RoundPhase::Drafting { sanctuary_waiting, .. }) => {
+            let (seat, draw_count, is_current_drafter) = match &self.phase {
+                GamePhase::Playing(RoundPhase::Drafting { order, current, sanctuary_waiting, .. }) => {
                     if let Some(&seat) = sanctuary_waiting.first() {
                         let count = self.sanctuary_draw_count(seat);
-                        (seat, count)
+                        let is_current = order[*current] == seat;
+                        (seat, count, is_current)
                     } else {
-                        return; // No one waiting.
+                        return;
                     }
                 }
                 _ => return,
             };
 
-            if draw_count == 0 || self.sanctuary_deck.is_empty() {
-                return; // Deck empty, wait for discards from earlier players.
+            if draw_count == 0 {
+                // Remove player who needs 0 cards.
+                if let GamePhase::Playing(RoundPhase::Drafting { sanctuary_waiting, .. }) = &mut self.phase {
+                    sanctuary_waiting.retain(|&s| s != seat);
+                }
+                continue;
             }
 
-            // Remove from waiting list.
+            let deck_size = self.sanctuary_deck.len();
+            if deck_size == 0 {
+                return; // Deck empty, wait for discards.
+            }
+            if deck_size < draw_count && !is_current_drafter {
+                return; // Not enough for a full draw; wait for discards (unless current drafter).
+            }
+
+            // Remove from waiting list and deal.
             if let GamePhase::Playing(RoundPhase::Drafting { sanctuary_waiting, .. }) = &mut self.phase {
                 sanctuary_waiting.retain(|&s| s != seat);
             }
@@ -419,12 +432,10 @@ impl GameState {
             let choices = self.draw_sanctuary_choices(seat);
             if choices.len() == 1 {
                 self.players[seat].sanctuaries.push(choices.into_iter().next().unwrap());
-                // Single card auto-assigned, keep looping to deal to next player.
             } else if !choices.is_empty() {
                 if let GamePhase::Playing(RoundPhase::Drafting { pending_sanctuaries, .. }) = &mut self.phase {
                     pending_sanctuaries.insert(seat, choices);
                 }
-                // Player has choices, keep looping to deal to next player.
             }
         }
     }
@@ -469,6 +480,8 @@ impl GameState {
                 *c = next;
                 *drafted = self.round == 8;
             }
+            // Try to deal sanctuaries to the new current drafter (may get partial draw).
+            self.deal_available_sanctuaries();
             if self.round == 8 {
                 self.skip_non_actionable_drafters();
             }

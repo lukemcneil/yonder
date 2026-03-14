@@ -441,9 +441,10 @@ mod tests {
     }
 
     #[test]
-    fn sanctuary_partial_draw_when_deck_low() {
+    fn sanctuary_waits_for_full_draw_when_not_current_drafter() {
         // Alice (needs 2) and Bob (needs 2) both eligible, but deck only has 3.
-        // Both get dealt: Bob gets 2, Alice gets 1 (auto-assigned).
+        // Bob (current drafter) gets 2. Alice waits (needs 2, only 1 left).
+        // After Bob discards, Alice gets dealt.
         let mut gs = setup_game(
             vec![region(10), region(15), region(20)],
             vec![region(8), region(15), region(25)],
@@ -457,11 +458,19 @@ mod tests {
         gs.play_card(1, 0).unwrap(); // Bob plays 8
 
         // Draft order: Bob (8) first, Alice (10) second.
-        // Bob dealt 2, Alice dealt 1 (only 1 left) → auto-assigned.
-        if let GamePhase::Playing(RoundPhase::Drafting { pending_sanctuaries, .. }) = &gs.phase {
+        // Bob dealt 2, Alice waiting (not current drafter, needs full draw).
+        if let GamePhase::Playing(RoundPhase::Drafting { pending_sanctuaries, sanctuary_waiting, .. }) = &gs.phase {
             assert!(pending_sanctuaries.contains_key(&1), "Bob should have 2 choices");
+            assert!(sanctuary_waiting.contains(&0), "Alice should be waiting");
         }
-        assert_eq!(gs.players[0].sanctuaries.len(), 1, "Alice got auto-assigned the 1 remaining card");
+        assert_eq!(gs.players[0].sanctuaries.len(), 0);
+
+        // Bob chooses → returns 1 card. Now deck has 2, enough for Alice's full draw.
+        gs.choose_sanctuary(1, 0).unwrap();
+        if let GamePhase::Playing(RoundPhase::Drafting { pending_sanctuaries, sanctuary_waiting, .. }) = &gs.phase {
+            assert!(pending_sanctuaries.contains_key(&0), "Alice should now have choices");
+            assert!(sanctuary_waiting.is_empty());
+        }
     }
 
     #[test]
@@ -487,13 +496,16 @@ mod tests {
             assert!(sanctuary_waiting.contains(&0), "Alice should be waiting");
         }
 
-        // Bob chooses → returns 1 card to deck. Alice can now draw.
+        // Bob chooses → returns 1 card. But Alice needs 2 and isn't current drafter,
+        // so she still waits (only 1 available, needs full draw of 2).
         gs.choose_sanctuary(1, 0).unwrap();
-        if let GamePhase::Playing(RoundPhase::Drafting { pending_sanctuaries, sanctuary_waiting, .. }) = &gs.phase {
-            // Alice gets 1 card (auto-assigned) since only 1 returned.
-            assert!(sanctuary_waiting.is_empty());
+        if let GamePhase::Playing(RoundPhase::Drafting { sanctuary_waiting, .. }) = &gs.phase {
+            assert!(sanctuary_waiting.contains(&0), "Alice still waiting for full draw");
         }
-        assert_eq!(gs.players[0].sanctuaries.len(), 1, "Alice got auto-assigned");
+
+        // Bob drafts → now Alice is current drafter. She gets partial draw (1 card, auto-assigned).
+        gs.draft_card(1, 0).unwrap();
+        assert_eq!(gs.players[0].sanctuaries.len(), 1, "Alice got partial draw as current drafter");
     }
 
     #[test]
