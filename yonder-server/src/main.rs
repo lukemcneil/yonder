@@ -219,8 +219,11 @@ impl Fairing for NoCacheFairing {
         Info { name: "No-Cache Headers", kind: Kind::Response }
     }
 
-    async fn on_response<'r>(&self, _req: &'r Request<'_>, res: &mut rocket::Response<'r>) {
-        res.set_header(Header::new("Cache-Control", "no-cache, no-store, must-revalidate"));
+    async fn on_response<'r>(&self, req: &'r Request<'_>, res: &mut rocket::Response<'r>) {
+        let path = req.uri().path().as_str();
+        if path.ends_with(".html") || path.ends_with(".js") || path.ends_with(".css") || path == "/" {
+            res.set_header(Header::new("Cache-Control", "no-cache, no-store, must-revalidate"));
+        }
     }
 }
 
