@@ -90,7 +90,7 @@
 
 _(Add tasks here as they are discovered during implementation)_
 
-- [ ] Decide: serve frontend as static files from Rocket, or run separately?
+- [x] Decide: serve frontend as static files from Rocket, or run separately?
 - [ ] Decide: how to handle a player disconnecting mid-game?
 - [x] Mobile support: make the game playable on mobile devices (responsive layout, touch interactions)
 - [x] Remove white corners on card images (round corners or mask to match card art)
