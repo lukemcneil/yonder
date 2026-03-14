@@ -159,9 +159,9 @@ function renderWaitingRoom() {
 
   if (mySeat === 0) {
     controls.classList.remove('hidden');
-    startBtn.disabled = state.players.length < 2;
-    startBtn.textContent = state.players.length < 2
-      ? 'Need at least 2 players'
+    startBtn.disabled = state.players.length < 1;
+    startBtn.textContent = state.players.length === 1
+      ? 'Start Solo Game'
       : `Start Game (${state.players.length} players)`;
     startBtn.onclick = () => send({ action: 'StartGame', advanced: advToggle.checked });
     hint.textContent = '';
@@ -181,9 +181,9 @@ function renderStatusBar() {
 
   if (phase === 'waiting_for_players') {
     const joined = state.players.length;
-    const msg = joined < 2
-      ? `Waiting for players… (${joined} joined, need at least 2)`
-      : `${joined} players joined${mySeat === 0 ? ' — click Start Game when ready' : ' — waiting for host to start'}`;
+    const msg = mySeat === 0
+      ? `${joined} player${joined > 1 ? 's' : ''} joined — click Start Game when ready`
+      : `${joined} player${joined > 1 ? 's' : ''} joined — waiting for host to start`;
     statusPhase.textContent = msg;
   } else if (phase === 'advanced_setup') {
     if (state.advanced_setup_choices) {

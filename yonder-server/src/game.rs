@@ -133,7 +133,7 @@ impl GameState {
             GamePhase::WaitingForPlayers { .. } => {}
             _ => return Err(ActionError::GameAlreadyStarted),
         }
-        if self.players.len() < 2 {
+        if self.players.is_empty() {
             return Err(ActionError::NotEnoughPlayers);
         }
         // Lock in player count to however many joined.

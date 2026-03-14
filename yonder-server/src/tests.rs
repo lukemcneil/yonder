@@ -85,11 +85,13 @@ mod tests {
     }
 
     #[test]
-    fn start_game_requires_at_least_2_players() {
+    fn start_game_solo_works() {
         let mut gs = GameState::new_waiting(2);
         gs.join("Alice").unwrap();
-        let err = gs.start_game(0, false).unwrap_err();
-        assert!(matches!(err, ActionError::NotEnoughPlayers));
+        gs.start_game(0, false).unwrap();
+        assert_eq!(gs.players[0].hand.len(), 3);
+        assert_eq!(gs.market.len(), 2); // 1 player + 1
+        assert_eq!(gs.round, 1);
     }
 
     #[test]
