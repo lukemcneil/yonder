@@ -43,7 +43,9 @@ function connect() {
   connectBtn.disabled = true;
 
   const wsProto = location.protocol === 'https:' ? 'wss:' : 'ws:';
-  const serverBase = `${wsProto}//${location.host}`;
+  const params = new URLSearchParams(location.search);
+  const serverHost = params.get('server') || location.host;
+  const serverBase = `${wsProto}//${serverHost}`;
   const url = `${serverBase}/game/${encodeURIComponent(roomName)}?player=${encodeURIComponent(playerName)}`;
 
   ws = new WebSocket(url);
@@ -367,7 +369,7 @@ function renderMyArea() {
       divider.textContent = 'Pick one:';
       mySanctuaries.appendChild(divider);
       state.sanctuary_choices.forEach((card, idx) => {
-        const el = sanctuaryCardEl(card, 'md', true);
+        const el = sanctuaryCardEl(card, 'md', false);
         el.classList.add('sanctuary-pickable');
         el.addEventListener('click', () => send({ action: 'ChooseSanctuary', sanctuary_index: idx }));
         mySanctuaries.appendChild(el);
