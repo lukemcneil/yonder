@@ -225,7 +225,7 @@ fn rocket() -> _ {
             port: std::env::var("ROCKET_PORT")
                 .ok()
                 .and_then(|p| p.parse().ok())
-                .unwrap_or(8000),
+                .unwrap_or(8085),
             ..Default::default()
         })
         .manage(Arc::new(Mutex::new(Rooms::default())))
