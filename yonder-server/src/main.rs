@@ -7,8 +7,9 @@ use std::sync::Arc;
 use game::{ActionError, ClientAction, GameState};
 use rocket::futures::{SinkExt, StreamExt};
 use rocket::tokio::sync::broadcast::{self, Sender};
+use rocket::fairing::{Fairing, Info, Kind};
 use rocket::fs::FileServer;
-use rocket::http::Status;
+use rocket::http::{Header, Status};
 use rocket::request::Request;
 use rocket::{futures::lock::Mutex, tokio::select, State};
 use ws::{stream::DuplexStream, Message};
@@ -208,6 +209,21 @@ fn not_found(req: &Request) -> (Status, String) {
     (Status::NotFound, format!("Not found: {}", req.uri()))
 }
 
+// ─── No-cache fairing ────────────────────────────────────────────────────────
+
+struct NoCacheFairing;
+
+#[rocket::async_trait]
+impl Fairing for NoCacheFairing {
+    fn info(&self) -> Info {
+        Info { name: "No-Cache Headers", kind: Kind::Response }
+    }
+
+    async fn on_response<'r>(&self, _req: &'r Request<'_>, res: &mut rocket::Response<'r>) {
+        res.set_header(Header::new("Cache-Control", "no-cache, no-store, must-revalidate"));
+    }
+}
+
 // ─── Launch ───────────────────────────────────────────────────────────────────
 
 #[launch]
@@ -217,6 +233,7 @@ fn rocket() -> _ {
     println!("Serving static files from: {}", client_dir);
 
     rocket::build()
+        .attach(NoCacheFairing)
         .mount("/", routes![health, play_game, demo_game])
         .mount("/", FileServer::from(&client_dir))
         .register("/", catchers![not_found])
