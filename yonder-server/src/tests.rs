@@ -650,6 +650,124 @@ mod tests {
         assert!(matches!(gs.phase, GamePhase::GameOver { .. }));
     }
 
+    // ─── Edge case: deck completely empty ──────────────────────────────────────
+
+    #[test]
+    fn sanctuary_deck_empty_all_eligible_skipped() {
+        // Both players eligible but sanctuary deck is completely empty.
+        // No one gets sanctuaries, game proceeds normally.
+        let mut gs = setup_game(
+            vec![region(10), region(15), region(20)],
+            vec![region(8), region(15), region(25)],
+            vec![region(1), region(2), region(4)],
+        );
+        gs.sanctuary_deck = vec![]; // empty
+        gs.players[0].tableau.push(region(5)); // Alice: 10 > 5 ✓
+        gs.players[1].tableau.push(region(3)); // Bob: 8 > 3 ✓
+
+        gs.play_card(0, 0).unwrap();
+        gs.play_card(1, 0).unwrap();
+
+        // Both eligible but deck empty → both in waiting, but no cards to deal.
+        // Game should still be in Drafting and not stuck.
+        assert!(matches!(gs.phase, GamePhase::Playing(RoundPhase::Drafting { .. })));
+        // Bob can still draft from market.
+        gs.draft_card(1, 0).unwrap();
+        // Alice can draft too (she's current drafter now, deck still empty, gets nothing).
+        gs.draft_card(0, 0).unwrap();
+        // Round advances normally.
+        assert_eq!(gs.round, 2);
+        assert_eq!(gs.players[0].sanctuaries.len(), 0);
+        assert_eq!(gs.players[1].sanctuaries.len(), 0);
+    }
+
+    #[test]
+    fn solo_play_with_sanctuary() {
+        // Solo player gets sanctuary and can draft.
+        let mut gs = GameState::new_waiting(1);
+        gs.join("Alice").unwrap();
+        gs.region_deck.clear();
+        gs.market.clear();
+        gs.players[0].hand = vec![region(10), region(15), region(20)];
+        gs.market = vec![region(1), region(2)]; // 1 player + 1
+        gs.round = 1;
+        gs.phase = GamePhase::Playing(RoundPhase::ChoosingCards);
+        gs.player_count = 1;
+
+        // Play first card.
+        gs.players[0].tableau.push(region(5)); // previous card
+        gs.sanctuary_deck = (1..=5).map(|i| sanctuary(i)).collect();
+        gs.play_card(0, 0).unwrap(); // plays 10 (> 5 ✓)
+
+        // Solo → auto-assigned (1 sanctuary, no clues).
+        assert_eq!(gs.players[0].sanctuaries.len(), 1);
+        // Can draft.
+        gs.draft_card(0, 0).unwrap();
+        assert_eq!(gs.round, 2);
+    }
+
+    #[test]
+    fn round_8_with_sanctuary_waiting() {
+        // Round 8: both eligible, deck has only enough for 1 player.
+        // First drafter gets dealt, chooses, returns cards, second drafter gets dealt.
+        let mut gs = setup_game(
+            vec![region(10), region(15), region(20)],
+            vec![region(8), region(15), region(25)],
+            vec![region(1), region(2), region(4)],
+        );
+        gs.round = 8;
+        gs.sanctuary_deck = vec![sanctuary(1), sanctuary(2)]; // only 2
+        gs.players[0].tableau.push(region_with_clue(5)); // Alice: needs 2
+        gs.players[1].tableau.push(region_with_clue(3)); // Bob: needs 2
+
+        gs.play_card(0, 0).unwrap();
+        gs.play_card(1, 0).unwrap();
+
+        // Round 8: no market. Draft order: Bob (8) first, Alice (10) second.
+        // Bob gets 2 cards. Alice waits.
+        assert!(matches!(gs.phase, GamePhase::Playing(RoundPhase::Drafting { .. })));
+        if let GamePhase::Playing(RoundPhase::Drafting { pending_sanctuaries, sanctuary_waiting, .. }) = &gs.phase {
+            assert!(pending_sanctuaries.contains_key(&1));
+            assert!(sanctuary_waiting.contains(&0));
+        }
+
+        // Bob chooses → returns 1 card. Alice needs 2, only 1 available, she's not current drafter.
+        gs.choose_sanctuary(1, 0).unwrap();
+        // Bob is done (round 8, no market). Advance to Alice → she's current drafter now.
+        // Alice gets partial draw (1 card, auto-assigned).
+        assert_eq!(gs.players[0].sanctuaries.len(), 1);
+        // Game over after all done.
+        assert!(matches!(gs.phase, GamePhase::GameOver { .. }));
+    }
+
+    #[test]
+    fn current_drafter_waiting_gets_partial_draw_immediately() {
+        // The current drafter is in sanctuary_waiting with partial deck.
+        // They should get whatever's available immediately (not stall).
+        let mut gs = setup_game(
+            vec![region(3), region(15), region(20)],
+            vec![region(8), region(15), region(25)],
+            vec![region(1), region(2), region(4)],
+        );
+        // Only 1 card in deck, Alice needs 2 (has clue).
+        gs.sanctuary_deck = vec![sanctuary(1)];
+        gs.players[0].tableau.push(region_with_clue(2)); // Alice: 3 > 2 ✓, 1 clue → needs 2
+        gs.players[1].tableau.push(region(50)); // Bob not eligible
+
+        gs.play_card(0, 0).unwrap(); // Alice plays 3
+        gs.play_card(1, 0).unwrap(); // Bob plays 8
+
+        // Draft order: Alice (3) first, Bob (8) second.
+        // Alice is current drafter, needs 2, deck has 1 → partial draw (auto-assigned).
+        assert_eq!(gs.players[0].sanctuaries.len(), 1);
+        if let GamePhase::Playing(RoundPhase::Drafting { sanctuary_waiting, pending_sanctuaries, .. }) = &gs.phase {
+            assert!(sanctuary_waiting.is_empty());
+            assert!(!pending_sanctuaries.contains_key(&0));
+        }
+        // Alice can draft normally.
+        gs.draft_card(0, 0).unwrap();
+    }
+
     // ─── join ─────────────────────────────────────────────────────────────────
 
     #[test]
