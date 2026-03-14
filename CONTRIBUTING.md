@@ -31,7 +31,7 @@
 ## Project Structure
 
 ```
-faraway/
+yonder/
 ├── RULES.md                  # Complete game rules reference
 ├── TODO.md                   # Task board — source of truth for what to do next
 ├── CONTRIBUTING.md           # This file
@@ -39,22 +39,19 @@ faraway/
 ├── rules-en.pdf              # Official English rulebook PDF
 ├── docs/
 │   └── design.md             # Full architecture design document
-├── cards/                    # Existing Nuxt card browser app (reference/keep as-is)
-│   ├── cards.ts              # Card data (TypeScript) — ported to Rust in faraway-server
-│   └── public/
-│       ├── region/           # Region card images: tile001.jpg ... tile068.jpg
-│       └── sanctuary/        # Sanctuary card images: tile001.jpg ... tile045.jpg
-├── faraway-server/           # Rust WebSocket game server
+├── yonder-server/           # Rust WebSocket game server
 │   ├── Cargo.toml
 │   └── src/
 │       ├── main.rs           # Rocket server, WS endpoint, room management
 │       ├── game.rs           # GameState, PlayerState, phase transitions
-│       ├── cards.rs          # Card definitions (ported from cards/cards.ts)
+│       ├── cards.rs          # Card definitions
 │       └── scoring.rs        # Reverse-scoring engine
-└── faraway-client/           # Vanilla HTML/CSS/JS frontend
+└── yonder-client/           # Vanilla HTML/CSS/JS frontend
     ├── index.html
     ├── game.js
-    └── style.css
+    ├── style.css
+    ├── region/               # Region card images: tile001.jpg ... tile068.jpg
+    └── sanctuary/            # Sanctuary card images: tile001.jpg ... tile045.jpg
 ```
 
 ---
@@ -62,12 +59,10 @@ faraway/
 ## Cloning (first time)
 
 ```bash
-git clone --recurse-submodules <repo-url>
-# or if already cloned without submodules:
-git submodule update --init
+git clone <repo-url>
 ```
 
-The `cards/` submodule contains card images (`cards/public/region/`, `cards/public/sanctuary/`) and the TypeScript card data (`cards/cards.ts`).
+Card images are in `yonder-client/region/` and `yonder-client/sanctuary/`.
 
 ---
 
@@ -76,7 +71,7 @@ The `cards/` submodule contains card images (`cards/public/region/`, `cards/publ
 ### Server
 
 ```bash
-cd faraway-server
+cd yonder-server
 cargo run
 # Server starts on http://localhost:8000
 # WebSocket: ws://localhost:8000/game/<room>?player=<name>
@@ -85,7 +80,7 @@ cargo run
 > **Note:** Port 8000 may be in use (e.g. by the `cards/` Nuxt app). To use a different port,
 > set `ROCKET_PORT` when running the binary directly — `cargo run` does not inherit it:
 > ```bash
-> cargo build && ROCKET_PORT=8001 ./target/debug/faraway-server
+> cargo build && ROCKET_PORT=8001 ./target/debug/yonder-server
 > ```
 
 ### Frontend
@@ -93,12 +88,12 @@ cargo run
 Serve the client as static files. The simplest way:
 
 ```bash
-cd faraway-client
+cd yonder-client
 python3 -m http.server 3001
 # Open http://localhost:3001
 ```
 
-Or configure Rocket to serve static files from `faraway-client/` — see `faraway-server/src/main.rs`.
+Or configure Rocket to serve static files from `yonder-client/` — see `yonder-server/src/main.rs`.
 
 ---
 
@@ -107,7 +102,7 @@ Or configure Rocket to serve static files from `faraway-client/` — see `farawa
 ### Server unit tests
 
 ```bash
-cd faraway-server
+cd yonder-server
 cargo test
 ```
 
@@ -137,8 +132,8 @@ playwright-cli fill <ref> "some text"
 
 **Standard UI test flow for frontend tasks:**
 
-1. Start the server: `cd faraway-server && cargo run`
-2. Start the frontend: `cd faraway-client && python3 -m http.server 3001`
+1. Start the server: `cd yonder-server && cargo run`
+2. Start the frontend: `cd yonder-client && python3 -m http.server 3001`
 3. Open playwright-cli: `playwright-cli open http://localhost:3001`
 4. Take a snapshot: `playwright-cli snapshot`
 5. Interact and verify the feature works
@@ -181,11 +176,11 @@ Full `GameState` JSON snapshot (personalised: includes `my_hand`, hides opponent
 
 ### Card Data
 
-The canonical card data is in `Faraway_analysis.xlsx` and `cards/cards.ts`. The Rust server uses `faraway-server/src/cards.rs` — keep it in sync with `cards.ts`. Base game only (regions 1–68, sanctuaries 1–45).
+The canonical card data is in `Faraway_analysis.xlsx`. The Rust server uses `yonder-server/src/cards.rs`. Base game only (regions 1–68, sanctuaries 1–45).
 
 ### Scoring Engine
 
-See `RULES.md` for the full scoring algorithm. The engine lives in `faraway-server/src/scoring.rs`. Key invariant: **only cards to the RIGHT of the card being scored (plus all sanctuaries) are visible** during scoring.
+See `RULES.md` for the full scoring algorithm. The engine lives in `yonder-server/src/scoring.rs`. Key invariant: **only cards to the RIGHT of the card being scored (plus all sanctuaries) are visible** during scoring.
 
 ---
 

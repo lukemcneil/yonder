@@ -4,8 +4,8 @@
 After running, open a browser to the same room and name to see the scoring UI.
 
 Usage:
-  1. Start server:  cd faraway-server && ROCKET_PORT=8001 cargo run
-  2. Run this:       python3 faraway-server/fast_game.py
+  1. Start server:  cd yonder-server && ROCKET_PORT=8001 cargo run
+  2. Run this:       python3 yonder-server/fast_game.py
   3. Open browser with room "scoring-test" and name "Alice"
 """
 

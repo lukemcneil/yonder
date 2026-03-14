@@ -1,4 +1,4 @@
-# Faraway — Architecture Design
+# Yonder — Architecture Design
 
 *Date: 2026-03-01*
 
@@ -19,7 +19,7 @@ An online multiplayer implementation of the Faraway board game (Catch Up Games /
 ## Directory Structure
 
 ```
-faraway/
+yonder/
 ├── RULES.md                  # Complete game rules reference
 ├── TODO.md                   # Task board
 ├── CONTRIBUTING.md           # Developer workflow guide
@@ -27,15 +27,14 @@ faraway/
 ├── rules-en.pdf              # Official English rulebook
 ├── docs/
 │   └── design.md             # This file
-├── cards/                    # Existing Nuxt card browser (reference only)
-├── faraway-server/           # Rust WebSocket game server
+├── yonder-server/           # Rust WebSocket game server
 │   ├── Cargo.toml
 │   └── src/
 │       ├── main.rs           # Server entry, WS endpoint, room management
 │       ├── game.rs           # GameState, PlayerState, action handling
 │       ├── cards.rs          # Card definitions
 │       └── scoring.rs        # Scoring engine
-└── faraway-client/           # Vanilla HTML/CSS/JS frontend
+└── yonder-client/           # Vanilla HTML/CSS/JS frontend
     ├── index.html
     ├── game.js
     └── style.css
@@ -203,7 +202,7 @@ pub struct SanctuaryCard {
 
 ## Scoring Engine
 
-File: `faraway-server/src/scoring.rs`
+File: `yonder-server/src/scoring.rs`
 
 ```rust
 fn score_card(
@@ -341,7 +340,7 @@ ws.onmessage = (event) => {
 - Region cards: `/region/tile001.jpg` … `/region/tile068.jpg`
 - Sanctuary cards: `/sanctuary/tile001.jpg` … `/sanctuary/tile045.jpg`
 
-These are served from `faraway-client/` (symlinked or copied from `cards/public/`).
+These are served from `yonder-client/`.
 
 ---
 
@@ -363,7 +362,6 @@ These are served from `faraway-client/` (symlinked or copied from `cards/public/
 ## Reference
 
 - `~/personal/shields-up-engineering/` — reference server/client architecture
-- `cards/cards.ts` — TypeScript card data to port to Rust
 - `Faraway_analysis.xlsx` — authoritative card stats spreadsheet
 - `rules-en.pdf` — official English rulebook PDF
 - `RULES.md` — rules summary in markdown

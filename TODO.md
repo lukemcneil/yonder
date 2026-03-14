@@ -1,4 +1,4 @@
-# Faraway — TODO Board
+# Yonder — TODO Board
 
 > **How to use:** Pick the next `[ ]` task from the current milestone. Implement it. Test it. Mark it `[x]`. Commit with the TODO update. See CONTRIBUTING.md for the full workflow.
 
@@ -13,9 +13,9 @@
 
 ## M1 — Server Foundation
 
-- [x] Create `faraway-server/` Rust project with Rocket 0.5 + rocket_ws
-- [x] Add card data structs to `faraway-server/src/cards.rs` (base game: regions 1–68, sanctuaries 1–45, ported from `cards/cards.ts`)
-- [x] Add `GameState` and `PlayerState` structs in `faraway-server/src/game.rs`
+- [x] Create `yonder-server/` Rust project with Rocket 0.5 + rocket_ws
+- [x] Add card data structs to `yonder-server/src/cards.rs` (base game: regions 1–68, sanctuaries 1–45, ported from `cards/cards.ts`)
+- [x] Add `GameState` and `PlayerState` structs in `yonder-server/src/game.rs`
 - [x] Implement WebSocket endpoint `/game/<room>?player=<name>` in `main.rs`
 - [x] Implement multi-room management (`HashMap<String, GameRoom>` with Tokio broadcast channels)
 - [x] Implement `GameState` → JSON serialisation (serde) with per-player hidden hand logic
@@ -36,7 +36,7 @@
 
 ## M3 — Scoring Engine
 
-- [x] Implement scoring in `faraway-server/src/scoring.rs`
+- [x] Implement scoring in `yonder-server/src/scoring.rs`
 - [x] Implement right-to-left reveal loop
 - [x] Implement prerequisite validation (count wonder icons in visible cards + sanctuaries)
 - [x] Implement flat fame scoring
@@ -54,8 +54,8 @@
 
 ## M4 — Frontend Lobby & Game Board
 
-- [x] Create `faraway-client/` directory with `index.html`, `game.js`, `style.css`
-- [x] Symlink or copy card images from `cards/public/` into `faraway-client/`
+- [x] Create `yonder-client/` directory with `index.html`, `game.js`, `style.css`
+- [x] Symlink or copy card images from `cards/public/` into `yonder-client/`
 - [x] Implement lobby screen (name, room, player count selector, connect button)
 - [x] Implement WebSocket connection and full-state JSON parsing
 - [x] Render opponent tableaux (card images in order, hand size count)
@@ -113,7 +113,7 @@ _(Add tasks here as they are discovered during implementation)_
 - [x] 2026-03-01 — Downloaded official English rulebook (rules-en.pdf)
 - [x] 2026-03-01 — Moved Faraway_analysis.xlsx into project root
 - [x] 2026-03-01 — Initialised git repository
-- [x] 2026-03-02 — M1 complete: faraway-server Rust project, cards.rs (68 regions + 45 sanctuaries), game.rs (GameState/PlayerState/phases), scoring.rs (full engine + 11 unit tests), main.rs (WS endpoint, multi-room, per-player JSON snapshots)
+- [x] 2026-03-02 — M1 complete: yonder-server Rust project, cards.rs (68 regions + 45 sanctuaries), game.rs (GameState/PlayerState/phases), scoring.rs (full engine + 11 unit tests), main.rs (WS endpoint, multi-room, per-player JSON snapshots)
 - [x] 2026-03-02 — M2 complete: full game loop (StartGame, PlayCard, ChooseSanctuary, DraftCard), round 8 no-draft fix, 42 unit tests, e2e_test.py verifies full 8-round game via WebSocket
 - [x] 2026-03-02 — M3 complete: scoring engine (all 8 fame types + prerequisites + sanctuary scoring), 43 unit tests, known-game integration test confirms hand-calculated score of 23
-- [x] 2026-03-02 — M4 complete: faraway-client/ (index.html, style.css, game.js), card image symlinks, full game UI — lobby, board, hand, market, opponent panels, sanctuary modal, draft picker, game-over overlay — verified full 8-round game with playwright-cli headed mode
+- [x] 2026-03-02 — M4 complete: yonder-client/ (index.html, style.css, game.js), card image symlinks, full game UI — lobby, board, hand, market, opponent panels, sanctuary modal, draft picker, game-over overlay — verified full 8-round game with playwright-cli headed mode

@@ -195,7 +195,7 @@ async fn demo_game(
 
 #[get("/")]
 fn index() -> &'static str {
-    "faraway-server ok"
+    "yonder-server ok"
 }
 
 // ─── Launch ───────────────────────────────────────────────────────────────────

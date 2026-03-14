@@ -1,4 +1,4 @@
-# Faraway — Complete Rules Reference
+# Yonder — Complete Rules Reference
 
 > Sources: Official English rulebook (rules-en.pdf), BoardGameGeek forums, Faraway_analysis.xlsx card data
 
@@ -6,7 +6,7 @@
 
 ## Overview
 
-**Faraway** is a simultaneous card-drafting game for 2–6 players (15–30 min). Players explore the continent of Alula by playing 8 Region cards left-to-right over 8 rounds. The twist: at the end, scoring happens **right-to-left** — the last card you played is scored first (with almost nothing visible), while the first card is scored last (with everything visible).
+**Yonder** is a simultaneous card-drafting game for 2–6 players (15–30 min). Players explore the continent of Alula by playing 8 Region cards left-to-right over 8 rounds. The twist: at the end, scoring happens **right-to-left** — the last card you played is scored first (with almost nothing visible), while the first card is scored last (with everything visible).
 
 - **Players:** 2–6
 - **Rounds:** 8
