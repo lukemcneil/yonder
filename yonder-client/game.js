@@ -28,9 +28,6 @@ const advancedModal      = document.getElementById('advanced-modal');
 const advancedChoicesEl  = document.getElementById('advanced-choices');
 const advancedConfirmBtn = document.getElementById('advanced-confirm-btn');
 
-const sanctuaryModal   = document.getElementById('sanctuary-modal');
-const sanctuaryChoices = document.getElementById('sanctuary-choices');
-
 
 // ── Connection ───────────────────────────────────────────────────────────────
 
@@ -133,7 +130,6 @@ function render() {
   renderMarket();
   renderMyArea();
   renderAdvancedSetupModal();
-  renderSanctuaryModal();
   renderGameOver();
 }
 
@@ -364,6 +360,19 @@ function renderMyArea() {
       }
       mySanctuaries.appendChild(el);
     }
+    // Inline sanctuary choices (pick one)
+    if (state.sanctuary_choices && state.sanctuary_choices.length > 0) {
+      const divider = document.createElement('div');
+      divider.className = 'sanctuary-pick-label';
+      divider.textContent = 'Pick one:';
+      mySanctuaries.appendChild(divider);
+      state.sanctuary_choices.forEach((card, idx) => {
+        const el = sanctuaryCardEl(card, 'md', true);
+        el.classList.add('sanctuary-pickable');
+        el.addEventListener('click', () => send({ action: 'ChooseSanctuary', sanctuary_index: idx }));
+        mySanctuaries.appendChild(el);
+      });
+    }
   }
 
   // Hand
@@ -424,26 +433,7 @@ advancedConfirmBtn.addEventListener('click', () => {
   send({ action: 'KeepCards', indices });
 });
 
-// ── Sanctuary modal ───────────────────────────────────────────────────────────
-
-function renderSanctuaryModal() {
-  if (state.phase === 'drafting' && state.sanctuary_choices) {
-    sanctuaryModal.classList.remove('hidden');
-    sanctuaryChoices.innerHTML = '';
-    state.sanctuary_choices.forEach((card, idx) => {
-      const el = document.createElement('div');
-      el.className = 'sanctuary-choice-card';
-      const img = document.createElement('img');
-      img.src = sanctuaryImagePath(card.tile);
-      img.alt = `Sanctuary ${card.tile}`;
-      el.appendChild(img);
-      el.addEventListener('click', () => send({ action: 'ChooseSanctuary', sanctuary_index: idx }));
-      sanctuaryChoices.appendChild(el);
-    });
-  } else {
-    sanctuaryModal.classList.add('hidden');
-  }
-}
+// (Sanctuary choices are now rendered inline in renderMyArea, no modal needed.)
 
 // ── Game over (inline scoring) ────────────────────────────────────────────────
 
