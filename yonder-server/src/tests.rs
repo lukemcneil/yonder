@@ -441,9 +441,9 @@ mod tests {
     }
 
     #[test]
-    fn sanctuary_deferred_when_deck_too_low() {
+    fn sanctuary_partial_draw_when_deck_low() {
         // Alice (needs 2) and Bob (needs 2) both eligible, but deck only has 3.
-        // Alice dealt first (draft order). Bob must wait for Alice to discard.
+        // Both get dealt: Bob gets 2, Alice gets 1 (auto-assigned).
         let mut gs = setup_game(
             vec![region(10), region(15), region(20)],
             vec![region(8), region(15), region(25)],
@@ -457,19 +457,43 @@ mod tests {
         gs.play_card(1, 0).unwrap(); // Bob plays 8
 
         // Draft order: Bob (8) first, Alice (10) second.
-        // Bob needs 2, Alice needs 2, deck has 3. Bob dealt (2 cards), Alice waiting (needs 2, only 1 left).
+        // Bob dealt 2, Alice dealt 1 (only 1 left) → auto-assigned.
+        if let GamePhase::Playing(RoundPhase::Drafting { pending_sanctuaries, .. }) = &gs.phase {
+            assert!(pending_sanctuaries.contains_key(&1), "Bob should have 2 choices");
+        }
+        assert_eq!(gs.players[0].sanctuaries.len(), 1, "Alice got auto-assigned the 1 remaining card");
+    }
+
+    #[test]
+    fn sanctuary_deferred_when_deck_empty() {
+        // Alice (needs 2) and Bob (needs 2) both eligible, but deck only has 2.
+        // Bob dealt first (draft order), gets 2. Alice must wait (deck empty).
+        let mut gs = setup_game(
+            vec![region(10), region(15), region(20)],
+            vec![region(8), region(15), region(25)],
+            vec![region(1), region(2), region(4)],
+        );
+        gs.sanctuary_deck = vec![sanctuary(1), sanctuary(2)]; // only 2
+        gs.players[0].tableau.push(region_with_clue(5)); // Alice: 10 > 5, 1 clue → needs 2
+        gs.players[1].tableau.push(region_with_clue(3)); // Bob: 8 > 3, 1 clue → needs 2
+
+        gs.play_card(0, 0).unwrap(); // Alice plays 10
+        gs.play_card(1, 0).unwrap(); // Bob plays 8
+
+        // Draft order: Bob (8) first, Alice (10) second.
+        // Bob dealt 2, deck now empty. Alice waiting.
         if let GamePhase::Playing(RoundPhase::Drafting { pending_sanctuaries, sanctuary_waiting, .. }) = &gs.phase {
             assert!(pending_sanctuaries.contains_key(&1), "Bob should have choices");
-            assert!(!pending_sanctuaries.contains_key(&0), "Alice should be waiting");
-            assert!(sanctuary_waiting.contains(&0), "Alice should be in waiting list");
+            assert!(sanctuary_waiting.contains(&0), "Alice should be waiting");
         }
 
-        // Bob chooses → returns 1 card to deck. Now deck has 2, enough for Alice.
+        // Bob chooses → returns 1 card to deck. Alice can now draw.
         gs.choose_sanctuary(1, 0).unwrap();
         if let GamePhase::Playing(RoundPhase::Drafting { pending_sanctuaries, sanctuary_waiting, .. }) = &gs.phase {
-            assert!(pending_sanctuaries.contains_key(&0), "Alice should now have choices");
-            assert!(sanctuary_waiting.is_empty(), "No one waiting");
+            // Alice gets 1 card (auto-assigned) since only 1 returned.
+            assert!(sanctuary_waiting.is_empty());
         }
+        assert_eq!(gs.players[0].sanctuaries.len(), 1, "Alice got auto-assigned");
     }
 
     #[test]

@@ -407,8 +407,8 @@ impl GameState {
                 _ => return,
             };
 
-            if draw_count == 0 || self.sanctuary_deck.len() < draw_count {
-                return; // Not enough cards in deck for this player.
+            if draw_count == 0 || self.sanctuary_deck.is_empty() {
+                return; // Deck empty, wait for discards from earlier players.
             }
 
             // Remove from waiting list.
