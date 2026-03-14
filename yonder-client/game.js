@@ -4,7 +4,8 @@ let ws = null;
 let state = null;   // latest ClientGameState from server
 let mySeat = null;
 let scoringRevealIndex = 0;  // 0 = not started, increments on click (N = N cards revealed)
-let prevSanctuaryCount = 0;  // track auto-assigned sanctuary animations
+let prevSanctuaryCount = 0;   // track auto-assigned sanctuary animations
+let prevPhase = null;         // track phase transitions
 
 // ── DOM refs ─────────────────────────────────────────────────────────────────
 
@@ -78,9 +79,14 @@ function connect() {
     lobby.classList.add('hidden');
     gameBoard.classList.remove('hidden');
     // Track sanctuary count before updating state (for auto-assign animation).
+    // Only update prevSanctuaryCount when the new data has a DIFFERENT count,
+    // so rapid re-renders from broadcasts don't kill the animation.
     if (state) {
-      const me = state.players.find(p => p.seat === mySeat);
-      if (me) prevSanctuaryCount = me.sanctuaries.length;
+      const oldMe = state.players.find(p => p.seat === mySeat);
+      const newMe = data.players.find(p => p.seat === (data.my_seat));
+      if (oldMe && newMe && oldMe.sanctuaries.length !== newMe.sanctuaries.length) {
+        prevSanctuaryCount = oldMe.sanctuaries.length;
+      }
     }
     state = data;
     mySeat = state.my_seat;
