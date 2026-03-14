@@ -100,11 +100,11 @@ async def main():
         draft_order = alice_state["draft_order"]
         print(f"  Drafting order: {draft_order}")
 
-        for i, seat in enumerate(draft_order):
+        for _, seat in enumerate(draft_order):
             if seat == 0:  # Alice
-                # Choose sanctuary early if available (before drafting)
+                # Sanctuary choices appear before drafting if eligible.
                 if alice_state.get("sanctuary_choices"):
-                    print(f"  Alice chooses sanctuary early (from {len(alice_state['sanctuary_choices'])} options)")
+                    print(f"  Alice chooses sanctuary (from {len(alice_state['sanctuary_choices'])} options)")
                     alice_state = await send_action(alice_ws, {"action": "ChooseSanctuary", "sanctuary_index": 0})
                     bob_state = (await drain(bob_ws)) or bob_state
 
@@ -112,14 +112,14 @@ async def main():
                 assert "Err" not in alice_state
                 bob_state = (await drain(bob_ws)) or bob_state
 
-                # If sanctuary pending after draft, must choose now
+                # If sanctuary pending after draft, choose now.
                 if alice_state.get("sanctuary_choices"):
                     print(f"  Alice chooses sanctuary after draft (from {len(alice_state['sanctuary_choices'])} options)")
                     alice_state = await send_action(alice_ws, {"action": "ChooseSanctuary", "sanctuary_index": 0})
                     bob_state = (await drain(bob_ws)) or bob_state
             else:  # Bob
                 if bob_state.get("sanctuary_choices"):
-                    print(f"  Bob chooses sanctuary early (from {len(bob_state['sanctuary_choices'])} options)")
+                    print(f"  Bob chooses sanctuary (from {len(bob_state['sanctuary_choices'])} options)")
                     bob_state = await send_action(bob_ws, {"action": "ChooseSanctuary", "sanctuary_index": 0})
                     alice_state = (await drain(alice_ws)) or alice_state
 

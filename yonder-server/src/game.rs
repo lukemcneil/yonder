@@ -27,7 +27,12 @@ pub enum RoundPhase {
     Drafting {
         order: Vec<usize>,
         current: usize,
-        /// Sanctuary cards dealt to eligible players. Removed once they choose.
+        /// Seats still waiting for sanctuary cards to be dealt (in draft order).
+        /// Cards are dealt eagerly when the deck has enough; otherwise they wait
+        /// until earlier players discard unchosen cards back to the deck.
+        sanctuary_waiting: Vec<usize>,
+        /// Sanctuary cards dealt to players, awaiting their choice.
+        /// Multiple players can have pending choices simultaneously.
         pending_sanctuaries: HashMap<usize, Vec<SanctuaryCard>>,
         /// Whether the current drafter has picked their market card.
         /// On round 8 (no market), starts as true.
@@ -247,8 +252,8 @@ impl GameState {
     }
 
     /// Choose a sanctuary to keep. Any player with pending sanctuaries can choose
-    /// at any time during the Drafting phase. If the current drafter just finished
-    /// choosing (and has already drafted), advance to the next drafter.
+    /// at any time during the Drafting phase. After choosing, unchosen cards return
+    /// to the bottom of the deck, then try to deal to waiting players.
     pub fn choose_sanctuary(&mut self, seat: usize, sanctuary_index: usize) -> Result<(), ActionError> {
         // Validate we're in Drafting and this player has pending sanctuaries.
         let choices = match &mut self.phase {
@@ -272,7 +277,9 @@ impl GameState {
                 self.sanctuary_deck.insert(0, card);
             }
         }
-        // If the current drafter just chose and has already drafted, advance.
+        // Cards returned to deck — try to deal to waiting players.
+        self.deal_available_sanctuaries();
+        // If the current drafter just finished choosing, advance.
         self.try_advance_drafter();
         Ok(())
     }
@@ -297,7 +304,7 @@ impl GameState {
         let card = self.market.remove(market_index);
         self.player_mut(seat)?.hand.push(card);
 
-        // Check if this player still has a pending sanctuary choice.
+        // Check if this player has a pending sanctuary choice.
         let has_pending = match &self.phase {
             GamePhase::Playing(RoundPhase::Drafting { pending_sanctuaries, .. }) => {
                 pending_sanctuaries.contains_key(&seat)
@@ -341,18 +348,6 @@ impl GameState {
             }
         }).collect();
 
-        // Draw sanctuary choices for eligible players.
-        let mut pending_sanctuaries = HashMap::new();
-        for seat in eligible_seats {
-            let choices = self.draw_sanctuary_choices(seat);
-            if choices.len() == 1 {
-                // Auto-assign single sanctuary (no choice needed).
-                self.players[seat].sanctuaries.push(choices.into_iter().next().unwrap());
-            } else if !choices.is_empty() {
-                pending_sanctuaries.insert(seat, choices);
-            }
-        }
-
         // Build draft order: ascending card number of played cards.
         let mut order_pairs: Vec<(usize, u8)> = self.players.iter().map(|p| {
             let played_num = p.tableau.last().map(|c| c.number).unwrap_or(0);
@@ -361,29 +356,84 @@ impl GameState {
         order_pairs.sort_by_key(|&(_, num)| num);
         let seat_order: Vec<usize> = order_pairs.into_iter().map(|(s, _)| s).collect();
 
+        // Sort eligible seats in draft order so we deal in the right sequence.
+        let sanctuary_waiting: Vec<usize> = seat_order.iter()
+            .filter(|s| eligible_seats.contains(s))
+            .copied()
+            .collect();
+
         if self.round == 8 {
-            // Round 8: no market draft.
             self.market.clear();
-            if pending_sanctuaries.is_empty() {
+            if sanctuary_waiting.is_empty() {
                 self.finalize_scores();
                 return;
             }
-            // Enter drafting phase for sanctuary choices only.
             self.phase = GamePhase::Playing(RoundPhase::Drafting {
                 order: seat_order,
                 current: 0,
-                pending_sanctuaries,
-                current_has_drafted: true, // Skip market step.
+                sanctuary_waiting,
+                pending_sanctuaries: HashMap::new(),
+                current_has_drafted: true,
             });
+            self.deal_available_sanctuaries();
             self.skip_non_actionable_drafters();
         } else {
             self.phase = GamePhase::Playing(RoundPhase::Drafting {
                 order: seat_order,
                 current: 0,
-                pending_sanctuaries,
+                sanctuary_waiting,
+                pending_sanctuaries: HashMap::new(),
                 current_has_drafted: false,
             });
+            self.deal_available_sanctuaries();
         }
+    }
+
+    /// Deal sanctuary cards to as many waiting players as possible (in draft order).
+    /// Stops when the deck can't fulfill the next player's full draw.
+    /// Auto-assigns single-card draws.
+    fn deal_available_sanctuaries(&mut self) {
+        loop {
+            // Find the next waiting player and how many they need.
+            let (seat, draw_count) = match &self.phase {
+                GamePhase::Playing(RoundPhase::Drafting { sanctuary_waiting, .. }) => {
+                    if let Some(&seat) = sanctuary_waiting.first() {
+                        let count = self.sanctuary_draw_count(seat);
+                        (seat, count)
+                    } else {
+                        return; // No one waiting.
+                    }
+                }
+                _ => return,
+            };
+
+            if draw_count == 0 || self.sanctuary_deck.len() < draw_count {
+                return; // Not enough cards in deck for this player.
+            }
+
+            // Remove from waiting list.
+            if let GamePhase::Playing(RoundPhase::Drafting { sanctuary_waiting, .. }) = &mut self.phase {
+                sanctuary_waiting.retain(|&s| s != seat);
+            }
+
+            let choices = self.draw_sanctuary_choices(seat);
+            if choices.len() == 1 {
+                self.players[seat].sanctuaries.push(choices.into_iter().next().unwrap());
+                // Single card auto-assigned, keep looping to deal to next player.
+            } else if !choices.is_empty() {
+                if let GamePhase::Playing(RoundPhase::Drafting { pending_sanctuaries, .. }) = &mut self.phase {
+                    pending_sanctuaries.insert(seat, choices);
+                }
+                // Player has choices, keep looping to deal to next player.
+            }
+        }
+    }
+
+    /// How many sanctuary cards a player would draw (1 + clue count).
+    fn sanctuary_draw_count(&self, seat: usize) -> usize {
+        let clue_count = self.players[seat].tableau.iter().filter(|c| c.clue).count()
+            + self.players[seat].sanctuaries.iter().filter(|c| c.clue).count();
+        1 + clue_count
     }
 
     fn draw_sanctuary_choices(&mut self, seat: usize) -> Vec<SanctuaryCard> {
@@ -430,7 +480,7 @@ impl GameState {
     fn try_advance_drafter(&mut self) {
         let should_advance = match &self.phase {
             GamePhase::Playing(RoundPhase::Drafting {
-                order, current, current_has_drafted, pending_sanctuaries,
+                order, current, current_has_drafted, pending_sanctuaries, ..
             }) => {
                 let seat = order[*current];
                 *current_has_drafted && !pending_sanctuaries.contains_key(&seat)
@@ -443,19 +493,23 @@ impl GameState {
     }
 
     /// On round 8, skip drafters who have no pending sanctuary choices.
+    /// On round 8, skip drafters who have no pending sanctuary choice and
+    /// aren't waiting for cards.
     fn skip_non_actionable_drafters(&mut self) {
         loop {
-            let (order, current, has_pending) = match &self.phase {
+            let (order, current, has_pending, is_waiting) = match &self.phase {
                 GamePhase::Playing(RoundPhase::Drafting {
-                    order, current, pending_sanctuaries, ..
+                    order, current, pending_sanctuaries, sanctuary_waiting, ..
                 }) => {
                     let seat = order[*current];
-                    (order.clone(), *current, pending_sanctuaries.contains_key(&seat))
+                    let has_pending = pending_sanctuaries.contains_key(&seat);
+                    let is_waiting = sanctuary_waiting.contains(&seat);
+                    (order.clone(), *current, has_pending, is_waiting)
                 }
                 _ => return,
             };
-            if has_pending {
-                return; // This player needs to choose.
+            if has_pending || is_waiting {
+                return; // This player needs to choose or is waiting for cards.
             }
             let next = current + 1;
             if next >= order.len() {
@@ -608,7 +662,7 @@ impl GameState {
             GamePhase::Playing(RoundPhase::ChoosingCards) => {
                 (ClientPhase::ChoosingCards, vec![], None, false, None, None)
             }
-            GamePhase::Playing(RoundPhase::Drafting { order, current, pending_sanctuaries, current_has_drafted }) => {
+            GamePhase::Playing(RoundPhase::Drafting { order, current, pending_sanctuaries, current_has_drafted, .. }) => {
                 let drafter = order.get(*current).copied();
                 let my_choices = pending_sanctuaries.get(&my_seat).cloned();
                 (ClientPhase::Drafting, order.clone(), drafter, *current_has_drafted, my_choices, None)
