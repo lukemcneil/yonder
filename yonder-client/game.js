@@ -77,6 +77,11 @@ function connect() {
     }
     lobby.classList.add('hidden');
     gameBoard.classList.remove('hidden');
+    // Track sanctuary count before updating state (for auto-assign animation).
+    if (state) {
+      const me = state.players.find(p => p.seat === mySeat);
+      if (me) prevSanctuaryCount = me.sanctuaries.length;
+    }
     state = data;
     mySeat = state.my_seat;
     // Persist room/name in URL hash so refresh reconnects.
@@ -367,7 +372,6 @@ function renderMyArea() {
       }
       mySanctuaries.appendChild(el);
     }
-    prevSanctuaryCount = me.sanctuaries.length;
     // Inline sanctuary choices (pick one)
     if (state.sanctuary_choices && state.sanctuary_choices.length > 0) {
       const divider = document.createElement('div');
