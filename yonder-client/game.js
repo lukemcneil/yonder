@@ -198,16 +198,16 @@ function renderStatusBar() {
     }
   } else if (phase === 'drafting') {
     const drafter = state.current_drafter;
-    if (state.sanctuary_choices) {
+    if (state.sanctuary_choices && drafter === mySeat && !state.drafter_choosing_sanctuary) {
+      statusPhase.textContent = 'Your turn — pick a market card or choose a sanctuary first.';
+    } else if (state.sanctuary_choices && drafter === mySeat && state.drafter_choosing_sanctuary) {
+      statusPhase.textContent = 'Choose a sanctuary to keep before continuing.';
+    } else if (state.sanctuary_choices) {
       statusPhase.textContent = 'You found a Sanctuary! Choose one to keep.';
     } else if (drafter == null) {
       statusPhase.textContent = 'Waiting…';
     } else if (drafter === mySeat) {
-      if (state.drafter_choosing_sanctuary) {
-        statusPhase.textContent = 'Choose a sanctuary to keep before continuing.';
-      } else {
-        statusPhase.textContent = 'Your turn to draft — pick a card from the market.';
-      }
+      statusPhase.textContent = 'Your turn to draft — pick a card from the market.';
     } else {
       const drafter_name = state.players.find(p => p.seat === drafter)?.name ?? '?';
       if (state.drafter_choosing_sanctuary) {
