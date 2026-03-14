@@ -446,6 +446,8 @@ body {
 }
 
 .sanctuary-pickable:hover {
+  transform: translateY(-4px);
+  transition: transform 0.1s;
   box-shadow: 0 0 14px rgba(201, 168, 76, 0.9);
 }
 
