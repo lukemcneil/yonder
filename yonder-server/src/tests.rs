@@ -768,6 +768,152 @@ mod tests {
         gs.draft_card(0, 0).unwrap();
     }
 
+    // ─── 6-player stress test ──────────────────────────────────────────────────
+
+    #[test]
+    fn six_player_sanctuary_deck_exhaustion_no_stall() {
+        // 6 players, all eligible for sanctuaries, each needs 3 (2 clues each).
+        // Total needed: 18 cards. Deck only has 5.
+        // Game must complete without stalling.
+        let names = ["P0", "P1", "P2", "P3", "P4", "P5"];
+        let mut gs = GameState::new_waiting(6);
+        for name in &names {
+            gs.join(name).unwrap();
+        }
+        gs.region_deck.clear();
+        gs.market.clear();
+        gs.sanctuary_deck = (1..=5).map(|i| sanctuary(i)).collect();
+
+        // Give each player a hand and a tableau with clue cards.
+        // Card numbers: P0 plays 10, P1 plays 20, P2 plays 30, P3 plays 40, P4 plays 50, P5 plays 60
+        // Previous cards: 5, 15, 25, 35, 45, 55 (all eligible: played > previous)
+        for i in 0..6 {
+            let played_num = (i as u8 + 1) * 10;
+            let prev_num = played_num - 5;
+            gs.players[i].hand = vec![region(played_num), region(played_num + 1), region(played_num + 2)];
+            gs.players[i].tableau.push(region_with_clue(prev_num - 1)); // clue card
+            gs.players[i].tableau.push(region_with_clue(prev_num));     // another clue → 2 clues, needs 3
+        }
+        // Market: 7 cards (6 + 1)
+        gs.market = (70..=76).map(|i| region(i)).collect();
+        gs.round = 2; // round > 1 so previous card check works
+        gs.phase = GamePhase::Playing(RoundPhase::ChoosingCards);
+        gs.player_count = 6;
+
+        // All 6 players play.
+        for i in 0..6 {
+            gs.play_card(i, 0).unwrap();
+        }
+
+        // Should be in Drafting, not stuck.
+        assert!(matches!(gs.phase, GamePhase::Playing(RoundPhase::Drafting { .. })));
+
+        // Draft order is ascending by played number: P0 (10), P1 (20), ..., P5 (60).
+        // Process each drafter: choose sanctuary if pending, then draft.
+        for _ in 0..6 {
+            // Get current drafter info.
+            let (current_seat, has_pending, has_choices) = match &gs.phase {
+                GamePhase::Playing(RoundPhase::Drafting { order, current, pending_sanctuaries, .. }) => {
+                    let seat = order[*current];
+                    (seat, pending_sanctuaries.contains_key(&seat), pending_sanctuaries.get(&seat).map(|c| c.len()).unwrap_or(0) > 0)
+                }
+                _ => panic!("Expected Drafting, got {:?}", gs.phase),
+            };
+
+            // Choose sanctuary first if we have one.
+            if has_choices {
+                gs.choose_sanctuary(current_seat, 0).unwrap();
+            }
+
+            // Check if we're still current drafter (choosing might have triggered re-deal and another pending).
+            let still_has_pending = match &gs.phase {
+                GamePhase::Playing(RoundPhase::Drafting { pending_sanctuaries, order, current, .. }) => {
+                    order[*current] == current_seat && pending_sanctuaries.contains_key(&current_seat)
+                }
+                _ => false,
+            };
+            if still_has_pending {
+                gs.choose_sanctuary(current_seat, 0).unwrap();
+            }
+
+            // Now draft from market.
+            let still_drafting = matches!(gs.phase, GamePhase::Playing(RoundPhase::Drafting { .. }));
+            if still_drafting {
+                let is_still_current = match &gs.phase {
+                    GamePhase::Playing(RoundPhase::Drafting { order, current, current_has_drafted, .. }) => {
+                        order[*current] == current_seat && !current_has_drafted
+                    }
+                    _ => false,
+                };
+                if is_still_current {
+                    gs.draft_card(current_seat, 0).unwrap();
+                    // If sanctuary pending after draft, choose it.
+                    let post_draft_pending = match &gs.phase {
+                        GamePhase::Playing(RoundPhase::Drafting { pending_sanctuaries, order, current, .. }) => {
+                            order.get(*current) == Some(&current_seat) && pending_sanctuaries.contains_key(&current_seat)
+                        }
+                        _ => false,
+                    };
+                    if post_draft_pending {
+                        gs.choose_sanctuary(current_seat, 0).unwrap();
+                    }
+                }
+            }
+        }
+
+        // Round should have advanced.
+        assert_eq!(gs.round, 3, "Round should advance to 3 after all 6 players draft");
+        assert!(matches!(gs.phase, GamePhase::Playing(RoundPhase::ChoosingCards)));
+    }
+
+    #[test]
+    fn six_player_round_8_sanctuary_deck_exhaustion_no_stall() {
+        // Round 8, 6 players all eligible, deck has 5 cards, each needs 3.
+        // Must reach GameOver without stalling.
+        let names = ["P0", "P1", "P2", "P3", "P4", "P5"];
+        let mut gs = GameState::new_waiting(6);
+        for name in &names {
+            gs.join(name).unwrap();
+        }
+        gs.region_deck.clear();
+        gs.market.clear();
+        gs.sanctuary_deck = (1..=5).map(|i| sanctuary(i)).collect();
+
+        for i in 0..6 {
+            let played_num = (i as u8 + 1) * 10;
+            let prev_num = played_num - 5;
+            gs.players[i].hand = vec![region(played_num), region(played_num + 1), region(played_num + 2)];
+            gs.players[i].tableau.push(region_with_clue(prev_num - 1));
+            gs.players[i].tableau.push(region_with_clue(prev_num));
+        }
+        gs.round = 8;
+        gs.phase = GamePhase::Playing(RoundPhase::ChoosingCards);
+        gs.player_count = 6;
+
+        // All play.
+        for i in 0..6 {
+            gs.play_card(i, 0).unwrap();
+        }
+
+        // Process sanctuary choices until game over.
+        for _ in 0..20 { // safety limit
+            match &gs.phase {
+                GamePhase::GameOver { .. } => break,
+                GamePhase::Playing(RoundPhase::Drafting { order, current, pending_sanctuaries, .. }) => {
+                    let seat = order[*current];
+                    if pending_sanctuaries.contains_key(&seat) {
+                        gs.choose_sanctuary(seat, 0).unwrap();
+                    } else {
+                        panic!("Current drafter {} has no pending sanctuaries and game isn't over — stall!", seat);
+                    }
+                }
+                other => panic!("Unexpected phase: {:?}", other),
+            }
+        }
+
+        assert!(matches!(gs.phase, GamePhase::GameOver { .. }), "Game should reach GameOver, got {:?}", gs.phase);
+    }
+
     // ─── join ─────────────────────────────────────────────────────────────────
 
     #[test]

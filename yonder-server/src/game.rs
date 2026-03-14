@@ -417,8 +417,22 @@ impl GameState {
             }
 
             let deck_size = self.sanctuary_deck.len();
+            let anyone_pending = match &self.phase {
+                GamePhase::Playing(RoundPhase::Drafting { pending_sanctuaries, .. }) => {
+                    !pending_sanctuaries.is_empty()
+                }
+                _ => false,
+            };
+
+            if deck_size == 0 && !anyone_pending {
+                // Deck empty and no one will discard. Remove all remaining waiters.
+                if let GamePhase::Playing(RoundPhase::Drafting { sanctuary_waiting, .. }) = &mut self.phase {
+                    sanctuary_waiting.clear();
+                }
+                return;
+            }
             if deck_size == 0 {
-                return; // Deck empty, wait for discards.
+                return; // Deck empty but discards are coming — wait.
             }
             if deck_size < draw_count && !is_current_drafter {
                 return; // Not enough for a full draw; wait for discards (unless current drafter).
