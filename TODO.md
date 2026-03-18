@@ -108,6 +108,10 @@ _(Add tasks here as they are discovered during implementation)_
 - [x] fix bug about running out of sanctuaries to draw
 - [ ] Animation when a sanctuary is auto-assigned (only 1 drawn, no choice needed)
 - [ ] allow going back to lobby from game wait screen
+- [ ] log player names
+- [ ] show rules
+- [ ] page to see all games and spectate
+- [ ] 38 is missing a stone
 
 ---
 
