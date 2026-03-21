@@ -942,6 +942,8 @@ body {
   #opponents-area { padding: 0.3rem 0.5rem; gap: 0.4rem; flex-wrap: wrap; }
   .opponent-panel { min-width: 70px; padding: 0.3rem 0.35rem; }
   .self-panel { min-width: auto; padding: 0.2rem 0.4rem; }
+  .draft-collapsible { display: none; }
+  .draft-collapsible.expanded { display: block; }
   .opponent-name { font-size: 0.65rem; }
   .opponent-meta { font-size: 0.6rem; }
 
