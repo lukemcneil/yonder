@@ -224,14 +224,11 @@ function renderStatusBar() {
 
 function renderOpponents() {
   opponentsArea.innerHTML = '';
-  // During drafting, show all players (including self) sorted by draft order.
-  // Otherwise, show only opponents.
-  let players;
+  // Show all players (including self). During drafting, sort by draft order.
+  let players = [...state.players];
   if (state.phase === 'drafting' && state.draft_order.length > 0) {
-    players = [...state.players].sort((a, b) =>
+    players.sort((a, b) =>
       state.draft_order.indexOf(a.seat) - state.draft_order.indexOf(b.seat));
-  } else {
-    players = state.players.filter(p => p.seat !== mySeat);
   }
   for (const p of players) {
     const isMe = p.seat === mySeat;
