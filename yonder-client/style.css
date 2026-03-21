@@ -218,6 +218,11 @@ body {
   padding-bottom: 0.2rem;
 }
 
+.active-drafter {
+  border-color: #c9a84c;
+  box-shadow: 0 0 8px rgba(201, 168, 76, 0.5);
+}
+
 .self-panel {
   min-width: auto;
   padding: 0.3rem 0.5rem;

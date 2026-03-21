@@ -236,7 +236,10 @@ function renderOpponents() {
     const isMe = p.seat === mySeat;
 
     const panel = document.createElement('div');
-    panel.className = isMe ? 'opponent-panel self-panel' : 'opponent-panel';
+    const isActiveDrafter = state.phase === 'drafting' && state.current_drafter === p.seat;
+    panel.className = 'opponent-panel'
+      + (isMe ? ' self-panel' : '')
+      + (isActiveDrafter ? ' active-drafter' : '');
 
     const nameEl = document.createElement('div');
     nameEl.className = 'opponent-name';
