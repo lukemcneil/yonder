@@ -225,10 +225,17 @@ function renderStatusBar() {
 function renderOpponents() {
   opponentsArea.innerHTML = '';
   // Show all players (including self). During drafting, sort by draft order.
+  // Otherwise, sort by highest tableau card number (ascending = draft-like order).
   let players = [...state.players];
   if (state.phase === 'drafting' && state.draft_order.length > 0) {
     players.sort((a, b) =>
       state.draft_order.indexOf(a.seat) - state.draft_order.indexOf(b.seat));
+  } else {
+    players.sort((a, b) => {
+      const aNum = a.tableau.length > 0 ? a.tableau[a.tableau.length - 1].number : 0;
+      const bNum = b.tableau.length > 0 ? b.tableau[b.tableau.length - 1].number : 0;
+      return aNum - bNum;
+    });
   }
   for (const p of players) {
     const isMe = p.seat === mySeat;
