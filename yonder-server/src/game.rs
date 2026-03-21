@@ -129,7 +129,7 @@ impl GameState {
     }
 
     /// Start the game. Deals 3 cards to each player (or 5 in advanced mode), reveals market.
-    pub fn start_game(&mut self, seat: usize, advanced: bool) -> Result<(), ActionError> {
+    pub fn start_game(&mut self, seat: usize, advanced: bool, expansion: bool) -> Result<(), ActionError> {
         if seat != 0 {
             return Err(ActionError::NotYourTurn);
         }
@@ -142,6 +142,13 @@ impl GameState {
         }
         // Lock in player count to however many joined.
         self.player_count = self.players.len();
+
+        // Add expansion cards if enabled.
+        if expansion {
+            use crate::cards::{get_region_deck_with_expansion, get_sanctuary_deck_with_expansion};
+            self.region_deck = get_region_deck_with_expansion();
+            self.sanctuary_deck = get_sanctuary_deck_with_expansion();
+        }
 
         if advanced {
             // Deal 5 cards to each player; they must keep exactly 3.
@@ -781,7 +788,7 @@ impl GameState {
 #[derive(Debug, Deserialize)]
 #[serde(tag = "action")]
 pub enum ClientAction {
-    StartGame { advanced: bool },
+    StartGame { advanced: bool, #[serde(default)] expansion: bool },
     KeepCards { indices: [usize; 3] },
     PlayCard { card_index: usize },
     ChooseSanctuary { sanctuary_index: usize },

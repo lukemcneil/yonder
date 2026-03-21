@@ -154,6 +154,7 @@ function renderWaitingRoom() {
   const controls = document.getElementById('waiting-controls');
   const startBtn = document.getElementById('waiting-start-btn');
   const advToggle = document.getElementById('waiting-advanced');
+  const expToggle = document.getElementById('waiting-expansion');
   const hint = document.getElementById('waiting-hint');
 
   if (mySeat === 0) {
@@ -162,7 +163,7 @@ function renderWaitingRoom() {
     startBtn.textContent = state.players.length === 1
       ? 'Start Solo Game'
       : `Start Game (${state.players.length} players)`;
-    startBtn.onclick = () => send({ action: 'StartGame', advanced: advToggle.checked });
+    startBtn.onclick = () => send({ action: 'StartGame', advanced: advToggle.checked, expansion: expToggle.checked });
     hint.textContent = '';
   } else {
     controls.classList.add('hidden');

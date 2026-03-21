@@ -103,7 +103,7 @@ _(Add tasks here as they are discovered during implementation)_
 - [x] Live card scores during play: each region card in the tableau shows its current score (based on regions to the right + sanctuaries). Hover/tooltip gives details (e.g. "quest not met yet" or "3 stone × 4 = 12").
 - [x] fix bug about running out of sanctuaries to draw
 - [x] Draft phase: show each player's highest region number so you can tell draft order at a glance.
-- [ ] Add option to play with expansion cards
+- [x] Add option to play with expansion cards
 - [ ] allow going back to lobby from game wait screen
 - [ ] log player names
 - [ ] show rules link from main page

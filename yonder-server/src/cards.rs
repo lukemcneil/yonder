@@ -75,8 +75,22 @@ pub fn get_region_deck() -> Vec<RegionCard> {
     deck
 }
 
+pub fn get_region_deck_with_expansion() -> Vec<RegionCard> {
+    let mut deck = regions();
+    deck.extend(expansion_regions());
+    deck.shuffle(&mut thread_rng());
+    deck
+}
+
 pub fn get_sanctuary_deck() -> Vec<SanctuaryCard> {
     let mut deck = sanctuaries();
+    deck.shuffle(&mut thread_rng());
+    deck
+}
+
+pub fn get_sanctuary_deck_with_expansion() -> Vec<SanctuaryCard> {
+    let mut deck = sanctuaries();
+    deck.extend(expansion_sanctuaries());
     deck.shuffle(&mut thread_rng());
     deck
 }
@@ -155,6 +169,33 @@ fn regions() -> Vec<RegionCard> {
         RegionCard { number: 66, biome: Biome::Blue, night: false, clue: false, wonders: WonderCount::zero(), quest: w(4,0,0), fame: Fame::Flat(20) },
         RegionCard { number: 67, biome: Biome::Green, night: false, clue: true, wonders: WonderCount::zero(), quest: w(0,2,2), fame: Fame::Flat(19) },
         RegionCard { number: 68, biome: Biome::Blue, night: false, clue: false, wonders: WonderCount::zero(), quest: w(5,0,0), fame: Fame::Flat(24) },
+    ]
+}
+
+fn expansion_regions() -> Vec<RegionCard> {
+    vec![
+        RegionCard { number: 0, biome: Biome::Colorless, night: false, clue: false, wonders: w(1,1,1), quest: WonderCount::zero(), fame: Fame::None },
+        RegionCard { number: 69, biome: Biome::Red, night: false, clue: true, wonders: WonderCount::zero(), quest: WonderCount::zero(), fame: Fame::PerWonderSet { score_per: 7 } },
+        RegionCard { number: 70, biome: Biome::Colorless, night: false, clue: true, wonders: WonderCount::zero(), quest: WonderCount::zero(), fame: Fame::None },
+        RegionCard { number: 71, biome: Biome::Green, night: true, clue: false, wonders: w(1,0,0), quest: WonderCount::zero(), fame: Fame::PerWonderSet { score_per: 7 } },
+        RegionCard { number: 72, biome: Biome::Colorless, night: true, clue: true, wonders: WonderCount::zero(), quest: w(0,5,0), fame: Fame::Flat(26) },
+        RegionCard { number: 73, biome: Biome::Yellow, night: true, clue: false, wonders: w(0,1,0), quest: w(0,0,4), fame: Fame::PerColour { biome: Biome::Colorless, score_per: 5 } },
+        RegionCard { number: 74, biome: Biome::Colorless, night: true, clue: false, wonders: w(0,0,1), quest: WonderCount::zero(), fame: Fame::PerColour { biome: Biome::Colorless, score_per: 7 } },
+        RegionCard { number: 75, biome: Biome::Blue, night: true, clue: true, wonders: WonderCount::zero(), quest: w(6,0,0), fame: Fame::Flat(28) },
+        RegionCard { number: 76, biome: Biome::Colorless, night: true, clue: false, wonders: WonderCount::zero(), quest: w(2,2,2), fame: Fame::PerColour { biome: Biome::Colorless, score_per: 4 } },
+    ]
+}
+
+fn expansion_sanctuaries() -> Vec<SanctuaryCard> {
+    vec![
+        SanctuaryCard { tile: 46, biome: Biome::Colorless, night: false, clue: false, wonders: w(2,0,0), fame: Fame::None },
+        SanctuaryCard { tile: 47, biome: Biome::Colorless, night: false, clue: true, wonders: WonderCount::zero(), fame: Fame::PerWonderSet { score_per: 3 } },
+        SanctuaryCard { tile: 48, biome: Biome::Colorless, night: false, clue: false, wonders: w(0,1,0), fame: Fame::PerColour { biome: Biome::Colorless, score_per: 1 } },
+        SanctuaryCard { tile: 49, biome: Biome::Colorless, night: false, clue: false, wonders: w(0,0,1), fame: Fame::PerColour { biome: Biome::Colorless, score_per: 1 } },
+        SanctuaryCard { tile: 50, biome: Biome::Green, night: false, clue: false, wonders: WonderCount::zero(), fame: Fame::PerWonderSet { score_per: 3 } },
+        SanctuaryCard { tile: 51, biome: Biome::Blue, night: false, clue: false, wonders: WonderCount::zero(), fame: Fame::PerColour { biome: Biome::Colorless, score_per: 2 } },
+        SanctuaryCard { tile: 52, biome: Biome::Yellow, night: true, clue: false, wonders: WonderCount::zero(), fame: Fame::PerColour { biome: Biome::Colorless, score_per: 1 } },
+        SanctuaryCard { tile: 53, biome: Biome::Red, night: false, clue: false, wonders: WonderCount::zero(), fame: Fame::PerWonderSet { score_per: 3 } },
     ]
 }
 

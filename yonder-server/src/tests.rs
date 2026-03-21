@@ -68,7 +68,7 @@ mod tests {
         let mut gs = GameState::new_waiting(2);
         gs.join("Alice").unwrap();
         gs.join("Bob").unwrap();
-        gs.start_game(0, false).unwrap();
+        gs.start_game(0, false, false).unwrap();
         assert_eq!(gs.players[0].hand.len(), 3);
         assert_eq!(gs.players[1].hand.len(), 3);
         assert_eq!(gs.market.len(), 3); // 2 players + 1
@@ -79,7 +79,7 @@ mod tests {
         let mut gs = GameState::new_waiting(2);
         gs.join("Alice").unwrap();
         gs.join("Bob").unwrap();
-        gs.start_game(0, false).unwrap();
+        gs.start_game(0, false, false).unwrap();
         assert_eq!(gs.round, 1);
         assert!(matches!(gs.phase, GamePhase::Playing(RoundPhase::ChoosingCards)));
     }
@@ -88,7 +88,7 @@ mod tests {
     fn start_game_solo_works() {
         let mut gs = GameState::new_waiting(2);
         gs.join("Alice").unwrap();
-        gs.start_game(0, false).unwrap();
+        gs.start_game(0, false, false).unwrap();
         assert_eq!(gs.players[0].hand.len(), 3);
         assert_eq!(gs.market.len(), 2); // 1 player + 1
         assert_eq!(gs.round, 1);
@@ -99,7 +99,7 @@ mod tests {
         let mut gs = GameState::new_waiting(2);
         gs.join("Alice").unwrap();
         gs.join("Bob").unwrap();
-        let err = gs.start_game(1, false).unwrap_err();
+        let err = gs.start_game(1, false, false).unwrap_err();
         assert!(matches!(err, ActionError::NotYourTurn));
     }
 
@@ -108,8 +108,8 @@ mod tests {
         let mut gs = GameState::new_waiting(2);
         gs.join("Alice").unwrap();
         gs.join("Bob").unwrap();
-        gs.start_game(0, false).unwrap();
-        let err = gs.start_game(0, false).unwrap_err();
+        gs.start_game(0, false, false).unwrap();
+        let err = gs.start_game(0, false, false).unwrap_err();
         assert!(matches!(err, ActionError::GameAlreadyStarted));
     }
 
@@ -120,7 +120,7 @@ mod tests {
         let mut gs = GameState::new_waiting(2);
         gs.join("Alice").unwrap();
         gs.join("Bob").unwrap();
-        gs.start_game(0, true).unwrap();
+        gs.start_game(0, true, false).unwrap();
         assert!(matches!(gs.phase, GamePhase::AdvancedSetup { .. }));
         // Players have no hand yet; choices are in pending.
         assert_eq!(gs.players[0].hand.len(), 0);
@@ -135,7 +135,7 @@ mod tests {
         let mut gs = GameState::new_waiting(2);
         gs.join("Alice").unwrap();
         gs.join("Bob").unwrap();
-        gs.start_game(0, true).unwrap();
+        gs.start_game(0, true, false).unwrap();
         gs.keep_cards(0, &[0, 1, 2]).unwrap();
         // Bob still pending — still in AdvancedSetup.
         assert!(matches!(gs.phase, GamePhase::AdvancedSetup { .. }));
@@ -152,7 +152,7 @@ mod tests {
         let mut gs = GameState::new_waiting(2);
         gs.join("Alice").unwrap();
         gs.join("Bob").unwrap();
-        gs.start_game(0, true).unwrap();
+        gs.start_game(0, true, false).unwrap();
         let err = gs.keep_cards(0, &[0, 0, 1]).unwrap_err();
         assert!(matches!(err, ActionError::InvalidCardIndex));
     }
@@ -945,7 +945,7 @@ mod tests {
         let mut gs = GameState::new_waiting(2);
         gs.join("Alice").unwrap();
         gs.join("Bob").unwrap();
-        gs.start_game(0, false).unwrap();
+        gs.start_game(0, false, false).unwrap();
         let err = gs.join("Carol").unwrap_err();
         assert!(matches!(err, ActionError::GameAlreadyStarted));
     }

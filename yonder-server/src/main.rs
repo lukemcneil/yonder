@@ -167,7 +167,7 @@ async fn apply_action(
     let mut rooms = rooms_state.lock().await;
     let room = rooms.0.get_mut(room_name).ok_or(ActionError::InvalidSeat)?;
     match action {
-        ClientAction::StartGame { advanced } => room.state.start_game(seat, advanced),
+        ClientAction::StartGame { advanced, expansion } => room.state.start_game(seat, advanced, expansion),
         ClientAction::KeepCards { indices } => room.state.keep_cards(seat, &indices),
         ClientAction::PlayCard { card_index } => room.state.play_card(seat, card_index),
         ClientAction::ChooseSanctuary { sanctuary_index } => {
