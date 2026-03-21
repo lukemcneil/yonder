@@ -104,11 +104,11 @@ _(Add tasks here as they are discovered during implementation)_
 - [x] fix bug about running out of sanctuaries to draw
 - [x] Draft phase: show each player's highest region number so you can tell draft order at a glance.
 - [x] Add option to play with expansion cards
+- [x] 38 is missing a stone
 - [ ] allow going back to lobby from game wait screen
 - [ ] log player names
 - [ ] show rules link from main page
 - [ ] rework join game system
-- [x] 38 is missing a stone
 - [ ] card selection at beginning should look better on mobile
 
 ## Do Later
