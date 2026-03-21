@@ -109,6 +109,7 @@ _(Add tasks here as they are discovered during implementation)_
 - [ ] show rules link from main page
 - [ ] rework join game system
 - [ ] 38 is missing a stone
+- [ ] card selection at beginning should look better on mobile
 
 ## Do Later
 - [ ] Live stats sidebar: show the current player's resource counts (stone, chimera, thistle), color counts (red, green, blue, yellow), clue count, and night/day count. Visible during gameplay on the right side.
