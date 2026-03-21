@@ -244,12 +244,12 @@ function renderOpponents() {
     const nameEl = document.createElement('div');
     nameEl.className = 'opponent-name';
     nameEl.textContent = isMe ? 'You' : p.name;
-    if (state.phase === 'drafting' && p.tableau.length > 0) {
+    if (p.tableau.length > 0) {
       const highest = p.tableau[p.tableau.length - 1].number;
       const badge = document.createElement('span');
       badge.className = 'draft-order-badge';
       badge.textContent = `#${highest}`;
-      if (state.current_drafter === p.seat) badge.classList.add('active');
+      if (state.phase === 'drafting' && state.current_drafter === p.seat) badge.classList.add('active');
       nameEl.appendChild(badge);
     }
     panel.appendChild(nameEl);
@@ -257,13 +257,9 @@ function renderOpponents() {
     // For yourself during drafting, just show the name+badge (details are in "My area").
     if (!isMe) {
       const details = document.createElement('div');
-      details.className = 'opponent-details';
-      // On mobile during drafting, collapse by default (tap name to toggle).
-      if (state.phase === 'drafting') {
-        details.classList.add('draft-collapsible');
-        nameEl.style.cursor = 'pointer';
-        nameEl.addEventListener('click', () => details.classList.toggle('expanded'));
-      }
+      details.className = 'opponent-details mobile-collapsible';
+      nameEl.style.cursor = 'pointer';
+      nameEl.addEventListener('click', () => details.classList.toggle('expanded'));
 
       // Tableau
       const tableau = document.createElement('div');
