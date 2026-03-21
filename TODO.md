@@ -108,7 +108,7 @@ _(Add tasks here as they are discovered during implementation)_
 - [ ] log player names
 - [ ] show rules link from main page
 - [ ] rework join game system
-- [ ] 38 is missing a stone
+- [x] 38 is missing a stone
 - [ ] card selection at beginning should look better on mobile
 
 ## Do Later
