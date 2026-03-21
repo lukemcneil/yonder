@@ -4,6 +4,7 @@ let ws = null;
 let state = null;   // latest ClientGameState from server
 let mySeat = null;
 let scoringRevealIndex = 0;  // 0 = not started, increments on click (N = N cards revealed)
+const expandedOpponents = new Set();  // track which opponent panels are expanded on mobile
 
 // ── DOM refs ─────────────────────────────────────────────────────────────────
 
@@ -258,8 +259,19 @@ function renderOpponents() {
     if (!isMe) {
       const details = document.createElement('div');
       details.className = 'opponent-details mobile-collapsible';
+      if (expandedOpponents.has(p.seat)) details.classList.add('expanded');
+
+      const chevron = document.createElement('span');
+      chevron.className = 'expand-chevron';
+      chevron.textContent = expandedOpponents.has(p.seat) ? '▾' : '▸';
+      nameEl.appendChild(chevron);
       nameEl.style.cursor = 'pointer';
-      nameEl.addEventListener('click', () => details.classList.toggle('expanded'));
+      nameEl.addEventListener('click', () => {
+        const isExpanded = details.classList.toggle('expanded');
+        chevron.textContent = isExpanded ? '▾' : '▸';
+        if (isExpanded) expandedOpponents.add(p.seat);
+        else expandedOpponents.delete(p.seat);
+      });
 
       // Tableau
       const tableau = document.createElement('div');

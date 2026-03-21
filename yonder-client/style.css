@@ -228,6 +228,13 @@ body {
   padding: 0.3rem 0.5rem;
 }
 
+.expand-chevron {
+  display: none;
+  font-size: 0.6rem;
+  margin-left: 3px;
+  color: #888;
+}
+
 .draft-order-badge {
   display: inline-block;
   font-size: 0.65rem;
@@ -944,6 +951,7 @@ body {
   .self-panel { min-width: auto; padding: 0.2rem 0.4rem; }
   .mobile-collapsible { display: none; }
   .mobile-collapsible.expanded { display: block; }
+  .expand-chevron { display: inline; }
   .opponent-name { font-size: 0.65rem; }
   .opponent-meta { font-size: 0.6rem; }
 
