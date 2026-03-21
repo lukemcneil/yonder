@@ -180,9 +180,9 @@ fn expansion_regions() -> Vec<RegionCard> {
         RegionCard { number: 71, biome: Biome::Green, night: true, clue: false, wonders: w(1,0,0), quest: WonderCount::zero(), fame: Fame::PerWonderSet { score_per: 7 } },
         RegionCard { number: 72, biome: Biome::Colorless, night: true, clue: true, wonders: WonderCount::zero(), quest: w(0,5,0), fame: Fame::Flat(26) },
         RegionCard { number: 73, biome: Biome::Yellow, night: true, clue: false, wonders: w(0,1,0), quest: w(0,0,4), fame: Fame::PerColour { biome: Biome::Colorless, score_per: 5 } },
-        RegionCard { number: 74, biome: Biome::Colorless, night: true, clue: false, wonders: w(0,0,1), quest: WonderCount::zero(), fame: Fame::PerColour { biome: Biome::Colorless, score_per: 7 } },
+        RegionCard { number: 74, biome: Biome::Colorless, night: true, clue: false, wonders: w(0,0,1), quest: WonderCount::zero(), fame: Fame::PerWonderSet { score_per: 7 } },
         RegionCard { number: 75, biome: Biome::Blue, night: true, clue: true, wonders: WonderCount::zero(), quest: w(6,0,0), fame: Fame::Flat(28) },
-        RegionCard { number: 76, biome: Biome::Colorless, night: true, clue: false, wonders: WonderCount::zero(), quest: w(2,2,2), fame: Fame::PerColour { biome: Biome::Colorless, score_per: 4 } },
+        RegionCard { number: 76, biome: Biome::Colorless, night: true, clue: false, wonders: WonderCount::zero(), quest: w(2,2,2), fame: Fame::PerWonderSet { score_per: 4 } },
     ]
 }
 
