@@ -198,22 +198,20 @@ function renderStatusBar() {
     }
   } else if (phase === 'drafting') {
     const drafter = state.current_drafter;
-    if (state.sanctuary_choices && drafter === mySeat && !state.drafter_choosing_sanctuary) {
-      statusPhase.textContent = 'Your turn — pick a market card or choose a sanctuary first.';
-    } else if (state.sanctuary_choices && drafter === mySeat && state.drafter_choosing_sanctuary) {
-      statusPhase.textContent = 'Choose a sanctuary to keep before continuing.';
+    if (state.sanctuary_choices && state.drafter_choosing_sanctuary) {
+      statusPhase.textContent = 'Choose a sanctuary to keep.';
     } else if (state.sanctuary_choices) {
-      statusPhase.textContent = 'You found a Sanctuary! Choose one to keep.';
+      statusPhase.textContent = 'Choose a sanctuary.';
     } else if (drafter == null) {
       statusPhase.textContent = 'Waiting…';
     } else if (drafter === mySeat) {
-      statusPhase.textContent = 'Your turn to draft — pick a card from the market.';
+      statusPhase.textContent = 'Your pick.';
     } else {
       const drafter_name = state.players.find(p => p.seat === drafter)?.name ?? '?';
       if (state.drafter_choosing_sanctuary) {
-        statusPhase.textContent = `${drafter_name} is choosing a sanctuary…`;
+        statusPhase.textContent = `${drafter_name} choosing sanctuary…`;
       } else {
-        statusPhase.textContent = `${drafter_name} is drafting…`;
+        statusPhase.textContent = `${drafter_name} drafting…`;
       }
     }
   } else if (phase === 'game_over') {
@@ -225,40 +223,60 @@ function renderStatusBar() {
 
 function renderOpponents() {
   opponentsArea.innerHTML = '';
-  for (const p of state.players) {
-    if (p.seat === mySeat) continue;
+  // During drafting, show all players (including self) sorted by draft order.
+  // Otherwise, show only opponents.
+  let players;
+  if (state.phase === 'drafting' && state.draft_order.length > 0) {
+    players = [...state.players].sort((a, b) =>
+      state.draft_order.indexOf(a.seat) - state.draft_order.indexOf(b.seat));
+  } else {
+    players = state.players.filter(p => p.seat !== mySeat);
+  }
+  for (const p of players) {
+    const isMe = p.seat === mySeat;
 
     const panel = document.createElement('div');
-    panel.className = 'opponent-panel';
+    panel.className = isMe ? 'opponent-panel self-panel' : 'opponent-panel';
 
     const nameEl = document.createElement('div');
     nameEl.className = 'opponent-name';
-    nameEl.textContent = p.name;
+    nameEl.textContent = isMe ? 'You' : p.name;
+    if (state.phase === 'drafting' && p.tableau.length > 0) {
+      const highest = p.tableau[p.tableau.length - 1].number;
+      const badge = document.createElement('span');
+      badge.className = 'draft-order-badge';
+      badge.textContent = `#${highest}`;
+      if (state.current_drafter === p.seat) badge.classList.add('active');
+      nameEl.appendChild(badge);
+    }
     panel.appendChild(nameEl);
 
-    // Tableau
-    const tableau = document.createElement('div');
-    tableau.className = 'opponent-tableau';
-    for (const card of p.tableau) {
-      tableau.appendChild(regionCardEl(card, 'sm', false, true));
-    }
-    // Played-this-round placeholder
-    if (p.played_this_round && state.phase === 'choosing_cards') {
-      const ph = document.createElement('div');
-      ph.className = 'card sm played-overlay';
-      ph.innerHTML = '<img src="region/card-back.png" alt="face-down">';
-      tableau.appendChild(ph);
-    }
-    panel.appendChild(tableau);
-
-    // Sanctuaries
-    if (p.sanctuaries.length > 0) {
-      const sancts = document.createElement('div');
-      sancts.className = 'opponent-sanctuaries';
-      for (const s of p.sanctuaries) {
-        sancts.appendChild(sanctuaryCardEl(s, 'sm', true));
+    // For yourself during drafting, just show the name+badge (details are in "My area").
+    if (!isMe) {
+      // Tableau
+      const tableau = document.createElement('div');
+      tableau.className = 'opponent-tableau';
+      for (const card of p.tableau) {
+        tableau.appendChild(regionCardEl(card, 'sm', false, true));
       }
-      panel.appendChild(sancts);
+      // Played-this-round placeholder
+      if (p.played_this_round && state.phase === 'choosing_cards') {
+        const ph = document.createElement('div');
+        ph.className = 'card sm played-overlay';
+        ph.innerHTML = '<img src="region/card-back.png" alt="face-down">';
+        tableau.appendChild(ph);
+      }
+      panel.appendChild(tableau);
+
+      // Sanctuaries
+      if (p.sanctuaries.length > 0) {
+        const sancts = document.createElement('div');
+        sancts.className = 'opponent-sanctuaries';
+        for (const s of p.sanctuaries) {
+          sancts.appendChild(sanctuaryCardEl(s, 'sm', true));
+        }
+        panel.appendChild(sancts);
+      }
     }
 
     opponentsArea.appendChild(panel);
