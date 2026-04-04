@@ -57,6 +57,8 @@ function connect(roomCode) {
 
   lobbyStatus.textContent = 'Connecting…';
   setLobbyButtonsDisabled(true);
+  // Close any existing game WebSocket (e.g. rematch from a finished game).
+  if (ws) { ws.close(); ws = null; }
   disconnectLobby();
 
   const wsProto = location.protocol === 'https:' ? 'wss:' : 'ws:';
