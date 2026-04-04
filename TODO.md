@@ -106,12 +106,13 @@ _(Add tasks here as they are discovered during implementation)_
 - [x] Add option to play with expansion cards
 - [x] 38 is missing a stone
 - [x] allow going back to lobby from game wait screen
-- [ ] log player names
-- [ ] show rules link from main page
 - [x] rework join game system
-- [ ] card selection at beginning should look better on mobile
 - [x] cleanup old game rooms
+- [x] log player names
+- [ ] show rules link from main page
+- [ ] card selection at beginning should look better on mobile
 - [ ] store name in browser state
+- [ ] spectate existing games
 
 ## Do Later
 - [ ] Live stats sidebar: show the current player's resource counts (stone, chimera, thistle), color counts (red, green, blue, yellow), clue count, and night/day count. Visible during gameplay on the right side.
