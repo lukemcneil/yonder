@@ -1042,6 +1042,15 @@ function hideScoreTip() {
 
 document.addEventListener('click', hideScoreTip);
 
+// Restore saved name from localStorage
+const savedName = localStorage.getItem('yonder-player-name');
+if (savedName) playerNameEl.value = savedName;
+
+// Save name on change
+playerNameEl.addEventListener('input', () => {
+  localStorage.setItem('yonder-player-name', playerNameEl.value.trim());
+});
+
 // Create game (or join via share link — overridden below if hash present)
 let createAction = () => connect(generateCode());
 createBtn.addEventListener('click', () => createAction());
