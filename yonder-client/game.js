@@ -4,6 +4,7 @@ let ws = null;
 let state = null;   // latest ClientGameState from server
 let mySeat = null;
 let scoringRevealIndex = 0;  // 0 = not started, increments on click (N = N cards revealed)
+let scoringViewSeat = null;  // whose board to show during game over (null = self)
 const expandedOpponents = new Set();  // track which opponent panels are expanded on mobile
 
 let currentRoomCode = '';   // room code for the current connection
@@ -343,19 +344,30 @@ function renderOpponents() {
       return aNum - bNum;
     });
   }
+  const isGameOver = state.phase === 'game_over';
   for (const p of players) {
     const isMe = p.seat === mySeat;
 
     const panel = document.createElement('div');
     const isActiveDrafter = state.phase === 'drafting' && state.current_drafter === p.seat;
+    const isViewSelected = isGameOver && (scoringViewSeat ?? mySeat) === p.seat;
     panel.className = 'opponent-panel'
       + (isMe ? ' self-panel' : '')
-      + (isActiveDrafter ? ' active-drafter' : '');
+      + (isActiveDrafter ? ' active-drafter' : '')
+      + (isViewSelected ? ' view-selected' : '');
 
     const nameEl = document.createElement('div');
     nameEl.className = 'opponent-name';
     nameEl.textContent = isMe ? 'You' : p.name;
-    if (p.tableau.length > 0) {
+    if (isGameOver && state.scores) {
+      const playerScore = state.scores.find(s => s.seat === p.seat);
+      if (playerScore) {
+        const badge = document.createElement('span');
+        badge.className = 'draft-order-badge';
+        badge.textContent = `${playerScore.total}`;
+        nameEl.appendChild(badge);
+      }
+    } else if (p.tableau.length > 0) {
       const highest = p.tableau[p.tableau.length - 1].number;
       const badge = document.createElement('span');
       badge.className = 'draft-order-badge';
@@ -364,6 +376,17 @@ function renderOpponents() {
       nameEl.appendChild(badge);
     }
     panel.appendChild(nameEl);
+
+    // During game over, clicking any player switches the scoring view to their board.
+    if (isGameOver) {
+      panel.style.cursor = 'pointer';
+      panel.addEventListener('click', () => {
+        scoringViewSeat = p.seat === mySeat ? null : p.seat;
+        render();
+      });
+      opponentsArea.appendChild(panel);
+      continue;
+    }
 
     // For yourself during drafting, just show the name+badge (details are in "My area").
     if (!isMe) {
@@ -601,6 +624,7 @@ function renderGameOver() {
 
   if (!isGameOver) {
     scoringRevealIndex = 0;
+    scoringViewSeat = null;
     if (scoringBar) scoringBar.remove();
     document.getElementById('scoring-leaderboard')?.remove();
     document.getElementById('scoring-table')?.remove();
@@ -617,23 +641,44 @@ function renderGameOver() {
   // --- Always show leaderboard + buttons at the top ---
   renderLeaderboard();
 
-  const detail = state.my_score_detail;
-  if (!detail) return;
+  // Determine whose board to display
+  const viewSeat = scoringViewSeat ?? mySeat;
+  const viewPlayer = state.players.find(p => p.seat === viewSeat);
+  // Get score detail for viewed player from all_score_details
+  const allDetails = state.all_score_details || [];
+  const viewDetail = allDetails.find(d => d.seat === viewSeat);
+  const detail = viewDetail ? viewDetail.entries : [];
 
   // Separate region entries (first 8) from sanctuary entries
   const regionEntries = detail.filter(e => e.kind === 'region');
   const sanctuaryEntries = detail.filter(e => e.kind === 'sanctuary');
 
+  // When viewing another player, skip the animation — show everything revealed.
+  const viewingOther = viewSeat !== mySeat;
+  const effectiveRevealIndex = viewingOther ? regionEntries.length + 2 : scoringRevealIndex;
+
+  // --- Show whose board we're viewing ---
+  const viewLabel = document.getElementById('my-tableau-label');
+  const sanctLabel = document.getElementById('my-sanctuaries-label');
+  if (viewSeat === mySeat) {
+    viewLabel.textContent = 'Your tableau';
+    sanctLabel.textContent = 'Sanctuaries';
+  } else {
+    const vname = viewPlayer?.name ?? '?';
+    viewLabel.textContent = `${vname}'s tableau`;
+    sanctLabel.textContent = `${vname}'s sanctuaries`;
+  }
+
   // --- Render tableau cards as face-down/revealed in place ---
   myTableau.innerHTML = '';
-  const me = state.players.find(p => p.seat === mySeat);
+  const me = viewPlayer;
   if (!me) return;
 
   for (let i = 0; i < me.tableau.length; i++) {
     const card = me.tableau[i];
     const detailIdx = regionEntries.length - 1 - i;
     const revealOrder = me.tableau.length - 1 - i;
-    const revealed = revealOrder < scoringRevealIndex;
+    const revealed = revealOrder < effectiveRevealIndex;
 
     const el = document.createElement('div');
     el.className = 'card xl scoring-card-slot';
@@ -653,7 +698,7 @@ function renderGameOver() {
         e.stopPropagation();
         showScoreTip(el, entry.explanation);
       });
-      if (revealOrder === scoringRevealIndex - 1) {
+      if (revealOrder === effectiveRevealIndex - 1) {
         el.classList.add('just-revealed');
       }
     } else {
@@ -668,7 +713,7 @@ function renderGameOver() {
 
   // --- Sanctuaries: always visible, score badges appear after region cards ---
   mySanctuaries.innerHTML = '';
-  const sanctuariesScored = scoringRevealIndex > regionEntries.length;
+  const sanctuariesScored = effectiveRevealIndex > regionEntries.length;
 
   for (let i = 0; i < me.sanctuaries.length; i++) {
     const s = me.sanctuaries[i];
@@ -694,11 +739,11 @@ function renderGameOver() {
   }
 
   // --- Scoring advance bar (below sanctuaries) ---
-  const runningTotal = computeRunningTotal(regionEntries, sanctuaryEntries, scoringRevealIndex);
+  const runningTotal = computeRunningTotal(regionEntries, sanctuaryEntries, effectiveRevealIndex);
   const totalRevealSteps = regionEntries.length + (sanctuaryEntries.length > 0 ? 1 : 0);
-  const allDone = scoringRevealIndex > totalRevealSteps;
+  const allDone = effectiveRevealIndex > totalRevealSteps;
 
-  if (!allDone) {
+  if (!allDone && !viewingOther) {
     renderScoringBar(regionEntries, sanctuaryEntries, runningTotal);
   } else {
     document.getElementById('scoring-bar')?.remove();
@@ -780,10 +825,11 @@ function renderScoringTable() {
   const regionCount = firstPlayer.entries.filter(e => e.kind === 'region').length;
   const hasSanctuaries = firstPlayer.entries.some(e => e.kind === 'sanctuary');
 
-  // Figure out how many rows are revealed based on scoringRevealIndex
-  // (matches the inline reveal logic: 0=none, 1..N=regions, N+1=sanctuaries)
-  const revealedRegions = Math.min(scoringRevealIndex, regionCount);
-  const sanctuariesScored = scoringRevealIndex > regionCount;
+  // Figure out how many rows are revealed
+  const viewingOther = (scoringViewSeat ?? mySeat) !== mySeat;
+  const revealIdx = viewingOther ? regionCount + 2 : scoringRevealIndex;
+  const revealedRegions = Math.min(revealIdx, regionCount);
+  const sanctuariesScored = revealIdx > regionCount;
 
   // Build table HTML
   let html = '<table><thead><tr><th></th>';
