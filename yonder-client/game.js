@@ -86,6 +86,11 @@ function connect(roomCode) {
       connectLobby();
       return;
     }
+    // Rematch response: server tells us the new room code.
+    if (data.rematch_code) {
+      connect(data.rematch_code);
+      return;
+    }
     // Action error during gameplay.
     if (data.Err) {
       if (data.Err === 'RoomExpired') {
@@ -883,7 +888,8 @@ function renderInlineLeaderboard() {
   html += '</div>';
   html += '<div class="leaderboard-buttons">';
   html += '<button id="back-to-scores-btn" class="play-again-btn secondary">Back to Scores</button>';
-  html += '<button id="play-again-btn-inline" class="play-again-btn">Back to Lobby</button>';
+  html += '<button id="play-again-btn-inline" class="play-again-btn">Play Again</button>';
+  html += '<button id="back-to-lobby-btn-inline" class="play-again-btn secondary">Back to Lobby</button>';
   html += '</div>';
   lb.innerHTML = html;
   document.getElementById('back-to-scores-btn').addEventListener('click', () => {
@@ -891,8 +897,10 @@ function renderInlineLeaderboard() {
     renderGameOver();
   });
   document.getElementById('play-again-btn-inline').addEventListener('click', () => {
-    location.hash = '';
-    location.reload();
+    send({ action: 'Rematch' });
+  });
+  document.getElementById('back-to-lobby-btn-inline').addEventListener('click', () => {
+    backToLobby();
   });
 }
 

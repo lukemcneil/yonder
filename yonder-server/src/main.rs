@@ -28,10 +28,18 @@ struct GameRoom {
     state: GameState,
     sender: Sender<()>,
     last_activity: Instant,
+    rematch_code: Option<String>,
 }
 
 #[derive(Default)]
 struct Rooms(HashMap<String, GameRoom>);
+
+fn generate_room_code() -> String {
+    use rand::Rng;
+    const CHARS: &[u8] = b"ABCDEFGHJKLMNPQRSTUVWXYZ";
+    let mut rng = rand::thread_rng();
+    (0..4).map(|_| CHARS[rng.gen_range(0..CHARS.len())] as char).collect()
+}
 
 /// Shared broadcast channel that fires whenever the room list changes
 /// (player joins, game starts, etc.) so lobby WebSocket clients get updates.
@@ -65,6 +73,7 @@ async fn play_game(
                         state: GameState::new_waiting(6), // up to 6 players; StartGame locks in count
                         sender,
                         last_activity: Instant::now(),
+                        rematch_code: None,
                     }
                 });
                 room.last_activity = Instant::now();
@@ -165,6 +174,47 @@ async fn handle_message(
         println!("[{}] {}: {}", room_name, player_name, text);
         match serde_json::from_str::<ClientAction>(&text) {
             Ok(action) => {
+                // Handle Rematch separately — it's a room-level action, not a game state action.
+                if matches!(action, ClientAction::Rematch) {
+                    let code = {
+                        let mut rooms = rooms_state.lock().await;
+                        let existing_code = rooms.0.get(room_name).and_then(|r| {
+                            if matches!(r.state.phase, game::GamePhase::GameOver { .. }) {
+                                r.rematch_code.clone()
+                            } else {
+                                None
+                            }
+                        });
+                        // Check phase validity
+                        match rooms.0.get(room_name) {
+                            Some(r) if !matches!(r.state.phase, game::GamePhase::GameOver { .. }) => {
+                                let _ = stream.send(Message::Text("{\"Err\":\"WrongPhase\"}".to_string())).await;
+                                return;
+                            }
+                            None => return,
+                            _ => {}
+                        }
+                        if let Some(code) = existing_code {
+                            code
+                        } else {
+                            let code = generate_room_code();
+                            let (tx, _) = broadcast::channel(1);
+                            rooms.0.insert(code.clone(), GameRoom {
+                                state: GameState::new_waiting(6),
+                                sender: tx,
+                                last_activity: Instant::now(),
+                                rematch_code: None,
+                            });
+                            rooms.0.get_mut(room_name).unwrap().rematch_code = Some(code.clone());
+                            code
+                        }
+                    };
+                    let _ = lobby_sender.send(());
+                    let msg = format!("{{\"rematch_code\":\"{}\"}}", code);
+                    let _ = stream.send(Message::Text(msg)).await;
+                    return;
+                }
+
                 let is_start = matches!(action, ClientAction::StartGame { .. });
                 let result = {
                     let mut rooms = rooms_state.lock().await;
@@ -185,6 +235,7 @@ async fn handle_message(
                                             room.state.choose_sanctuary(seat, *sanctuary_index),
                                         ClientAction::DraftCard { market_index } =>
                                             room.state.draft_card(seat, *market_index),
+                                        ClientAction::Rematch => unreachable!(),
                                     };
                                     r
                                 }
@@ -247,6 +298,7 @@ async fn demo_game(
         state: GameState::new_demo(),
         sender,
         last_activity: Instant::now(),
+        rematch_code: None,
     });
     format!("Demo game created in room '{}'. Connect as Alice or Bob.", room_name)
 }

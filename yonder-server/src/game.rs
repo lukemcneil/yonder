@@ -677,6 +677,8 @@ pub struct ClientGameState {
     /// The card this player played this round (face-up to them only, before reveal).
     pub my_played_card: Option<RegionCard>,
     pub player_count: usize,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub rematch_code: Option<String>,
 }
 
 #[derive(Debug, Serialize)]
@@ -795,6 +797,7 @@ impl GameState {
             all_score_details,
             my_played_card,
             player_count: self.player_count,
+            rematch_code: None,
         }
     }
 }
@@ -809,6 +812,7 @@ pub enum ClientAction {
     PlayCard { card_index: usize },
     ChooseSanctuary { sanctuary_index: usize },
     DraftCard { market_index: usize },
+    Rematch,
 }
 
 #[derive(Debug, Serialize)]
