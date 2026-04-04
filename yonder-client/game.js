@@ -551,13 +551,14 @@ function renderAdvancedSetupModal() {
   }
 
   advancedModal.classList.remove('hidden');
+  // Preserve selection across re-renders (broadcasts from other players submitting).
   advancedChoicesEl.innerHTML = '';
-  advancedSelected.clear();
   updateAdvancedConfirmBtn();
 
   state.advanced_setup_choices.forEach((card, idx) => {
-    const el = regionCardEl(card, 'lg', true);
+    const el = regionCardEl(card, 'xl', true);
     el.dataset.idx = idx;
+    if (advancedSelected.has(idx)) el.classList.add('selected');
     el.addEventListener('click', () => {
       if (advancedSelected.has(idx)) {
         advancedSelected.delete(idx);
