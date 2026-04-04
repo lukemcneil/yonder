@@ -105,11 +105,13 @@ _(Add tasks here as they are discovered during implementation)_
 - [x] Draft phase: show each player's highest region number so you can tell draft order at a glance.
 - [x] Add option to play with expansion cards
 - [x] 38 is missing a stone
-- [ ] allow going back to lobby from game wait screen
+- [x] allow going back to lobby from game wait screen
 - [ ] log player names
 - [ ] show rules link from main page
-- [ ] rework join game system
+- [x] rework join game system
 - [ ] card selection at beginning should look better on mobile
+- [x] cleanup old game rooms
+- [ ] store name in browser state
 
 ## Do Later
 - [ ] Live stats sidebar: show the current player's resource counts (stone, chimera, thistle), color counts (red, green, blue, yellow), clue count, and night/day count. Visible during gameplay on the right side.

@@ -32,7 +32,7 @@ body {
   display: flex;
   flex-direction: column;
   gap: 0.6rem;
-  width: 280px;
+  width: 320px;
 }
 
 .lobby-form label {
@@ -51,7 +51,7 @@ body {
 }
 
 .lobby-form button {
-  margin-top: 0.8rem;
+  margin-top: 0.5rem;
   padding: 0.65rem;
   border-radius: 6px;
   border: none;
@@ -72,6 +72,56 @@ body {
   min-height: 1.2em;
 }
 
+/* ── Open games list ────────────────────────────────────────────────────── */
+
+#active-games {
+  margin-top: 0.8rem;
+}
+
+#active-games-label {
+  font-size: 0.8rem;
+  color: #888;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  margin-bottom: 0.4rem;
+}
+
+.active-game-row {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  padding: 0.5rem 0.6rem;
+  background: #2a2a3e;
+  border: 1px solid #333;
+  border-radius: 6px;
+  margin-bottom: 0.3rem;
+  cursor: pointer;
+  transition: border-color 0.15s;
+}
+
+.active-game-row:hover { border-color: #c9a84c; }
+
+.game-players {
+  flex: 1;
+  font-size: 0.85rem;
+  color: #ccc;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.game-count {
+  font-size: 0.8rem;
+  color: #888;
+}
+
+.no-games {
+  font-size: 0.85rem;
+  color: #666;
+  text-align: center;
+  padding: 0.5rem 0;
+}
+
 /* ── Waiting room ─────────────────────────────────────────────────────────── */
 
 #waiting-room {
@@ -90,10 +140,27 @@ body {
   margin: 0;
 }
 
-#waiting-room-name {
-  font-size: 1rem;
-  color: #888;
-  letter-spacing: 0.05em;
+#waiting-room-actions {
+  display: flex;
+  gap: 0.5rem;
+}
+
+#waiting-room-actions button,
+#back-to-lobby-btn {
+  padding: 0.4rem 1rem;
+  border-radius: 6px;
+  border: 1px solid #444;
+  background: #2a2a3e;
+  color: #e0e0e0;
+  font-size: 0.85rem;
+  cursor: pointer;
+}
+
+#waiting-room-actions button:hover,
+#back-to-lobby-btn:hover { background: #3a3a50; }
+
+#back-to-lobby-btn {
+  margin-top: 0.5rem;
 }
 
 #waiting-players {

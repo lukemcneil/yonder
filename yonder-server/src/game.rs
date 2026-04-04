@@ -128,6 +128,22 @@ impl GameState {
         Ok(seat)
     }
 
+    /// Find a player's current seat by name.
+    pub fn seat_of(&self, name: &str) -> Option<usize> {
+        self.players.iter().position(|p| p.name == name)
+    }
+
+    /// Remove a player during WaitingForPlayers. Re-indexes remaining seats.
+    pub fn remove_player(&mut self, name: &str) {
+        if let Some(pos) = self.players.iter().position(|p| p.name == name) {
+            self.players.remove(pos);
+            // Re-index seat fields.
+            for (i, p) in self.players.iter_mut().enumerate() {
+                p.seat = i;
+            }
+        }
+    }
+
     /// Start the game. Deals 3 cards to each player (or 5 in advanced mode), reveals market.
     pub fn start_game(&mut self, seat: usize, advanced: bool, expansion: bool) -> Result<(), ActionError> {
         if seat != 0 {

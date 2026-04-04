@@ -6,13 +6,16 @@ let mySeat = null;
 let scoringRevealIndex = 0;  // 0 = not started, increments on click (N = N cards revealed)
 const expandedOpponents = new Set();  // track which opponent panels are expanded on mobile
 
+let currentRoomCode = '';   // room code for the current connection
+let lobbyWs = null;         // WebSocket for live lobby room list
+
 // ── DOM refs ─────────────────────────────────────────────────────────────────
 
 const lobby          = document.getElementById('lobby');
 const playerNameEl   = document.getElementById('player-name');
-const roomNameEl     = document.getElementById('room-name');
-const connectBtn     = document.getElementById('connect-btn');
+const createBtn      = document.getElementById('create-btn');
 const lobbyStatus    = document.getElementById('lobby-status');
+const activeGamesList = document.getElementById('active-games-list');
 
 const gameBoard      = document.getElementById('game-board');
 const statusPhase    = document.getElementById('status-phase');
@@ -32,22 +35,35 @@ const advancedConfirmBtn = document.getElementById('advanced-confirm-btn');
 
 // ── Connection ───────────────────────────────────────────────────────────────
 
-function connect() {
+function generateCode() {
+  const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZ'; // no I or O to avoid confusion
+  let code = '';
+  for (let i = 0; i < 4; i++) code += chars[Math.floor(Math.random() * chars.length)];
+  return code;
+}
+
+function connect(roomCode) {
   const playerName = playerNameEl.value.trim();
-  const roomName   = roomNameEl.value.trim();
-  if (!playerName || !roomName) {
-    lobbyStatus.textContent = 'Enter your name and a room name.';
+  if (!playerName) {
+    lobbyStatus.textContent = 'Enter your name first.';
     return;
   }
+  if (!roomCode) {
+    lobbyStatus.textContent = 'No room code.';
+    return;
+  }
+  roomCode = roomCode.toUpperCase();
+  currentRoomCode = roomCode;
 
   lobbyStatus.textContent = 'Connecting…';
-  connectBtn.disabled = true;
+  setLobbyButtonsDisabled(true);
+  disconnectLobby();
 
   const wsProto = location.protocol === 'https:' ? 'wss:' : 'ws:';
   const params = new URLSearchParams(location.search);
   const serverHost = params.get('server') || location.host;
   const serverBase = `${wsProto}//${serverHost}`;
-  const url = `${serverBase}/game/${encodeURIComponent(roomName)}?player=${encodeURIComponent(playerName)}`;
+  const url = `${serverBase}/game/${encodeURIComponent(roomCode)}?player=${encodeURIComponent(playerName)}`;
 
   ws = new WebSocket(url);
 
@@ -60,19 +76,20 @@ function connect() {
     // Join error: server sends a plain string like "GameAlreadyStarted".
     if (typeof data === 'string') {
       const friendly = {
-        GameAlreadyStarted: 'That game has already started. Ask a player for the correct name.',
+        GameAlreadyStarted: 'That game has already started.',
         RoomFull: 'That room is full.',
       };
       lobbyStatus.textContent = friendly[data] || `Error: ${data}`;
-      connectBtn.disabled = false;
+      setLobbyButtonsDisabled(false);
       location.hash = '';
       ws.close();
+      connectLobby();
       return;
     }
     // Action error during gameplay.
     if (data.Err) {
       lobbyStatus.textContent = `Error: ${data.Err}`;
-      connectBtn.disabled = false;
+      setLobbyButtonsDisabled(false);
       return;
     }
     lobby.classList.add('hidden');
@@ -80,7 +97,7 @@ function connect() {
     state = data;
     mySeat = state.my_seat;
     // Persist room/name in URL hash so refresh reconnects.
-    location.hash = `${encodeURIComponent(roomName)}/${encodeURIComponent(playerName)}`;
+    location.hash = `${encodeURIComponent(currentRoomCode)}/${encodeURIComponent(playerName)}`;
     render();
   });
 
@@ -92,8 +109,70 @@ function connect() {
 
   ws.addEventListener('error', () => {
     lobbyStatus.textContent = 'Connection failed. Is the server running?';
-    connectBtn.disabled = false;
+    setLobbyButtonsDisabled(false);
+    connectLobby();
   });
+}
+
+function setLobbyButtonsDisabled(disabled) {
+  createBtn.disabled = disabled;
+}
+
+function backToLobby() {
+  if (ws) { ws.close(); ws = null; }
+  state = null;
+  mySeat = null;
+  currentRoomCode = '';
+  location.hash = '';
+  lobby.classList.remove('hidden');
+  gameBoard.classList.add('hidden');
+  lobbyStatus.textContent = '';
+  setLobbyButtonsDisabled(false);
+  connectLobby();
+}
+
+// ── Lobby WebSocket (live room list) ─────────────────────────────────────────
+
+function connectLobby() {
+  if (lobbyWs) return;
+  const wsProto = location.protocol === 'https:' ? 'wss:' : 'ws:';
+  const params = new URLSearchParams(location.search);
+  const serverHost = params.get('server') || location.host;
+  lobbyWs = new WebSocket(`${wsProto}//${serverHost}/lobby`);
+
+  lobbyWs.addEventListener('message', (event) => {
+    const rooms = JSON.parse(event.data);
+    renderOpenGames(rooms);
+  });
+
+  lobbyWs.addEventListener('close', () => {
+    lobbyWs = null;
+    // Show stale state; don't auto-reconnect if we left the lobby intentionally.
+  });
+
+  lobbyWs.addEventListener('error', () => {
+    activeGamesList.innerHTML = '<div class="no-games">Could not reach server</div>';
+  });
+}
+
+function disconnectLobby() {
+  if (lobbyWs) { lobbyWs.close(); lobbyWs = null; }
+}
+
+function renderOpenGames(rooms) {
+  if (rooms.length === 0) {
+    activeGamesList.innerHTML = '<div class="no-games">No open games. Create one!</div>';
+    return;
+  }
+  activeGamesList.innerHTML = '';
+  for (const room of rooms) {
+    const row = document.createElement('div');
+    row.className = 'active-game-row';
+    row.innerHTML = `<span class="game-players">${room.players.join(', ')}</span>
+      <span class="game-count">${room.player_count}/6</span>`;
+    row.addEventListener('click', () => connect(room.code));
+    activeGamesList.appendChild(row);
+  }
 }
 
 function send(action) {
@@ -139,8 +218,18 @@ function render() {
 // ── Waiting room ─────────────────────────────────────────────────────────────
 
 function renderWaitingRoom() {
-  const roomName = decodeURIComponent(location.hash.split('/')[0].replace('#', ''));
-  document.getElementById('waiting-room-name').textContent = `Room: ${roomName}`;
+  // Copy link button
+  const copyBtn = document.getElementById('copy-link-btn');
+  copyBtn.onclick = () => {
+    const link = `${location.origin}${location.pathname}${location.search}#${encodeURIComponent(currentRoomCode)}`;
+    navigator.clipboard.writeText(link).then(() => {
+      copyBtn.textContent = 'Copied!';
+      setTimeout(() => { copyBtn.textContent = 'Copy link to game'; }, 1500);
+    });
+  };
+
+  // Back to lobby button
+  document.getElementById('back-to-lobby-btn').onclick = backToLobby;
 
   const playersEl = document.getElementById('waiting-players');
   playersEl.innerHTML = '';
@@ -943,18 +1032,29 @@ function hideScoreTip() {
 
 document.addEventListener('click', hideScoreTip);
 
-connectBtn.addEventListener('click', connect);
-playerNameEl.addEventListener('keydown', e => { if (e.key === 'Enter') connect(); });
-roomNameEl.addEventListener('keydown', e => { if (e.key === 'Enter') connect(); });
+// Create game: generate code + connect
+createBtn.addEventListener('click', () => connect(generateCode()));
 
-// Pre-fill from URL hash if present (e.g. #room1/Alice) and auto-connect.
+// Pre-fill from URL hash if present (e.g. #ABCD/Alice) and auto-connect.
 const hash = location.hash.slice(1);
+let autoConnecting = false;
 if (hash) {
   const parts = hash.split('/');
-  if (parts[0]) roomNameEl.value = decodeURIComponent(parts[0]);
-  if (parts[1]) playerNameEl.value = decodeURIComponent(parts[1]);
-  // Auto-connect if both fields are filled (e.g. page refresh).
-  if (roomNameEl.value && playerNameEl.value) {
-    connect();
+  const hashCode = parts[0] ? decodeURIComponent(parts[0]) : '';
+  const hashName = parts[1] ? decodeURIComponent(parts[1]) : '';
+  if (hashName) playerNameEl.value = hashName;
+  if (hashCode && hashName) {
+    // Full reconnect (refresh): auto-connect immediately
+    autoConnecting = true;
+    connect(hashCode);
+  } else if (hashCode) {
+    // Direct link with code only: user just types name and clicks Create or picks from list
+    lobbyStatus.textContent = `Enter your name to join room ${hashCode.toUpperCase()}.`;
+    // Auto-join once they enter a name
+    createBtn.textContent = `Join ${hashCode.toUpperCase()}`;
+    createBtn.onclick = () => connect(hashCode);
   }
 }
+
+// Start lobby WebSocket (skip if already auto-connecting)
+if (!autoConnecting) connectLobby();
