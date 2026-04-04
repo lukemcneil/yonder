@@ -614,6 +614,9 @@ function renderGameOver() {
   document.getElementById('market-area').classList.add('hidden');
   document.getElementById('my-hand-row').classList.add('hidden');
 
+  // --- Always show leaderboard + buttons at the top ---
+  renderLeaderboard();
+
   const detail = state.my_score_detail;
   if (!detail) return;
 
@@ -626,21 +629,15 @@ function renderGameOver() {
   const me = state.players.find(p => p.seat === mySeat);
   if (!me) return;
 
-  // Region entries are right-to-left (index 7 first). Map them back to tableau order.
-  // Tableau order is left-to-right (index 0=first played, 7=last played).
-  // Score detail has index 0 = card 8 (rightmost), index 7 = card 1 (leftmost).
-  // So tableau card i corresponds to regionEntries[7 - i].
   for (let i = 0; i < me.tableau.length; i++) {
     const card = me.tableau[i];
     const detailIdx = regionEntries.length - 1 - i;
-    // Reveal order: rightmost card (i=7) is reveal 0, next (i=6) is reveal 1, etc.
     const revealOrder = me.tableau.length - 1 - i;
     const revealed = revealOrder < scoringRevealIndex;
 
     const el = document.createElement('div');
     el.className = 'card xl scoring-card-slot';
     if (revealed && detailIdx >= 0) {
-      // Show face-up with score badge
       el.classList.add('scoring-revealed');
       const img = document.createElement('img');
       img.src = regionImagePath(card.number);
@@ -656,12 +653,10 @@ function renderGameOver() {
         e.stopPropagation();
         showScoreTip(el, entry.explanation);
       });
-      // Highlight the just-revealed card
       if (revealOrder === scoringRevealIndex - 1) {
         el.classList.add('just-revealed');
       }
     } else {
-      // Face down
       el.classList.add('face-down');
       const img = document.createElement('img');
       img.src = 'region/card-back.png';
@@ -698,18 +693,15 @@ function renderGameOver() {
     mySanctuaries.appendChild(el);
   }
 
-  // --- Scoring info bar / leaderboard (below sanctuaries) ---
+  // --- Scoring advance bar (below sanctuaries) ---
   const runningTotal = computeRunningTotal(regionEntries, sanctuaryEntries, scoringRevealIndex);
   const totalRevealSteps = regionEntries.length + (sanctuaryEntries.length > 0 ? 1 : 0);
   const allDone = scoringRevealIndex > totalRevealSteps;
 
-  // Clean up whichever element we're not using
-  if (allDone) {
-    document.getElementById('scoring-bar')?.remove();
-    renderInlineLeaderboard();
-  } else {
-    document.getElementById('scoring-leaderboard')?.remove();
+  if (!allDone) {
     renderScoringBar(regionEntries, sanctuaryEntries, runningTotal);
+  } else {
+    document.getElementById('scoring-bar')?.remove();
   }
 
   // Scoring table (all players)
@@ -737,12 +729,12 @@ function renderScoringBar(regionEntries, sanctuaryEntries, runningTotal) {
         : lastRevealed.explanation;
     }
     btnLabel = scoringRevealIndex >= regionEntries.length
-      ? (sanctuaryEntries.length > 0 ? 'Reveal sanctuaries' : 'See final scores')
+      ? (sanctuaryEntries.length > 0 ? 'Reveal sanctuaries' : 'Done')
       : 'Next card';
   } else {
     const sanctExps = sanctuaryEntries.filter(e => e.points > 0).map(e => `+${e.points}: ${e.explanation}`);
     explanation = sanctExps.length > 0 ? sanctExps.join(' | ') : 'No sanctuary points';
-    btnLabel = 'See final scores';
+    btnLabel = 'Done';
   }
 
   bar.className = 'scoring-bar';
@@ -853,16 +845,14 @@ function renderScoringTable() {
   table.innerHTML = html;
 }
 
-function renderInlineLeaderboard() {
-  // Remove scoring bar
-  document.getElementById('scoring-bar')?.remove();
-
+function renderLeaderboard() {
   let lb = document.getElementById('scoring-leaderboard');
   if (!lb) {
     lb = document.createElement('div');
     lb.id = 'scoring-leaderboard';
-    const sanctRow = document.getElementById('my-sanctuaries-row');
-    sanctRow.after(lb);
+    // Insert before opponents area so it's at the top of the game board
+    const opArea = document.getElementById('opponents-area');
+    opArea.parentNode.insertBefore(lb, opArea);
   }
 
   const sorted = [...state.scores].sort((a, b) => {
@@ -874,7 +864,11 @@ function renderInlineLeaderboard() {
   const hasTie = (t) => totals.filter(v => v === t).length > 1;
 
   const medals = ['&#x1f947;', '&#x1f948;', '&#x1f949;'];
-  let html = '<div class="leaderboard-title">Game Over</div>';
+  let html = '<div class="leaderboard-buttons">';
+  html += '<button id="play-again-btn-inline" class="play-again-btn">Play Again</button>';
+  html += '<button id="back-to-lobby-btn-inline" class="play-again-btn secondary">Back to Lobby</button>';
+  html += '</div>';
+  html += '<div class="leaderboard-title">Game Over</div>';
   html += `<div class="leaderboard-winner">${sorted[0].name}</div>`;
   html += `<div class="leaderboard-winner-score">${sorted[0].total} fame</div>`;
   html += '<div class="leaderboard-rows">';
@@ -888,16 +882,7 @@ function renderInlineLeaderboard() {
     </div>`;
   });
   html += '</div>';
-  html += '<div class="leaderboard-buttons">';
-  html += '<button id="back-to-scores-btn" class="play-again-btn secondary">Back to Scores</button>';
-  html += '<button id="play-again-btn-inline" class="play-again-btn">Play Again</button>';
-  html += '<button id="back-to-lobby-btn-inline" class="play-again-btn secondary">Back to Lobby</button>';
-  html += '</div>';
   lb.innerHTML = html;
-  document.getElementById('back-to-scores-btn').addEventListener('click', () => {
-    scoringRevealIndex = 0;
-    renderGameOver();
-  });
   document.getElementById('play-again-btn-inline').addEventListener('click', () => {
     send({ action: 'Rematch' });
   });
