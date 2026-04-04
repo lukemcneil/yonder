@@ -1180,8 +1180,13 @@ body {
   .sanctuary-pickable:hover { transform: none; }
 
   /* Advanced setup modal */
-  #advanced-modal-inner { padding: 1rem 1rem; }
+  #advanced-modal-inner { padding: 1rem 0.5rem; }
   #advanced-modal-inner h2 { font-size: 1.1rem; }
+  #advanced-choices { gap: 0.4rem; justify-content: center; }
+  #advanced-choices .card.xl {
+    width: calc((100vw - 60px) / 3);
+    height: auto;
+  }
 
   /* Scoring cards: use full-width grid like gameplay */
   #my-tableau .card.xl.scoring-card-slot {
