@@ -4,7 +4,7 @@ let ws = null;
 let state = null;   // latest ClientGameState from server
 let mySeat = null;
 let scoringRevealIndex = 0;  // 0 = not started, increments on click (N = N cards revealed)
-let scoringViewSeat = null;  // whose board to show during game over (null = self)
+let viewOtherSeat = null;  // whose board to show in main area (null = self)
 const expandedOpponents = new Set();  // track which opponent panels are expanded on mobile
 
 let currentRoomCode = '';   // room code for the current connection
@@ -109,6 +109,10 @@ function connect(roomCode) {
     gameBoard.classList.remove('hidden');
     state = data;
     mySeat = state.my_seat;
+    // Snap back to own board when you need to act
+    if (viewOtherSeat !== null && needsMyAction(data)) {
+      viewOtherSeat = null;
+    }
     // Persist room/name in URL hash so refresh reconnects.
     location.hash = `${encodeURIComponent(currentRoomCode)}/${encodeURIComponent(playerName)}`;
     render();
@@ -190,6 +194,16 @@ function renderOpenGames(rooms) {
     row.addEventListener('click', () => connect(room.code));
     activeGamesList.appendChild(row);
   }
+}
+
+function needsMyAction(st) {
+  const me = st.players?.find(p => p.seat === st.my_seat);
+  if (st.phase === 'choosing_cards' && me && !me.played_this_round) return true;
+  if (st.phase === 'drafting' && st.current_drafter === st.my_seat) return true;
+  if (st.sanctuary_choices && st.sanctuary_choices.length > 0) return true;
+  if (st.phase === 'advanced_setup' && st.advanced_setup_choices) return true;
+  if (st.phase === 'game_over') return true; // reset view on game end
+  return false;
 }
 
 function send(action) {
@@ -350,7 +364,7 @@ function renderOpponents() {
 
     const panel = document.createElement('div');
     const isActiveDrafter = state.phase === 'drafting' && state.current_drafter === p.seat;
-    const isViewSelected = isGameOver && (scoringViewSeat ?? mySeat) === p.seat;
+    const isViewSelected = viewOtherSeat !== null && viewOtherSeat === p.seat;
     panel.className = 'opponent-panel'
       + (isMe ? ' self-panel' : '')
       + (isActiveDrafter ? ' active-drafter' : '')
@@ -377,34 +391,25 @@ function renderOpponents() {
     }
     panel.appendChild(nameEl);
 
-    // During game over, clicking any player switches the scoring view to their board.
+    // Clicking any player switches the main area to show their board.
+    panel.style.cursor = 'pointer';
+    panel.addEventListener('click', () => {
+      viewOtherSeat = p.seat === mySeat ? null : p.seat;
+      render();
+    });
+
+    // During game over, opponent panels are just clickable names (no small card details).
     if (isGameOver) {
-      panel.style.cursor = 'pointer';
-      panel.addEventListener('click', () => {
-        scoringViewSeat = p.seat === mySeat ? null : p.seat;
-        render();
-      });
       opponentsArea.appendChild(panel);
       continue;
     }
 
-    // For yourself during drafting, just show the name+badge (details are in "My area").
+    // During gameplay, show small card details for opponents.
     if (!isMe) {
       const details = document.createElement('div');
       details.className = 'opponent-details mobile-collapsible';
-      if (expandedOpponents.has(p.seat)) details.classList.add('expanded');
 
-      const chevron = document.createElement('span');
-      chevron.className = 'expand-chevron';
-      chevron.textContent = expandedOpponents.has(p.seat) ? '▾' : '▸';
-      nameEl.appendChild(chevron);
-      nameEl.style.cursor = 'pointer';
-      nameEl.addEventListener('click', () => {
-        const isExpanded = details.classList.toggle('expanded');
-        chevron.textContent = isExpanded ? '▾' : '▸';
-        if (isExpanded) expandedOpponents.add(p.seat);
-        else expandedOpponents.delete(p.seat);
-      });
+      // No expand chevron — clicking the panel switches to full-size view
 
       // Tableau
       const tableau = document.createElement('div');
@@ -458,6 +463,41 @@ function renderMarket() {
 function renderMyArea() {
   // During game_over, renderGameOver handles the tableau/sanctuaries
   if (state.phase === 'game_over') return;
+
+  const viewLabel = document.getElementById('my-tableau-label');
+  const sanctLabel = document.getElementById('my-sanctuaries-label');
+
+  // Viewing another player's board during gameplay (no scores, no hand)
+  if (viewOtherSeat !== null) {
+    const other = state.players.find(p => p.seat === viewOtherSeat);
+    if (other) {
+      viewLabel.textContent = `Viewing ${other.name}'s tableau`;
+      sanctLabel.textContent = `${other.name}'s sanctuaries`;
+      myTableau.innerHTML = '';
+      for (const card of other.tableau) {
+        myTableau.appendChild(regionCardEl(card, 'xl', false));
+      }
+      mySanctuaries.innerHTML = '';
+      for (const s of other.sanctuaries) {
+        mySanctuaries.appendChild(sanctuaryCardEl(s, 'md'));
+      }
+      // Show "Back to my board" button instead of hand
+      myHand.innerHTML = '';
+      document.getElementById('my-hand-row').classList.remove('hidden');
+      document.getElementById('my-hand-label').textContent = '';
+      const backBtn = document.createElement('button');
+      backBtn.className = 'back-to-my-board-btn';
+      backBtn.textContent = 'Back to my board';
+      backBtn.addEventListener('click', () => { viewOtherSeat = null; render(); });
+      myHand.appendChild(backBtn);
+      return;
+    }
+  }
+
+  viewLabel.textContent = 'Your tableau';
+  sanctLabel.textContent = 'Sanctuaries';
+  document.getElementById('my-hand-label').textContent = 'Your hand';
+  document.getElementById('my-hand-row').classList.remove('hidden');
 
   // Tableau (with live score badges)
   myTableau.innerHTML = '';
@@ -624,7 +664,7 @@ function renderGameOver() {
 
   if (!isGameOver) {
     scoringRevealIndex = 0;
-    scoringViewSeat = null;
+    viewOtherSeat = null;
     if (scoringBar) scoringBar.remove();
     document.getElementById('scoring-leaderboard')?.remove();
     document.getElementById('scoring-table')?.remove();
@@ -642,7 +682,7 @@ function renderGameOver() {
   renderLeaderboard();
 
   // Determine whose board to display
-  const viewSeat = scoringViewSeat ?? mySeat;
+  const viewSeat = viewOtherSeat ?? mySeat;
   const viewPlayer = state.players.find(p => p.seat === viewSeat);
   // Get score detail for viewed player from all_score_details
   const allDetails = state.all_score_details || [];
@@ -826,7 +866,7 @@ function renderScoringTable() {
   const hasSanctuaries = firstPlayer.entries.some(e => e.kind === 'sanctuary');
 
   // Figure out how many rows are revealed
-  const viewingOther = (scoringViewSeat ?? mySeat) !== mySeat;
+  const viewingOther = (viewOtherSeat ?? mySeat) !== mySeat;
   const revealIdx = viewingOther ? regionCount + 2 : scoringRevealIndex;
   const revealedRegions = Math.min(revealIdx, regionCount);
   const sanctuariesScored = revealIdx > regionCount;

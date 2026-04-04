@@ -464,6 +464,19 @@ body {
   flex: 1;
 }
 
+.back-to-my-board-btn {
+  padding: 0.5rem 1.2rem;
+  border-radius: 6px;
+  border: 1px solid #c9a84c;
+  background: rgba(201, 168, 76, 0.1);
+  color: #c9a84c;
+  font-size: 0.9rem;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.back-to-my-board-btn:hover { background: rgba(201, 168, 76, 0.2); }
+
 #my-hand-label {
   font-size: 0.8rem;
   color: #aaa;
