@@ -88,6 +88,11 @@ function connect(roomCode) {
     }
     // Action error during gameplay.
     if (data.Err) {
+      if (data.Err === 'RoomExpired') {
+        backToLobby();
+        lobbyStatus.textContent = 'Game expired due to inactivity.';
+        return;
+      }
       lobbyStatus.textContent = `Error: ${data.Err}`;
       setLobbyButtonsDisabled(false);
       return;
@@ -102,6 +107,7 @@ function connect(roomCode) {
   });
 
   ws.addEventListener('close', () => {
+    // Don't overwrite backToLobby messages (state is cleared when returning to lobby).
     if (state && state.phase !== 'game_over') {
       showStatus('Disconnected from server.');
     }
@@ -128,6 +134,9 @@ function backToLobby() {
   gameBoard.classList.add('hidden');
   lobbyStatus.textContent = '';
   setLobbyButtonsDisabled(false);
+  // Restore Create Game button in case it was overridden by a share link
+  createBtn.textContent = 'Create Game';
+  createAction = () => connect(generateCode());
   connectLobby();
 }
 
@@ -1032,8 +1041,9 @@ function hideScoreTip() {
 
 document.addEventListener('click', hideScoreTip);
 
-// Create game: generate code + connect
-createBtn.addEventListener('click', () => connect(generateCode()));
+// Create game (or join via share link — overridden below if hash present)
+let createAction = () => connect(generateCode());
+createBtn.addEventListener('click', () => createAction());
 
 // Pre-fill from URL hash if present (e.g. #ABCD/Alice) and auto-connect.
 const hash = location.hash.slice(1);
@@ -1048,11 +1058,10 @@ if (hash) {
     autoConnecting = true;
     connect(hashCode);
   } else if (hashCode) {
-    // Direct link with code only: user just types name and clicks Create or picks from list
+    // Direct link with code only: user just types name and clicks the button
     lobbyStatus.textContent = `Enter your name to join room ${hashCode.toUpperCase()}.`;
-    // Auto-join once they enter a name
     createBtn.textContent = `Join ${hashCode.toUpperCase()}`;
-    createBtn.onclick = () => connect(hashCode);
+    createAction = () => connect(hashCode);
   }
 }
 

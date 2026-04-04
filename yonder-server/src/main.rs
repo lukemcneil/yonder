@@ -3,6 +3,7 @@ extern crate rocket;
 
 use std::collections::HashMap;
 use std::sync::Arc;
+use std::time::Instant;
 
 use game::{ActionError, ClientAction, GameState};
 use rocket::futures::{SinkExt, StreamExt};
@@ -26,6 +27,7 @@ mod tests;
 struct GameRoom {
     state: GameState,
     sender: Sender<()>,
+    last_activity: Instant,
 }
 
 #[derive(Default)]
@@ -62,8 +64,10 @@ async fn play_game(
                     GameRoom {
                         state: GameState::new_waiting(6), // up to 6 players; StartGame locks in count
                         sender,
+                        last_activity: Instant::now(),
                     }
                 });
+                room.last_activity = Instant::now();
                 let my_seat = match room.state.join(&player_name) {
                     Ok(seat) => seat,
                     Err(e) => {
@@ -117,6 +121,12 @@ async fn play_game(
                             } else {
                                 break; // player was removed
                             }
+                        } else {
+                            // Room was deleted (stale cleanup). Notify client and disconnect.
+                            let _ = stream
+                                .send(Message::Text("{\"Err\":\"RoomExpired\"}".to_string()))
+                                .await;
+                            break;
                         }
                     }
                 }
@@ -163,6 +173,7 @@ async fn handle_message(
                         Ok(room) => {
                             match room.state.seat_of(player_name) {
                                 Some(seat) => {
+                                    room.last_activity = Instant::now();
                                     let r = match &action {
                                         ClientAction::StartGame { advanced, expansion } =>
                                             room.state.start_game(seat, *advanced, *expansion),
@@ -235,6 +246,7 @@ async fn demo_game(
     rooms.0.insert(room_name.clone(), GameRoom {
         state: GameState::new_demo(),
         sender,
+        last_activity: Instant::now(),
     });
     format!("Demo game created in room '{}'. Connect as Alice or Bob.", room_name)
 }
@@ -339,6 +351,56 @@ impl Fairing for ResponseFairing {
     }
 }
 
+// ─── Stale room cleanup ──────────────────────────────────────────────────────
+
+const STALE_TIMEOUT_DEFAULT_SECS: u64 = 2 * 60 * 60;  // 2 hours (waiting/game over)
+const STALE_TIMEOUT_PLAYING_SECS: u64 = 48 * 60 * 60; // 48 hours (in-progress games)
+const CLEANUP_INTERVAL_SECS: u64 = 5 * 60;             // check every 5 minutes
+
+struct CleanupFairing;
+
+#[rocket::async_trait]
+impl Fairing for CleanupFairing {
+    fn info(&self) -> Info {
+        Info { name: "Stale Room Cleanup", kind: Kind::Liftoff }
+    }
+
+    async fn on_liftoff(&self, rocket: &rocket::Rocket<rocket::Orbit>) {
+        let rooms = Arc::clone(rocket.state::<Arc<Mutex<Rooms>>>().unwrap());
+        let lobby_sender = rocket.state::<LobbySender>().unwrap().0.clone();
+
+        rocket::tokio::spawn(async move {
+            loop {
+                rocket::tokio::time::sleep(
+                    std::time::Duration::from_secs(CLEANUP_INTERVAL_SECS)
+                ).await;
+
+                let mut rooms = rooms.lock().await;
+                let before = rooms.0.len();
+                rooms.0.retain(|name, room| {
+                    let timeout = match &room.state.phase {
+                        game::GamePhase::Playing(_) | game::GamePhase::AdvancedSetup { .. }
+                            => STALE_TIMEOUT_PLAYING_SECS,
+                        _ => STALE_TIMEOUT_DEFAULT_SECS,
+                    };
+                    let stale = room.last_activity.elapsed().as_secs() >= timeout;
+                    if stale {
+                        println!("Removing stale room '{}'", name);
+                        // Notify connected clients so they detect the missing room.
+                        let _ = room.sender.send(());
+                    }
+                    !stale
+                });
+                let removed = before - rooms.0.len();
+                if removed > 0 {
+                    println!("Cleaned up {} stale room(s)", removed);
+                    let _ = lobby_sender.send(());
+                }
+            }
+        });
+    }
+}
+
 // ─── Launch ───────────────────────────────────────────────────────────────────
 
 #[launch]
@@ -349,6 +411,7 @@ fn rocket() -> _ {
 
     rocket::build()
         .attach(ResponseFairing)
+        .attach(CleanupFairing)
         .mount("/", routes![health, play_game, demo_game, list_rooms, lobby_ws])
         .mount("/", FileServer::from(&client_dir))
         .register("/", catchers![not_found])
