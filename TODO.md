@@ -110,10 +110,12 @@ _(Add tasks here as they are discovered during implementation)_
 - [x] cleanup old game rooms
 - [x] log player names
 - [x] card selection at beginning should look better on mobile
-- [ ] show rules link from main page
 - [x] store name in browser state
+- [x] card 55 isn't right
+- [ ] show rules link from main page
 - [ ] spectate existing games
 - [ ] rejoin game from start screen
+- [ ] sometimes have to refresh for rejoin game to work at the end
 
 ## Do Later
 - [ ] Live stats sidebar: show the current player's resource counts (stone, chimera, thistle), color counts (red, green, blue, yellow), clue count, and night/day count. Visible during gameplay on the right side.
