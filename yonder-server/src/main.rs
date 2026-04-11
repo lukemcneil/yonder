@@ -171,6 +171,7 @@ async fn handle_message(
     lobby_sender: &Sender<()>,
 ) {
     if let Message::Text(text) = message {
+        if text == "ping" { return; }
         println!("[{}] {}: {}", room_name, player_name, text);
         match serde_json::from_str::<ClientAction>(&text) {
             Ok(action) => {

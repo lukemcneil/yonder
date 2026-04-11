@@ -8,6 +8,7 @@ let viewOtherSeat = null;  // whose board to show in main area (null = self)
 const expandedOpponents = new Set();  // track which opponent panels are expanded on mobile
 
 let currentRoomCode = '';   // room code for the current connection
+let pingInterval = null;    // keepalive timer for game WebSocket
 let lobbyWs = null;         // WebSocket for live lobby room list
 
 // ── DOM refs ─────────────────────────────────────────────────────────────────
@@ -59,6 +60,7 @@ function connect(roomCode) {
   lobbyStatus.textContent = 'Connecting…';
   setLobbyButtonsDisabled(true);
   // Close any existing game WebSocket (e.g. rematch from a finished game).
+  if (pingInterval) { clearInterval(pingInterval); pingInterval = null; }
   if (ws) { ws.close(); ws = null; }
   disconnectLobby();
 
@@ -72,6 +74,9 @@ function connect(roomCode) {
 
   ws.addEventListener('open', () => {
     lobbyStatus.textContent = 'Connected. Waiting for state…';
+    pingInterval = setInterval(() => {
+      if (ws && ws.readyState === WebSocket.OPEN) ws.send('ping');
+    }, 30000);
   });
 
   ws.addEventListener('message', (event) => {
@@ -119,6 +124,7 @@ function connect(roomCode) {
   });
 
   ws.addEventListener('close', () => {
+    if (pingInterval) { clearInterval(pingInterval); pingInterval = null; }
     // Don't overwrite backToLobby messages (state is cleared when returning to lobby).
     if (state && state.phase !== 'game_over') {
       showStatus('Disconnected from server.');
@@ -970,6 +976,11 @@ function renderLeaderboard() {
   html += '</div>';
   lb.innerHTML = html;
   document.getElementById('play-again-btn-inline').addEventListener('click', () => {
+    if (!ws || ws.readyState !== WebSocket.OPEN) {
+      // WS died while idle on game over — reconnect to room, then player can retry
+      connect(currentRoomCode);
+      return;
+    }
     send({ action: 'Rematch' });
   });
   document.getElementById('back-to-lobby-btn-inline').addEventListener('click', () => {
