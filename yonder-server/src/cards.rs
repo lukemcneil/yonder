@@ -95,6 +95,14 @@ pub fn get_sanctuary_deck_with_expansion() -> Vec<SanctuaryCard> {
     deck
 }
 
+/// All region cards (base + expansion), unshuffled. Used by stats queries
+/// that need to rehydrate a stored card number into its biome/metadata.
+pub fn all_regions() -> Vec<RegionCard> {
+    let mut deck = regions();
+    deck.extend(expansion_regions());
+    deck
+}
+
 fn w(stone: u8, chimera: u8, thistle: u8) -> WonderCount {
     WonderCount { stone, chimera, thistle }
 }

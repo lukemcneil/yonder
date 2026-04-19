@@ -3,9 +3,11 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <!-- Absolute base so deep SPA routes (/stats/...) still resolve region/ and sanctuary/ assets from root. -->
+  <base href="/">
   <title>Yonder</title>
   <link rel="icon" type="image/png" href="region/card-back.png">
-  <link rel="stylesheet" href="style.css?v=0">
+  <link rel="stylesheet" href="style.css?v=10">
 </head>
 <body>
 
@@ -17,6 +19,7 @@
       <input type="text" id="player-name" placeholder="Alice" maxlength="20">
 
       <button id="create-btn">Create Game</button>
+      <button id="stats-btn" class="secondary">Stats</button>
 
       <div id="lobby-status"></div>
 
@@ -25,6 +28,31 @@
         <div id="active-games-list"></div>
       </div>
     </div>
+  </div>
+
+  <!-- Stats screen -->
+  <div id="stats-screen" class="hidden">
+    <div class="stats-header">
+      <h1>Stats</h1>
+      <button id="stats-close-btn" class="secondary">Back</button>
+    </div>
+    <div class="stats-tabs">
+      <button class="stats-tab active" data-tab="me">My Stats</button>
+      <button class="stats-tab" data-tab="highscores">High Scores</button>
+      <button class="stats-tab" data-tab="recent">Recent Games</button>
+    </div>
+    <div id="stats-panel-me" class="stats-panel"></div>
+    <div id="stats-panel-highscores" class="stats-panel hidden"></div>
+    <div id="stats-panel-recent" class="stats-panel hidden"></div>
+  </div>
+
+  <!-- Saved-game detail screen (read-only view of a persisted game) -->
+  <div id="game-detail-screen" class="hidden">
+    <div class="stats-header">
+      <h1 id="game-detail-title">Game</h1>
+      <button id="game-detail-close-btn" class="secondary">Back</button>
+    </div>
+    <div id="game-detail-body"></div>
   </div>
 
   <!-- Game board (hidden until connected) -->
@@ -103,6 +131,6 @@
   <!-- Card hover zoom popover (shared, repositioned via JS) -->
   <div id="card-zoom"><img src="" alt=""></div>
 
-  <script src="game.js?v=0"></script>
+  <script src="game.js?v=11"></script>
 </body>
 </html>

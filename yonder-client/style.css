@@ -430,7 +430,8 @@ body {
   border-top: 1px solid #333;
 }
 
-#my-tableau-row {
+#my-tableau-row,
+.my-tableau-row {
   display: flex;
   align-items: center;
   gap: 0.5rem;
@@ -438,7 +439,8 @@ body {
   overflow-x: auto;
 }
 
-#my-sanctuaries-row {
+#my-sanctuaries-row,
+.my-sanctuaries-row {
   display: flex;
   align-items: center;
   gap: 0.5rem;
@@ -452,7 +454,8 @@ body {
   flex-shrink: 0;
 }
 
-#my-tableau, #my-sanctuaries {
+#my-tableau, #my-sanctuaries,
+.my-tableau, .my-sanctuaries {
   display: flex;
   gap: 4px;
 }
@@ -1120,10 +1123,12 @@ body {
   #my-hand-label, #my-tableau-label, #my-sanctuaries-label { display: none; }
 
   /* Tableau: 4-column grid filling full width */
-  #my-tableau-row {
+  #my-tableau-row,
+  .my-tableau-row {
     overflow-x: visible;
   }
-  #my-tableau {
+  #my-tableau,
+  .my-tableau {
     display: grid;
     grid-template-columns: repeat(4, 1fr);
     gap: 3px;
@@ -1133,28 +1138,34 @@ body {
 
   /* Tableau cards fill their grid cell */
   #my-tableau .card.xl,
-  #my-tableau .card-slot {
+  #my-tableau .card-slot,
+  .my-tableau .card.xl,
+  .my-tableau .card-slot {
     width: 100%;
     height: auto;
     aspect-ratio: 1;
   }
-  #my-tableau .card.xl img {
+  #my-tableau .card.xl img,
+  .my-tableau .card.xl img {
     width: 100%;
     height: 100%;
   }
 
   /* Sanctuaries row: 7-column grid */
-  #my-sanctuaries-row {
+  #my-sanctuaries-row,
+  .my-sanctuaries-row {
     overflow-x: visible;
     padding: 0 3px;
   }
-  #my-sanctuaries {
+  #my-sanctuaries,
+  .my-sanctuaries {
     display: grid;
     grid-template-columns: repeat(7, 1fr);
     gap: 3px;
     width: 100%;
   }
-  #my-sanctuaries .card.sanctuary.md {
+  #my-sanctuaries .card.sanctuary.md,
+  .my-sanctuaries .card.sanctuary.md {
     width: 100%;
     height: auto;
     aspect-ratio: 189 / 291;
@@ -1189,7 +1200,8 @@ body {
   }
 
   /* Scoring cards: use full-width grid like gameplay */
-  #my-tableau .card.xl.scoring-card-slot {
+  #my-tableau .card.xl.scoring-card-slot,
+  .my-tableau .card.xl.scoring-card-slot {
     width: 100%;
     height: auto;
     aspect-ratio: 1;
@@ -1236,4 +1248,760 @@ body {
   #card-zoom.region { width: 130px; height: 130px; }
   #card-zoom.sanctuary { width: 100px; height: 154px; }
 
+  /* Score badges: scale down so they fit the ~88px card cells on phones. */
+  .score-badge {
+    font-size: 0.7rem;
+    padding: 1px 4px;
+    bottom: 3px;
+    left: 3px;
+  }
+  .score-badge-sm {
+    font-size: 0.55rem;
+    padding: 1px 3px;
+    bottom: 2px;
+    left: 2px;
+  }
+
+}
+
+/* ── Lobby secondary button ──────────────────────────────────────────────── */
+
+.lobby-form button.secondary {
+  background: transparent;
+  color: #c9a84c;
+  border: 1px solid #c9a84c;
+  margin-top: 0.25rem;
+}
+.lobby-form button.secondary:hover { background: #2a2a3e; color: #e0be6a; }
+
+/* ── Post-game highlight badges (on leaderboard rows) ────────────────────── */
+
+.score-badges {
+  display: inline-flex;
+  flex-wrap: wrap;
+  gap: 0.3rem;
+  margin-left: 0.5rem;
+}
+.hl-badge {
+  font-size: 0.7rem;
+  padding: 0.15rem 0.4rem;
+  border-radius: 999px;
+  font-weight: 600;
+  letter-spacing: 0.02em;
+}
+.hl-badge.pb      { background: #c9a84c; color: #1a1a2e; }
+.hl-badge.rank    { background: #3a6ea5; color: #fff; }
+.hl-badge.avg-up   { background: #2e7a4f; color: #e8ffe8; }
+.hl-badge.avg-down { background: #2a2a3e; color: #b0b0c0; border: 1px solid #444; }
+.hl-badge.avg-even { background: #2a2a3e; color: #aaa;    border: 1px solid #444; }
+
+/* ── Stats screen (mobile-first) ──────────────────────────────────────────
+ *
+ * These styles are designed for a phone viewport first; the desktop rules
+ * (inside a min-width media query at the bottom) only nudge things wider.
+ */
+
+#stats-screen,
+#game-detail-screen {
+  max-width: 1100px;
+  margin: 0 auto;
+  padding: 0.8rem 0.6rem 2rem;
+}
+
+.stats-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 0.6rem;
+  margin-bottom: 0.6rem;
+}
+.stats-header h1 {
+  font-size: 1.3rem;
+  color: #c9a84c;
+  letter-spacing: 0.04em;
+  flex: 1;
+  min-width: 0;
+}
+.stats-header button {
+  padding: 0.45rem 0.85rem;
+  min-height: 36px;
+  border-radius: 6px;
+  border: 1px solid #444;
+  background: #2a2a3e;
+  color: #e0e0e0;
+  font-size: 0.85rem;
+  cursor: pointer;
+  flex-shrink: 0;
+}
+.stats-header button:hover { background: #3a3a50; }
+
+.stats-tabs {
+  display: flex;
+  gap: 0.1rem;
+  border-bottom: 1px solid #333;
+  margin-bottom: 0.8rem;
+  overflow-x: auto;
+  scrollbar-width: none;
+}
+.stats-tabs::-webkit-scrollbar { display: none; }
+.stats-tab {
+  padding: 0.55rem 0.7rem;
+  background: transparent;
+  border: none;
+  border-bottom: 2px solid transparent;
+  color: #888;
+  font-size: 0.9rem;
+  cursor: pointer;
+  font-weight: 600;
+  white-space: nowrap;
+  flex: 1 0 auto;
+  min-height: 40px;
+}
+.stats-tab:hover { color: #e0e0e0; }
+.stats-tab.active {
+  color: #c9a84c;
+  border-bottom-color: #c9a84c;
+}
+
+.stats-panel { min-height: 160px; }
+.stats-section-title {
+  font-size: 0.95rem;
+  color: #aaa;
+  font-weight: 600;
+  letter-spacing: 0.02em;
+  margin: 0.75rem 0 0.4rem;
+}
+
+.stats-empty {
+  padding: 2rem 1rem;
+  text-align: center;
+  color: #888;
+  font-size: 0.95rem;
+}
+
+/* ── Name search (My Stats) ─────────────────────────────────────────── */
+
+.stats-search {
+  display: flex;
+  flex-direction: column;
+  gap: 0.3rem;
+  margin-bottom: 0.8rem;
+}
+.stats-search label {
+  font-size: 0.75rem;
+  color: #aaa;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+}
+.stats-search-row {
+  display: flex;
+  gap: 0.4rem;
+}
+.hs-player-filter-row {
+  flex-wrap: wrap;
+}
+.stats-search input {
+  flex: 1;
+  min-width: 0;
+  padding: 0.6rem 0.75rem;
+  border-radius: 6px;
+  border: 1px solid #444;
+  background: #2a2a3e;
+  color: #e0e0e0;
+  font-size: 1rem;
+  min-height: 42px;
+}
+.stats-search button {
+  padding: 0 1rem;
+  min-height: 42px;
+  background: #c9a84c;
+  color: #1a1a2e;
+  border: none;
+  border-radius: 6px;
+  font-weight: 700;
+  cursor: pointer;
+  font-size: 0.9rem;
+  flex-shrink: 0;
+}
+.stats-search button.secondary {
+  background: #3a3a4e;
+  color: #e0e0e0;
+  border: 1px solid #555;
+}
+.stats-search button.secondary:hover {
+  background: #45455a;
+}
+
+/* ── Stat summary cards (My Stats) ─────────────────────────────────── */
+
+.stats-summary {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 0.5rem;
+  margin-bottom: 0.7rem;
+}
+.stat-card {
+  background: #2a2a3e;
+  border: 1px solid #333;
+  border-radius: 8px;
+  padding: 0.6rem 0.75rem;
+}
+.stat-card.stat-card-link {
+  cursor: pointer;
+  transition: border-color 0.15s;
+}
+.stat-card.stat-card-link:hover { border-color: #c9a84c; }
+.stat-card.stat-card-link::after {
+  content: 'view game →';
+  display: block;
+  margin-top: 0.3rem;
+  font-size: 0.7rem;
+  color: #c9a84c;
+}
+.stat-label {
+  font-size: 0.65rem;
+  color: #888;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  margin-bottom: 0.25rem;
+}
+.stat-value {
+  font-size: 1.4rem;
+  color: #e0e0e0;
+  font-weight: 700;
+  line-height: 1.1;
+}
+
+.placements-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.35rem;
+  margin-bottom: 0.5rem;
+}
+.placement-chip {
+  background: #2a2a3e;
+  border: 1px solid #444;
+  border-radius: 999px;
+  padding: 0.22rem 0.7rem;
+  font-size: 0.78rem;
+  color: #ccc;
+}
+
+/* ── My Stats header + trend ─────────────────────────────────────── */
+
+.me-header {
+  margin-bottom: 0.6rem;
+}
+.me-name {
+  font-size: 1.2rem;
+  font-weight: 700;
+  color: #e0e0e0;
+}
+.me-sub {
+  font-size: 0.75rem;
+  color: #888;
+  margin-top: 0.15rem;
+}
+.me-trend { margin-top: 0.35rem; display: flex; flex-wrap: wrap; gap: 0.3rem; }
+
+.stat-card .stat-sub {
+  font-size: 0.7rem;
+  color: #888;
+  margin-top: 0.15rem;
+}
+
+/* ── Sparkline ─────────────────────────────────────────────────────── */
+
+.sparkline-wrap {
+  background: #2a2a3e;
+  border: 1px solid #333;
+  border-radius: 8px;
+  padding: 0.6rem 0.6rem 0.5rem;
+  margin-bottom: 0.8rem;
+}
+.sparkline-title {
+  font-size: 0.75rem;
+  color: #aaa;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  margin-bottom: 0.2rem;
+}
+.sparkline {
+  width: 100%;
+  height: auto;
+  aspect-ratio: 5 / 1;  /* matches the 800x160 viewBox */
+  max-height: 260px;
+  display: block;
+  touch-action: pan-y;  /* allow vertical scroll; we claim horizontal for scrubbing */
+}
+.spark-line {
+  fill: none;
+  stroke: #c9a84c;
+  stroke-width: 1.8;
+  stroke-linejoin: round;
+  stroke-linecap: round;
+}
+.spark-fill {
+  fill: rgba(201, 168, 76, 0.15);
+  stroke: none;
+}
+.spark-dot {
+  fill: #c9a84c;
+  opacity: 0.9;
+}
+.spark-dot.winner {
+  fill: #e0be6a;
+  stroke: #1a1a2e;
+  stroke-width: 1;
+}
+.spark-yaxis,
+.spark-xaxis {
+  font-size: 13px;
+  fill: #888;
+  font-family: system-ui, sans-serif;
+}
+.spark-yaxis.avg { fill: #c9a84c; }
+.spark-line { stroke-width: 2.5; }
+.spark-avg {
+  stroke: #c9a84c;
+  stroke-width: 1.2;
+  stroke-dasharray: 4 4;
+  opacity: 0.55;
+}
+.spark-cursor.hidden { display: none; }
+.spark-crosshair {
+  stroke: #e0e0e0;
+  stroke-width: 1.2;
+  stroke-dasharray: 3 4;
+  opacity: 0.55;
+}
+.spark-marker {
+  fill: #fff;
+  stroke: #c9a84c;
+  stroke-width: 2.5;
+}
+
+/* Info line below the chart — updates on hover/tap. */
+.sparkline-info {
+  display: flex;
+  align-items: baseline;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  min-height: 1.5em;
+  margin-top: 0.4rem;
+  padding: 0.3rem 0.1rem 0;
+  border-top: 1px solid #333;
+  font-size: 0.8rem;
+}
+.spark-info-score {
+  font-size: 1.1rem;
+  font-weight: 700;
+  color: #c9a84c;
+}
+.spark-info-meta { color: #ccc; }
+.spark-info-hint { color: #888; }
+.spark-info-link {
+  margin-left: auto;
+  color: #c9a84c;
+  cursor: pointer;
+  font-weight: 600;
+}
+.spark-info-link:hover { text-decoration: underline; }
+
+/* ── Biggest single-card play ──────────────────────────────────────── */
+
+.best-card-row {
+  display: flex;
+  gap: 0.8rem;
+  align-items: center;
+  background: #2a2a3e;
+  border: 1px solid #333;
+  border-radius: 8px;
+  padding: 0.6rem 0.7rem;
+  cursor: pointer;
+  transition: border-color 0.15s;
+  margin-bottom: 0.8rem;
+}
+.best-card-row:hover { border-color: #c9a84c; }
+.best-card-img {
+  width: 54px;
+  height: 54px;
+  object-fit: cover;
+  border-radius: 4px;
+  border: 1px solid #444;
+  flex-shrink: 0;
+}
+.best-card-img.sanctuary { width: 44px; height: 66px; }
+.best-card-body { min-width: 0; flex: 1; }
+.best-card-points {
+  font-size: 1.4rem;
+  font-weight: 800;
+  color: #c9a84c;
+  line-height: 1;
+}
+.best-card-explain {
+  font-size: 0.85rem;
+  color: #e0e0e0;
+  margin-top: 0.2rem;
+}
+.best-card-meta {
+  font-size: 0.7rem;
+  color: #888;
+  margin-top: 0.2rem;
+}
+
+/* ── Bar chart (avg by player count) ───────────────────────────────── */
+
+.bar-chart {
+  display: flex;
+  flex-direction: column;
+  gap: 0.3rem;
+  margin-bottom: 0.9rem;
+}
+.bar-row {
+  display: grid;
+  grid-template-columns: 70px 1fr auto;
+  align-items: center;
+  gap: 0.5rem;
+}
+.bar-label {
+  font-size: 0.8rem;
+  color: #aaa;
+}
+.bar-track {
+  height: 14px;
+  background: #2a2a3e;
+  border: 1px solid #333;
+  border-radius: 7px;
+  overflow: hidden;
+}
+.bar-fill {
+  height: 100%;
+  background: linear-gradient(90deg, #c9a84c, #e0be6a);
+}
+.bar-value {
+  font-size: 0.85rem;
+  color: #e0e0e0;
+  font-weight: 600;
+  min-width: 3em;
+  text-align: right;
+}
+.bar-sub { color: #888; font-weight: 400; }
+
+/* ── Subsection title ─────────────────────────────────────────────── */
+
+.subsection-title {
+  font-size: 0.8rem;
+  color: #aaa;
+  font-weight: 600;
+  margin: 0.7rem 0 0.35rem;
+}
+
+/* ── Biome preference bar + legend ────────────────────────────────── */
+
+.biome-grid {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 0.8rem;
+  margin-bottom: 0.9rem;
+}
+.biome-block {
+  background: #2a2a3e;
+  border: 1px solid #333;
+  border-radius: 8px;
+  padding: 0.6rem 0.7rem;
+}
+.biome-subtitle {
+  font-size: 0.8rem;
+  color: #aaa;
+  font-weight: 600;
+  margin-bottom: 0.4rem;
+}
+.biome-bar {
+  display: flex;
+  height: 14px;
+  border-radius: 7px;
+  overflow: hidden;
+  border: 1px solid #333;
+  margin-bottom: 0.4rem;
+}
+.biome-seg { height: 100%; }
+.biome-legend {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.4rem;
+}
+.biome-chip {
+  font-size: 0.75rem;
+  color: #ccc;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.3rem;
+}
+.biome-dot {
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  display: inline-block;
+}
+.biome-red       { background: #c94a4a; }
+.biome-green     { background: #4fa861; }
+.biome-blue      { background: #3a6ea5; }
+.biome-yellow    { background: #d9b64f; }
+.biome-colorless { background: #6b6b80; }
+
+/* ── Most played regions (top cards) ──────────────────────────────── */
+
+.topcards {
+  display: flex;
+  gap: 0.5rem;
+  flex-wrap: wrap;
+  margin-bottom: 0.9rem;
+}
+.topcard {
+  cursor: default;
+  text-align: center;
+}
+.topcard img {
+  width: 68px;
+  height: 68px;
+  object-fit: cover;
+  border-radius: 5px;
+  border: 1px solid #444;
+  display: block;
+}
+.topcard img.sanctuary {
+  width: 54px;
+  height: 83px;   /* 189:291 sanctuary aspect */
+}
+.topcard-meta {
+  font-size: 0.7rem;
+  color: #aaa;
+  margin-top: 0.25rem;
+}
+
+/* ── Head to head ─────────────────────────────────────────────────── */
+
+.h2h-list {
+  display: flex;
+  flex-direction: column;
+  gap: 0.3rem;
+  margin-bottom: 0.9rem;
+}
+.h2h-row {
+  display: grid;
+  grid-template-columns: 1fr auto auto;
+  gap: 0.6rem;
+  align-items: center;
+  background: #2a2a3e;
+  border: 1px solid #333;
+  border-radius: 6px;
+  padding: 0.5rem 0.7rem;
+}
+.h2h-name {
+  font-weight: 600;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.h2h-record {
+  display: inline-flex;
+  gap: 0.4rem;
+  font-size: 0.85rem;
+  font-weight: 700;
+}
+.h2h-w { color: #6fdc6f; }
+.h2h-l { color: #c96f6f; }
+.h2h-t { color: #c9a84c; }
+.h2h-games { color: #888; font-size: 0.8rem; }
+
+/* ── High scores list ─────────────────────────────────────────────── */
+
+.hs-list {
+  display: flex;
+  flex-direction: column;
+  gap: 0.6rem;
+}
+.hs-entry {
+  background: #2a2a3e;
+  border: 1px solid #333;
+  border-radius: 10px;
+  padding: 0.6rem 0.6rem 0.7rem;
+  transition: border-color 0.15s;
+}
+.hs-entry:hover,
+.hs-entry:active { border-color: #c9a84c; }
+
+/* Header row: clickable to open game detail, cards below are independent. */
+.hs-header {
+  display: grid;
+  grid-template-columns: auto 1fr auto;
+  align-items: center;
+  gap: 0.7rem;
+  margin-bottom: 0.5rem;
+  padding: 0.1rem 0.2rem;
+  border-radius: 6px;
+}
+.hs-header:hover { background: #323247; }
+.hs-rank {
+  font-size: 1.2rem;
+  font-weight: 800;
+  color: #c9a84c;
+  min-width: 1.8em;
+}
+.hs-identity { min-width: 0; }
+.hs-name {
+  font-size: 1.05rem;
+  font-weight: 700;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.hs-meta {
+  font-size: 0.75rem;
+  color: #888;
+  margin-top: 0.1rem;
+}
+.hs-score {
+  font-size: 1.35rem;
+  font-weight: 800;
+  color: #e0e0e0;
+}
+
+/* Give the sanctuary row a little breathing room beneath the tableau. */
+.hs-entry .my-sanctuaries-row { margin-top: 0.4rem; }
+
+/* ── Game list (Recent Games tab and My Stats recent) ─────────────── */
+
+.game-list {
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
+}
+.game-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.6rem;
+  background: #2a2a3e;
+  border: 1px solid #333;
+  border-radius: 8px;
+  padding: 0.6rem 0.8rem;
+  cursor: pointer;
+  transition: border-color 0.15s;
+  min-height: 54px;
+}
+.game-row:hover,
+.game-row:active { border-color: #c9a84c; }
+.game-row-main { min-width: 0; flex: 1; }
+.game-row-title {
+  font-size: 0.95rem;
+  font-weight: 600;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.game-row-sub {
+  color: #888;
+  font-weight: 400;
+  font-size: 0.85rem;
+}
+.game-row-meta {
+  font-size: 0.75rem;
+  color: #888;
+  margin-top: 0.15rem;
+}
+.game-row-score {
+  font-size: 1.3rem;
+  font-weight: 700;
+  color: #c9a84c;
+  flex-shrink: 0;
+}
+
+/* ── Desktop adjustments (wider viewports) ────────────────────────── */
+
+@media (min-width: 700px) {
+  #stats-screen,
+  #game-detail-screen {
+    padding: 1.5rem 1rem 3rem;
+  }
+  .stats-header { margin-bottom: 1rem; }
+  .stats-header h1 {
+    font-size: 1.8rem;
+    letter-spacing: 0.08em;
+  }
+  .stats-tabs { gap: 0.4rem; margin-bottom: 1rem; }
+  .stats-tab { padding: 0.5rem 1rem; font-size: 0.95rem; flex: 0 0 auto; }
+  .stats-search { flex-direction: row; align-items: end; }
+  .stats-search label { flex-shrink: 0; align-self: center; }
+  .stats-search-row { flex: 1; }
+  .stats-summary {
+    grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+    gap: 0.7rem;
+  }
+  .stat-card { padding: 0.8rem 1rem; }
+  .stat-value { font-size: 1.6rem; }
+  .sparkline { aspect-ratio: 5 / 1; max-height: 320px; }
+  .best-card-img { width: 80px; height: 80px; }
+  .best-card-img.sanctuary { width: 64px; height: 98px; }
+  .best-card-points { font-size: 1.8rem; }
+  .topcard img { width: 96px; height: 96px; }
+  .topcard img.sanctuary { width: 70px; height: 108px; }
+  .biome-grid { grid-template-columns: 1fr 1fr; }
+  .hs-entry { padding: 0.8rem; }
+  .hs-rank { font-size: 1.5rem; }
+  .hs-name { font-size: 1.15rem; }
+  .hs-score { font-size: 1.6rem; }
+  .game-row-title { font-size: 1.05rem; }
+  .game-row-score { font-size: 1.5rem; }
+}
+
+/* ── Saved-game detail view (mobile-first) ──────────────────────────────── */
+
+.game-detail-meta {
+  color: #888;
+  font-size: 0.8rem;
+  margin-bottom: 0.7rem;
+}
+
+.gd-player {
+  background: #2a2a3e;
+  border: 1px solid #333;
+  border-radius: 8px;
+  padding: 0.6rem;
+  margin-bottom: 0.7rem;
+}
+.gd-player-header {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  margin-bottom: 0.5rem;
+}
+.gd-placement {
+  font-size: 0.85rem;
+  color: #c9a84c;
+  font-weight: 700;
+  flex-shrink: 0;
+}
+.gd-name {
+  font-size: 0.95rem;
+  font-weight: 600;
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.gd-score { font-size: 1.05rem; font-weight: 700; flex-shrink: 0; }
+
+/* Space between the header and the per-player tableau row. */
+.gd-player .my-sanctuaries-row { margin-top: 0.4rem; }
+
+@media (min-width: 700px) {
+  .game-detail-meta { font-size: 0.85rem; margin-bottom: 1rem; }
+  .gd-player { padding: 0.8rem; margin-bottom: 1rem; }
+  .gd-player-header { gap: 0.8rem; margin-bottom: 0.6rem; }
+  .gd-placement { font-size: 0.95rem; }
+  .gd-name { font-size: 1.05rem; }
+  .gd-score { font-size: 1.2rem; }
 }

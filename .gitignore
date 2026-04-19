@@ -1,2 +1,6 @@
 .playwright-cli/
 .playwright-mcp/
+yonder.db
+yonder.db-journal
+yonder.db-wal
+yonder.db-shm

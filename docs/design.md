@@ -359,6 +359,103 @@ These are served from `yonder-client/`.
 
 ---
 
+## Result Persistence
+
+Completed games are written to a local SQLite file (default `yonder.db`, or
+`YONDER_DB_PATH`). All DB code lives in `yonder-server/src/db.rs` and uses
+`rusqlite` (bundled build, no system SQLite required). A single
+`Arc<std::sync::Mutex<Connection>>` is managed by Rocket state; we never hold
+the DB lock across an `.await`.
+
+### Schema
+
+```
+games(id, room_code, started_at, finished_at, player_count, advanced, expansion)
+game_players(id, game_id, seat, name, name_lower, final_score,
+             card_number_sum, placement,
+             region_cards_json, sanctuary_cards_json, score_breakdown_json)
+```
+
+- Player identity is a case-insensitive name match via `name_lower`.
+- Card choices are stored as JSON arrays of card numbers (region number or
+  sanctuary tile id). The card definitions in `cards.rs` are the source of
+  truth — we rehydrate by number when displaying.
+- `score_breakdown_json` is the output of `score_player_detailed`, so stats
+  views never recompute.
+- Migrations are managed via `PRAGMA user_version`; current schema version is 1.
+
+### Persistence hook
+
+`GameRoom` carries `started_at`, `started_advanced`, `started_expansion`,
+`persisted`, `skip_persistence`, `game_record_id`, and
+`post_game_highlights`. After any successful action whose resulting
+`GamePhase` is `GameOver` (and `persisted` is still false), `main.rs` calls
+`db::save_game` and then `compute_highlights`, stashing the results back on
+the room. The next `to_client_state` call is decorated via `stamp_snapshot`
+with the `game_record_id` and per-seat `post_game_highlights`.
+
+Demo rooms created by `GET /demo/<room>` set `skip_persistence = true` so
+they never pollute stats.
+
+### HTTP API
+
+- `GET /api/stats/player/<name>` — `PlayerStats { games_played, wins,
+  high_score, high_score_game_id, avg_score, placements[6], recent[10] }`.
+- `GET /api/stats/leaderboard?limit=10` — top scores with player name,
+  `game_id`, `finished_at`, region/sanctuary card numbers; ties assigned
+  the same rank.
+- `GET /api/stats/games?limit=20` — recent games with winner name + score.
+- `GET /api/stats/games/<id>` — full `GameDetail` with every seat's
+  tableau, sanctuaries, and per-card score breakdown.
+
+### Frontend stats
+
+`index.html` adds a `Stats` button on the lobby that reveals the stats
+SPA. Each tab has a real URL so it can be bookmarked / shared / refreshed:
+
+| URL                          | Page                                  |
+|------------------------------|---------------------------------------|
+| `/stats`, `/stats/me`        | My Stats (case-insensitive name lookup)
+| `/stats/player/<name>`       | My Stats pre-filled for a given player
+| `/stats/high-scores`         | All-time high scores list             |
+| `/stats/leaderboard`         | (alias of `/stats/high-scores`)       |
+| `/stats/recent`              | Recent games list                     |
+| `/stats/games/<id>`          | Read-only detail view of a saved game |
+
+The client-side router lives in `game.js` (`parseRoute` / `navigate` /
+`applyRoute`, driven by `history.pushState` + `popstate`). Unknown paths
+under `/stats/...` are served `index.html` by the server so the router
+can take over on refresh / deep link. `<base href="/">` is set in
+`index.html` so relative asset paths (`region/tile001.jpg`, etc.) still
+resolve from root on deep SPA URLs.
+
+Clicking a high-score row or recent-games row pushes `/stats/games/<id>`.
+The game detail view renders each player's full tableau using the SAME
+`makeScoringRegionCard` / `makeScoringSanctuaryCard` factories the
+game-over screen uses, so the two look identical. The High Scores
+list includes the full per-card score breakdown for each entry (fetched
+in the single leaderboard query) and renders it inline using the same
+factories.
+
+### Post-game highlights
+
+On game-over, each player's score row in the in-game leaderboard is
+decorated from `state.post_game_highlights`:
+
+- `personal best! (prev N)` / `first game!` — when this game beat their
+  previous case-insensitive personal best (or is their first game).
+- `#N all-time` — when `all_time_rank <= 10`.
+- `+X.X vs your avg (Y.Y)` — delta from the player's pre-game
+  historical average (shown when they have at least one prior game).
+- `+X.X vs all avg (Y.Y)` — delta from the pre-game global average
+  across all saved games (shown when at least one prior game exists).
+
+`db::previous_player_avg` and `db::previous_global_avg` power the
+average comparisons and exclude the just-saved game from their `AVG()`
+so the baseline is always the "before" state.
+
+---
+
 ## Reference
 
 - `~/personal/shields-up-engineering/` — reference server/client architecture

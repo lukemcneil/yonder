@@ -679,6 +679,32 @@ pub struct ClientGameState {
     pub player_count: usize,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub rematch_code: Option<String>,
+    /// Populated on game over with per-seat highlights (personal best, all-time rank).
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub post_game_highlights: Option<Vec<PostGameHighlight>>,
+    /// Persisted `games.id` for this game (only set on GameOver, after save).
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub game_record_id: Option<i64>,
+}
+
+/// Per-seat highlight attached to the game-over snapshot.
+#[derive(Debug, Clone, Serialize)]
+pub struct PostGameHighlight {
+    pub seat: usize,
+    pub name: String,
+    /// This player's score in the game just finished (convenience for the client).
+    pub score: u32,
+    /// 1 = all-time best; 2 = second best; etc. (None if no persisted score).
+    pub all_time_rank: Option<u32>,
+    /// True if this game set a new personal best for this player.
+    pub personal_best: bool,
+    /// Previous personal best for the player (None if this was their first).
+    pub previous_best: Option<u32>,
+    /// Player's average across all games BEFORE this one (None on first game).
+    pub previous_player_avg: Option<f64>,
+    /// Global average across all games BEFORE this one (None if this was the
+    /// very first persisted game).
+    pub previous_global_avg: Option<f64>,
 }
 
 #[derive(Debug, Serialize)]
@@ -798,6 +824,8 @@ impl GameState {
             my_played_card,
             player_count: self.player_count,
             rematch_code: None,
+            post_game_highlights: None,
+            game_record_id: None,
         }
     }
 }

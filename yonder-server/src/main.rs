@@ -3,21 +3,25 @@ extern crate rocket;
 
 use std::collections::HashMap;
 use std::sync::Arc;
-use std::time::Instant;
+use std::sync::Mutex as StdMutex;
+use std::time::{Instant, SystemTime};
 
-use game::{ActionError, ClientAction, GameState};
+use game::{ActionError, ClientAction, GameState, PostGameHighlight};
 use rocket::futures::{SinkExt, StreamExt};
 use rocket::tokio::sync::broadcast::{self, Sender};
 use rocket::fairing::{Fairing, Info, Kind};
-use rocket::fs::FileServer;
+use rocket::fs::{FileServer, NamedFile};
 use rocket::http::{Header, Status};
 use rocket::request::Request;
 use rocket::serde::json::Json;
+use std::path::PathBuf;
 use rocket::{futures::lock::Mutex, tokio::select, State};
+use rusqlite::Connection;
 use serde::Serialize;
 use ws::{stream::DuplexStream, Message};
 
 mod cards;
+mod db;
 mod game;
 mod scoring;
 mod tests;
@@ -29,7 +33,42 @@ struct GameRoom {
     sender: Sender<()>,
     last_activity: Instant,
     rematch_code: Option<String>,
+    /// Wall-clock time the game started (set when StartGame succeeds).
+    started_at: Option<SystemTime>,
+    /// Setup flags captured at StartGame.
+    started_advanced: bool,
+    started_expansion: bool,
+    /// True once the completed game has been written to the DB.
+    persisted: bool,
+    /// True for demo rooms — skip persistence so stats stay clean.
+    skip_persistence: bool,
+    /// Row id assigned after persistence; forwarded to clients on game-over.
+    game_record_id: Option<i64>,
+    /// Per-seat highlights computed after persistence.
+    post_game_highlights: Option<Vec<PostGameHighlight>>,
 }
+
+impl GameRoom {
+    fn new(state: GameState, sender: Sender<()>) -> Self {
+        Self {
+            state,
+            sender,
+            last_activity: Instant::now(),
+            rematch_code: None,
+            started_at: None,
+            started_advanced: false,
+            started_expansion: false,
+            persisted: false,
+            skip_persistence: false,
+            game_record_id: None,
+            post_game_highlights: None,
+        }
+    }
+}
+
+/// Shared SQLite connection handle. std::sync::Mutex is fine — queries are
+/// short and we never hold the lock across await points.
+struct Db(Arc<StdMutex<Connection>>);
 
 #[derive(Default)]
 struct Rooms(HashMap<String, GameRoom>);
@@ -47,6 +86,14 @@ struct LobbySender(Sender<()>);
 
 // ─── WebSocket endpoint ───────────────────────────────────────────────────────
 
+/// Decorate a client snapshot with room-level info (game record id,
+/// post-game highlights). Kept here because `GameState::to_client_state` has no
+/// access to the surrounding `GameRoom`.
+fn stamp_snapshot(snapshot: &mut game::ClientGameState, room: &GameRoom) {
+    snapshot.game_record_id = room.game_record_id;
+    snapshot.post_game_highlights = room.post_game_highlights.clone();
+}
+
 /// GET /game/<room_name>?player=<player_name>
 #[get("/game/<room_name>?<player>")]
 async fn play_game(
@@ -55,11 +102,13 @@ async fn play_game(
     player: Option<&str>,
     rooms_state: &State<Arc<Mutex<Rooms>>>,
     lobby_sender: &State<LobbySender>,
+    db: &State<Db>,
 ) -> ws::Channel<'static> {
     let player_name = player.unwrap_or("Anonymous").to_string();
     let room_name = room_name.to_string();
     let rooms_state = Arc::clone(rooms_state);
     let lobby_sender = lobby_sender.0.clone();
+    let db_handle = Arc::clone(&db.0);
 
     ws.channel(move |mut stream| {
         Box::pin(async move {
@@ -69,12 +118,7 @@ async fn play_game(
                 let mut rooms = rooms_state.lock().await;
                 let room = rooms.0.entry(room_name.clone()).or_insert_with(|| {
                     let (sender, _) = broadcast::channel(1);
-                    GameRoom {
-                        state: GameState::new_waiting(6), // up to 6 players; StartGame locks in count
-                        sender,
-                        last_activity: Instant::now(),
-                        rematch_code: None,
-                    }
+                    GameRoom::new(GameState::new_waiting(6), sender)
                 });
                 room.last_activity = Instant::now();
                 let my_seat = match room.state.join(&player_name) {
@@ -89,7 +133,8 @@ async fn play_game(
                 state_updated_sender = room.sender.clone();
                 // Broadcast join to existing clients, then send initial snapshot to joiner.
                 let _ = state_updated_sender.send(());
-                let snapshot = room.state.to_client_state(my_seat);
+                let mut snapshot = room.state.to_client_state(my_seat);
+                stamp_snapshot(&mut snapshot, room);
                 let _ = stream
                     .send(Message::Text(serde_json::to_string(&snapshot).unwrap()))
                     .await;
@@ -111,6 +156,7 @@ async fn play_game(
                                     &player_name,
                                     &room_name,
                                     rooms_state.clone(),
+                                    Arc::clone(&db_handle),
                                     &mut stream,
                                     &state_updated_sender,
                                     &lobby_sender,
@@ -123,7 +169,8 @@ async fn play_game(
                         let rooms = rooms_state.lock().await;
                         if let Some(room) = rooms.0.get(&room_name) {
                             if let Some(seat) = room.state.seat_of(&player_name) {
-                                let snapshot = room.state.to_client_state(seat);
+                                let mut snapshot = room.state.to_client_state(seat);
+                                stamp_snapshot(&mut snapshot, room);
                                 let _ = stream
                                     .send(Message::Text(serde_json::to_string(&snapshot).unwrap()))
                                     .await;
@@ -166,6 +213,7 @@ async fn handle_message(
     player_name: &str,
     room_name: &str,
     rooms_state: Arc<Mutex<Rooms>>,
+    db: Arc<StdMutex<Connection>>,
     stream: &mut DuplexStream,
     sender: &Sender<()>,
     lobby_sender: &Sender<()>,
@@ -200,12 +248,7 @@ async fn handle_message(
                         } else {
                             let code = generate_room_code();
                             let (tx, _) = broadcast::channel(1);
-                            rooms.0.insert(code.clone(), GameRoom {
-                                state: GameState::new_waiting(6),
-                                sender: tx,
-                                last_activity: Instant::now(),
-                                rematch_code: None,
-                            });
+                            rooms.0.insert(code.clone(), GameRoom::new(GameState::new_waiting(6), tx));
                             rooms.0.get_mut(room_name).unwrap().rematch_code = Some(code.clone());
                             code
                         }
@@ -217,6 +260,16 @@ async fn handle_message(
                 }
 
                 let is_start = matches!(action, ClientAction::StartGame { .. });
+                // Apply the action, then note if the game just ended so we can
+                // persist after releasing the rooms lock (the DB lock is sync).
+                struct PersistInfo {
+                    room_code: String,
+                    started_at: SystemTime,
+                    state_snapshot: GameState,
+                    advanced: bool,
+                    expansion: bool,
+                }
+                let mut to_persist: Option<PersistInfo> = None;
                 let result = {
                     let mut rooms = rooms_state.lock().await;
                     let room = rooms.0.get_mut(room_name).ok_or(ActionError::InvalidSeat);
@@ -238,6 +291,29 @@ async fn handle_message(
                                             room.state.draft_card(seat, *market_index),
                                         ClientAction::Rematch => unreachable!(),
                                     };
+                                    if r.is_ok() {
+                                        // Stamp start-of-game bookkeeping.
+                                        if let ClientAction::StartGame { advanced, expansion } = &action {
+                                            if room.started_at.is_none() {
+                                                room.started_at = Some(SystemTime::now());
+                                                room.started_advanced = *advanced;
+                                                room.started_expansion = *expansion;
+                                            }
+                                        }
+                                        // If the game just ended and hasn't been saved, queue a save.
+                                        if matches!(room.state.phase, game::GamePhase::GameOver { .. })
+                                            && !room.persisted
+                                            && !room.skip_persistence
+                                        {
+                                            to_persist = Some(PersistInfo {
+                                                room_code: room_name.to_string(),
+                                                started_at: room.started_at.unwrap_or_else(SystemTime::now),
+                                                state_snapshot: room.state.clone(),
+                                                advanced: room.started_advanced,
+                                                expansion: room.started_expansion,
+                                            });
+                                        }
+                                    }
                                     r
                                 }
                                 None => Err(ActionError::InvalidSeat),
@@ -246,6 +322,40 @@ async fn handle_message(
                         Err(e) => Err(e),
                     }
                 };
+
+                // Persist outside the rooms lock, then write results back.
+                if let Some(info) = to_persist {
+                    let db_result = {
+                        let mut conn = db.lock().expect("db mutex poisoned");
+                        db::save_game(
+                            &mut conn,
+                            &info.room_code,
+                            info.started_at,
+                            SystemTime::now(),
+                            &info.state_snapshot,
+                            info.advanced,
+                            info.expansion,
+                        )
+                        .and_then(|id| {
+                            let highlights = compute_highlights(&conn, id, &info.state_snapshot)?;
+                            Ok((id, highlights))
+                        })
+                    };
+                    match db_result {
+                        Ok((id, highlights)) => {
+                            let mut rooms = rooms_state.lock().await;
+                            if let Some(room) = rooms.0.get_mut(room_name) {
+                                room.persisted = true;
+                                room.game_record_id = Some(id);
+                                room.post_game_highlights = Some(highlights);
+                            }
+                        }
+                        Err(e) => {
+                            eprintln!("[{}] failed to persist game: {}", room_name, e);
+                        }
+                    }
+                }
+
                 match result {
                     Ok(()) => {
                         // Broadcast to all other clients in the room.
@@ -254,7 +364,8 @@ async fn handle_message(
                         let rooms = rooms_state.lock().await;
                         if let Some(room) = rooms.0.get(room_name) {
                             if let Some(seat) = room.state.seat_of(player_name) {
-                                let snapshot = room.state.to_client_state(seat);
+                                let mut snapshot = room.state.to_client_state(seat);
+                                stamp_snapshot(&mut snapshot, room);
                                 let _ = stream
                                     .send(Message::Text(serde_json::to_string(&snapshot).unwrap()))
                                     .await;
@@ -284,6 +395,128 @@ async fn handle_message(
     }
 }
 
+// ─── Post-game highlight computation ─────────────────────────────────────────
+
+fn compute_highlights(
+    conn: &Connection,
+    game_id: i64,
+    state: &GameState,
+) -> rusqlite::Result<Vec<PostGameHighlight>> {
+    use crate::scoring::score_player_detailed;
+    // Global average is the same for every seat — compute once.
+    let prev_global_avg = db::previous_global_avg(conn, game_id)?;
+    let mut out = Vec::new();
+    for p in &state.players {
+        let total: u32 = score_player_detailed(p).iter().map(|e| e.points).sum();
+        let card_sum: u32 = p.tableau.iter().map(|c| c.number as u32).sum();
+        let previous = db::previous_personal_best(conn, &p.name, game_id)?;
+        let personal_best = previous.map_or(true, |prev| total > prev);
+        let rank = db::rank_of_score(conn, total, card_sum).ok();
+        let prev_player_avg = db::previous_player_avg(conn, &p.name, game_id)?;
+        out.push(PostGameHighlight {
+            seat: p.seat,
+            name: p.name.clone(),
+            score: total,
+            all_time_rank: rank,
+            personal_best,
+            previous_best: previous,
+            previous_player_avg: prev_player_avg,
+            previous_global_avg: prev_global_avg,
+        });
+    }
+    Ok(out)
+}
+
+// ─── Stats endpoints ─────────────────────────────────────────────────────────
+
+#[get("/api/stats/player/<name>")]
+async fn stats_player(name: &str, db: &State<Db>) -> Json<db::PlayerStats> {
+    let conn = db.0.lock().expect("db mutex poisoned");
+    let stats = db::player_stats(&conn, name).unwrap_or_else(|e| {
+        eprintln!("stats_player error: {}", e);
+        db::PlayerStats {
+            name: name.to_string(),
+            games_played: 0,
+            wins: 0,
+            win_rate: 0.0,
+            high_score: 0,
+            high_score_game_id: None,
+            avg_score: 0.0,
+            placements: vec![0; 6],
+            recent: vec![],
+            first_game_at: None,
+            last_game_at: None,
+            recent_avg: None,
+            total_play_time_secs: 0,
+            longest_win_streak: 0,
+            scoring_rate: None,
+            best_card_score: None,
+            avg_by_player_count: vec![],
+            top_cards: vec![],
+            biome_preference: vec![],
+            biome_preference_regions: vec![],
+            biome_preference_sanctuaries: vec![],
+            head_to_head: vec![],
+            score_history: vec![],
+            avg_sanctuaries_per_game: 0.0,
+            sanctuary_scoring_rate: None,
+            best_sanctuary_score: None,
+            top_sanctuaries: vec![],
+            avg_by_sanctuary_count: vec![],
+        }
+    });
+    Json(stats)
+}
+
+#[get("/api/stats/leaderboard?<limit>&<player>")]
+async fn stats_leaderboard(
+    limit: Option<u32>,
+    player: Option<String>,
+    db: &State<Db>,
+) -> Json<Vec<db::LeaderboardEntry>> {
+    let limit = limit.unwrap_or(10).min(100);
+    let player = player
+        .as_deref()
+        .map(str::trim)
+        .filter(|s| !s.is_empty());
+    let conn = db.0.lock().expect("db mutex poisoned");
+    Json(db::leaderboard(&conn, limit, player).unwrap_or_default())
+}
+
+#[get("/api/stats/games?<limit>")]
+async fn stats_games(limit: Option<u32>, db: &State<Db>) -> Json<Vec<db::GameSummary>> {
+    let limit = limit.unwrap_or(20).min(100);
+    let conn = db.0.lock().expect("db mutex poisoned");
+    Json(db::recent_games(&conn, limit).unwrap_or_default())
+}
+
+#[get("/api/stats/games/<id>")]
+async fn stats_game_detail(id: i64, db: &State<Db>) -> Option<Json<db::GameDetail>> {
+    let conn = db.0.lock().expect("db mutex poisoned");
+    db::game_detail(&conn, id).ok().flatten().map(Json)
+}
+
+// ─── SPA routes (stats pages served by index.html) ───────────────────────────
+//
+// The client-side router reads `location.pathname` to pick which view to
+// render. Any path under `/stats/...` returns `index.html` so the user can
+// deep-link, refresh, or share a stats URL.
+
+fn client_file_path(name: &str) -> PathBuf {
+    let dir = std::env::var("YONDER_CLIENT_DIR").unwrap_or_else(|_| "../yonder-client".to_string());
+    PathBuf::from(dir).join(name)
+}
+
+#[get("/stats")]
+async fn stats_root() -> Option<NamedFile> {
+    NamedFile::open(client_file_path("index.html")).await.ok()
+}
+
+#[get("/stats/<_path..>", rank = 20)]
+async fn stats_spa(_path: PathBuf) -> Option<NamedFile> {
+    NamedFile::open(client_file_path("index.html")).await.ok()
+}
+
 // ─── Demo endpoint ────────────────────────────────────────────────────────────
 
 /// GET /demo/<room_name> — create a room with a pre-completed game for testing scoring UI.
@@ -295,12 +528,9 @@ async fn demo_game(
     let mut rooms = rooms_state.lock().await;
     let room_name = room_name.to_string();
     let (sender, _) = broadcast::channel(1);
-    rooms.0.insert(room_name.clone(), GameRoom {
-        state: GameState::new_demo(),
-        sender,
-        last_activity: Instant::now(),
-        rematch_code: None,
-    });
+    let mut room = GameRoom::new(GameState::new_demo(), sender);
+    room.skip_persistence = true;
+    rooms.0.insert(room_name.clone(), room);
     format!("Demo game created in room '{}'. Connect as Alice or Bob.", room_name)
 }
 
@@ -392,7 +622,13 @@ impl Fairing for ResponseFairing {
 
     async fn on_response<'r>(&self, req: &'r Request<'_>, res: &mut rocket::Response<'r>) {
         let path = req.uri().path().as_str();
-        if path.ends_with(".html") || path.ends_with(".js") || path.ends_with(".css") || path == "/" {
+        // SPA routes (/, /stats/*) serve index.html — never cache them.
+        let is_html_route = path == "/" || path.starts_with("/stats");
+        if is_html_route
+            || path.ends_with(".html")
+            || path.ends_with(".js")
+            || path.ends_with(".css")
+        {
             res.set_header(Header::new("Cache-Control", "no-cache, no-store, must-revalidate"));
         }
         // CORS for API endpoints (needed when client is served from a different origin)
@@ -462,10 +698,18 @@ fn rocket() -> _ {
         .unwrap_or_else(|_| "../yonder-client".to_string());
     println!("Serving static files from: {}", client_dir);
 
+    let db_path = std::env::var("YONDER_DB_PATH").unwrap_or_else(|_| "yonder.db".to_string());
+    println!("Using DB file: {}", db_path);
+    let db_conn = db::open(&db_path).expect("failed to open/init DB");
+
     rocket::build()
         .attach(ResponseFairing)
         .attach(CleanupFairing)
-        .mount("/", routes![health, play_game, demo_game, list_rooms, lobby_ws])
+        .mount("/", routes![
+            health, play_game, demo_game, list_rooms, lobby_ws,
+            stats_player, stats_leaderboard, stats_games, stats_game_detail,
+            stats_root, stats_spa,
+        ])
         .mount("/", FileServer::from(&client_dir))
         .register("/", catchers![not_found])
         .configure(rocket::Config {
@@ -478,4 +722,5 @@ fn rocket() -> _ {
         })
         .manage(Arc::new(Mutex::new(Rooms::default())))
         .manage(LobbySender(broadcast::channel(16).0))
+        .manage(Db(Arc::new(StdMutex::new(db_conn))))
 }
