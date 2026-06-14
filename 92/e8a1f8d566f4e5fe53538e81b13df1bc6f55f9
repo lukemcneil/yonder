@@ -1,0 +1,22 @@
+yonder-client/game.js
+  s_ea9cc97b059092::t_6ce7c9a6e0e23c 2209,2212
+yonder-client/style.css
+  s_ea9cc97b059092::t_ab6d4a75181b24 2202-2208,2211-2215
+  s_ea9cc97b059092::t_63f87f45ecdede 1878-1879,1884,1887-1889,1892,1897,1901,1903-1905,1908-1909,1947-1949,1962,1964,1966-1971,1974,1980-1981,1983,1988,1990,1992
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.5.6",
+  "base_commit_sha": "92e8a1f8d566f4e5fe53538e81b13df1bc6f55f9",
+  "prompts": {},
+  "sessions": {
+    "s_ea9cc97b059092": {
+      "agent_id": {
+        "tool": "cursor",
+        "id": "e554f337-c69a-4a71-9d0f-496724702aea",
+        "model": "gpt-5.5"
+      },
+      "human_author": "Luke McNeil <lukemcneil61@gmail.com>"
+    }
+  }
+}
