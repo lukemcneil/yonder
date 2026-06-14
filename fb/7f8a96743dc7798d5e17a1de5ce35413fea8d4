@@ -1,0 +1,26 @@
+yonder-client/game.js
+  s_ea9cc97b059092::t_a45429f3ff8b17 2409-2412,2419,2423,2428-2429,2434,2460-2463,2466
+  s_ea9cc97b059092::t_3bf5be570dd171 2067
+  s_ea9cc97b059092::t_ed961920802021 2297-2298,2313-2328,2342,2345-2357,2365-2374,2376
+  s_ea9cc97b059092::t_e3940988aaadb2 2039-2050,2052-2066,2068-2079,2081-2101,2103-2110,2112-2141
+  s_ea9cc97b059092::t_bacdaf598361a7 2051,2080,2102,2111
+yonder-client/style.css
+  s_ea9cc97b059092::t_6239c62aaab7fb 1985-1989,1997-2003,2032-2034
+  s_ea9cc97b059092::t_86a33d52be03a2 2188-2190
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.5.6",
+  "base_commit_sha": "fb7f8a96743dc7798d5e17a1de5ce35413fea8d4",
+  "prompts": {},
+  "sessions": {
+    "s_ea9cc97b059092": {
+      "agent_id": {
+        "tool": "cursor",
+        "id": "e554f337-c69a-4a71-9d0f-496724702aea",
+        "model": "gpt-5.5"
+      },
+      "human_author": "Luke McNeil <lukemcneil61@gmail.com>"
+    }
+  }
+}
