@@ -2036,6 +2036,109 @@ function renderTopCardStrip(cards, kind = 'region') {
   `;
 }
 
+function renderPlacementChips(stats) {
+  if (!stats.placements) return '';
+  return stats.placements.map((count, i) => {
+    if (!count) return '';
+    return `<span class="placement-chip">${ordinalSuffix(i + 1)}: ${count}</span>`;
+  }).join('');
+}
+
+function renderSparklineBlock(stats, title, sparkIndex) {
+  if (!stats.score_history || stats.score_history.length < 2) return '';
+  return `
+    <div class="sparkline-wrap" data-spark-index="${sparkIndex}">
+      <div class="sparkline-title">${escapeHtml(title)}</div>
+      ${renderSparkline(stats.score_history, stats.avg_score)}
+      <div class="sparkline-info"></div>
+    </div>
+  `;
+}
+
+function renderBestCardSummary(card, title) {
+  if (!card) return '<div class="compare-empty-inline">No scoring card yet.</div>';
+  const isSanctuary = card.kind === 'sanctuary';
+  const src = isSanctuary ? sanctuaryImagePath(card.number) : regionImagePath(card.number);
+  const kindLabel = isSanctuary ? 'Sanctuary' : 'Region';
+  return `
+    <div class="best-card-row compare-best-card" data-game-id="${card.game_id}">
+      <img class="best-card-img ${isSanctuary ? 'sanctuary' : ''}" src="${src}" alt="${kindLabel} ${card.number}" />
+      <div class="best-card-body">
+        <div class="stat-label">${escapeHtml(title)}</div>
+        <div class="best-card-points">+${card.points}</div>
+        <div class="best-card-explain">${escapeHtml(card.explanation)}</div>
+        <div class="best-card-meta">${kindLabel} #${card.number} · ${formatDateShort(card.finished_at)}</div>
+      </div>
+    </div>
+  `;
+}
+
+function renderRecentStatsList(stats, title) {
+  if (!stats.recent || stats.recent.length === 0) return '';
+  return `
+    <div class="compare-style-block">
+      <div class="subsection-title">${escapeHtml(title)}</div>
+      <div class="game-list compact-game-list">
+        ${stats.recent.slice(0, 5).map(r => `
+          <div class="game-row" data-game-id="${r.game_id}">
+            <div class="game-row-main">
+              <div class="game-row-title">${ordinalSuffix(r.placement)} place <span class="game-row-sub">· ${r.player_count}p</span></div>
+              <div class="game-row-meta">${formatDateShort(r.finished_at)}</div>
+            </div>
+            <div class="game-row-score">${r.score}</div>
+          </div>
+        `).join('')}
+      </div>
+    </div>
+  `;
+}
+
+function renderSeenScoreSection(stats, title) {
+  if (!stats.score_vs_sanctuaries_seen || stats.score_vs_sanctuaries_seen.length === 0) return '';
+  const points = stats.score_vs_sanctuaries_seen;
+  if (points.length >= 2) {
+    return `
+      <div class="compare-style-block">
+        <div class="subsection-title">${escapeHtml(title)}</div>
+        <div class="subsection-hint">Score plotted against total sanctuary cards seen across drawing rounds.</div>
+        ${renderSeenScoreChart(points)}
+      </div>
+    `;
+  }
+  const p = points[0];
+  return `
+    <div class="compare-style-block">
+      <div class="subsection-title">${escapeHtml(title)}</div>
+      <div class="subsection-hint">Need 2+ games to draw a line. Latest: ${p.sanctuaries_seen} cards seen → ${p.final_score} fame.</div>
+    </div>
+  `;
+}
+
+function avgSanctuariesSeen(stats) {
+  const points = stats.score_vs_sanctuaries_seen || [];
+  if (points.length === 0) return null;
+  return points.reduce((sum, p) => sum + p.sanctuaries_seen, 0) / points.length;
+}
+
+function wireStatsPanelInteractions(root, statsBySparkIndex = []) {
+  root.querySelectorAll('[data-game-id]').forEach(el => {
+    el.style.cursor = 'pointer';
+    el.addEventListener('click', () => {
+      const id = parseInt(el.dataset.gameId, 10);
+      if (!isNaN(id)) navigate(`/stats/games/${id}`);
+    });
+  });
+  root.querySelectorAll('.sparkline-wrap[data-spark-index]').forEach(wrap => {
+    const idx = parseInt(wrap.dataset.sparkIndex, 10);
+    const stats = statsBySparkIndex[idx];
+    const sparkSvg = wrap.querySelector('.sparkline');
+    const sparkInfo = wrap.querySelector('.sparkline-info');
+    if (stats && sparkSvg && sparkInfo && stats.score_history.length >= 2) {
+      setupSparklineHover(sparkSvg, sparkInfo, stats.score_history);
+    }
+  });
+}
+
 function renderComparisonMetric(label, aValue, bValue, { digits = 1, suffix = '', invert = false } = {}) {
   const aNum = Number(aValue);
   const bNum = Number(bValue);
@@ -2191,6 +2294,8 @@ async function renderCompareStatsPanel() {
         <span>${h2h.games} shared game${h2h.games === 1 ? '' : 's'}</span>
       </div>
     ` : '';
+    const placementsA = renderPlacementChips(a);
+    const placementsB = renderPlacementChips(b);
 
     body.innerHTML = `
       <div class="compare-header">
@@ -2205,6 +2310,22 @@ async function renderCompareStatsPanel() {
         </div>
       </div>
       ${h2hHtml}
+      ${placementsA || placementsB ? `
+        <div class="compare-style-grid">
+          <div class="compare-style-block">
+            <div class="subsection-title">${escapeHtml(a.name)} placements</div>
+            <div class="placements-row">${placementsA || '<span class="compare-empty-inline">No placements yet.</span>'}</div>
+          </div>
+          <div class="compare-style-block">
+            <div class="subsection-title">${escapeHtml(b.name)} placements</div>
+            <div class="placements-row">${placementsB || '<span class="compare-empty-inline">No placements yet.</span>'}</div>
+          </div>
+        </div>
+      ` : ''}
+      <div class="compare-spark-grid">
+        ${renderSparklineBlock(a, `${a.name} score over time`, 0)}
+        ${renderSparklineBlock(b, `${b.name} score over time`, 1)}
+      </div>
       <h3 class="stats-section-title">Results</h3>
       <div class="compare-metric-table">
         ${renderComparisonMetric('Games played', a.games_played, b.games_played, { digits: 0 })}
@@ -2218,7 +2339,21 @@ async function renderCompareStatsPanel() {
         ${renderComparisonMetric('Region cards scored', a.scoring_rate, b.scoring_rate, { digits: 0, suffix: '%' })}
         ${renderComparisonMetric('Avg sanctuaries kept', a.avg_sanctuaries_per_game, b.avg_sanctuaries_per_game)}
         ${renderComparisonMetric('Sanctuaries scored', a.sanctuary_scoring_rate, b.sanctuary_scoring_rate, { digits: 0, suffix: '%' })}
+        ${renderComparisonMetric('Avg sanctuaries seen', avgSanctuariesSeen(a), avgSanctuariesSeen(b))}
         ${renderComparisonMetric('Avg clues', a.avg_clues_per_game, b.avg_clues_per_game)}
+      </div>
+      <h3 class="stats-section-title">Best Plays</h3>
+      <div class="compare-style-grid">
+        <div class="compare-style-block">
+          <div class="compare-player-pill">${escapeHtml(a.name)}</div>
+          ${renderBestCardSummary(a.best_card_score, 'Biggest single-card play')}
+          ${renderBestCardSummary(a.best_sanctuary_score, 'Best sanctuary')}
+        </div>
+        <div class="compare-style-block">
+          <div class="compare-player-pill">${escapeHtml(b.name)}</div>
+          ${renderBestCardSummary(b.best_card_score, 'Biggest single-card play')}
+          ${renderBestCardSummary(b.best_sanctuary_score, 'Best sanctuary')}
+        </div>
       </div>
       <div class="compare-style-grid">
         ${renderPlayerStyleColumn(a, a.name)}
@@ -2227,7 +2362,18 @@ async function renderCompareStatsPanel() {
       ${renderGroupedAverageComparison('Average by player count', a.avg_by_player_count, b.avg_by_player_count, 'player_count', v => Number(v) === 1 ? 'Solo' : `${v}-player`)}
       ${renderGroupedAverageComparison('Average by sanctuaries kept', a.avg_by_sanctuary_count, b.avg_by_sanctuary_count, 'sanctuary_count', v => `${v} sanct.`)}
       ${renderGroupedAverageComparison('Average by total clues', a.avg_by_clue_count, b.avg_by_clue_count, 'clue_count', v => `${v} clues`)}
+      <h3 class="stats-section-title">Score vs Sanctuaries Seen</h3>
+      <div class="compare-style-grid">
+        ${renderSeenScoreSection(a, a.name)}
+        ${renderSeenScoreSection(b, b.name)}
+      </div>
+      <h3 class="stats-section-title">Recent games</h3>
+      <div class="compare-style-grid compare-recent-grid">
+        ${renderRecentStatsList(a, a.name)}
+        ${renderRecentStatsList(b, b.name)}
+      </div>
     `;
+    wireStatsPanelInteractions(body, [a, b]);
   } catch (err) {
     body.innerHTML = `<div class="stats-empty">Error loading comparison: ${escapeHtml(String(err))}</div>`;
   }
@@ -2260,23 +2406,32 @@ async function renderEveryoneStatsPanel() {
         </div>
       </div>
     ` : '';
+    const bestSanctuaryHtml = s.best_sanctuary_score ? `
+      <h3 class="stats-section-title">Best sanctuary</h3>
+      ${renderBestCardSummary(s.best_sanctuary_score, 'Best sanctuary')}
+    ` : '';
 
     statsPanelEveryone.innerHTML = `
       <div class="me-header">
         <div class="me-name">Everyone</div>
         <div class="me-sub">All saved player-games. Each seat in a completed game counts once.</div>
       </div>
+      ${renderSparklineBlock(s, 'Community score history', 0)}
       <div class="stats-summary">
         <div class="stat-card"><div class="stat-label">Player-games</div><div class="stat-value">${s.games_played}</div></div>
         <div class="stat-card"><div class="stat-label">Avg score</div><div class="stat-value">${s.avg_score.toFixed(1)}</div></div>
+        ${s.recent_avg != null ? `<div class="stat-card"><div class="stat-label">Last 5 avg</div><div class="stat-value">${s.recent_avg.toFixed(1)}</div><div class="stat-sub">player-games</div></div>` : ''}
         <div class="stat-card${hsClass}"${hsAttr}><div class="stat-label">High score</div><div class="stat-value">${s.high_score}</div></div>
         <div class="stat-card"><div class="stat-label">Winning seats</div><div class="stat-value">${s.wins}</div><div class="stat-sub">${s.win_rate.toFixed(0)}% of entries</div></div>
         ${s.scoring_rate != null ? `<div class="stat-card"><div class="stat-label">Cards scored</div><div class="stat-value">${s.scoring_rate.toFixed(0)}%</div></div>` : ''}
         <div class="stat-card"><div class="stat-label">Avg sanctuaries</div><div class="stat-value">${s.avg_sanctuaries_per_game.toFixed(1)}</div></div>
+        ${s.sanctuary_scoring_rate != null ? `<div class="stat-card"><div class="stat-label">Sanct. scored</div><div class="stat-value">${s.sanctuary_scoring_rate.toFixed(0)}%</div></div>` : ''}
+        ${avgSanctuariesSeen(s) != null ? `<div class="stat-card"><div class="stat-label">Avg sanct. seen</div><div class="stat-value">${avgSanctuariesSeen(s).toFixed(1)}</div></div>` : ''}
         <div class="stat-card"><div class="stat-label">Avg clues</div><div class="stat-value">${s.avg_clues_per_game.toFixed(1)}</div></div>
       </div>
       ${placementChips ? `<div class="placements-row">${placementChips}</div>` : ''}
       ${bestCardHtml}
+      ${bestSanctuaryHtml}
       ${renderCommunityGroupedAverage('Average by player count', s.avg_by_player_count, 'player_count', v => Number(v) === 1 ? 'Solo' : `${v}-player`)}
       <h3 class="stats-section-title">Biome averages</h3>
       <div class="biome-grid">
@@ -2302,15 +2457,13 @@ async function renderEveryoneStatsPanel() {
       </div>
       ${renderCommunityGroupedAverage('Average by sanctuaries kept', s.avg_by_sanctuary_count, 'sanctuary_count', v => `${v} sanct.`)}
       ${renderCommunityGroupedAverage('Average by total clues', s.avg_by_clue_count, 'clue_count', v => `${v} clues`)}
+      <h3 class="stats-section-title">Score vs sanctuaries seen</h3>
+      ${renderSeenScoreSection(s, 'Everyone')}
+      <h3 class="stats-section-title">Recent player-games</h3>
+      ${renderRecentStatsList(s, 'Latest entries')}
     `;
 
-    statsPanelEveryone.querySelectorAll('[data-game-id]').forEach(el => {
-      el.style.cursor = 'pointer';
-      el.addEventListener('click', () => {
-        const id = parseInt(el.dataset.gameId, 10);
-        if (!isNaN(id)) navigate(`/stats/games/${id}`);
-      });
-    });
+    wireStatsPanelInteractions(statsPanelEveryone, [s]);
   } catch (err) {
     statsPanelEveryone.innerHTML = `<div class="stats-empty">Error loading everyone stats: ${escapeHtml(String(err))}</div>`;
   }
