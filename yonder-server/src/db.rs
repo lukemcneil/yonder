@@ -199,6 +199,13 @@ pub struct PlayerStats {
     pub best_sanctuary_score: Option<BestCard>,   // best single sanctuary play
     pub top_sanctuaries: Vec<TopCard>,            // 3 most-played sanctuary tiles
     pub avg_by_sanctuary_count: Vec<AvgBySanctuaryCount>,
+
+    // Clue-focused stats. Clues let you pick from more sanctuary options each
+    // round, so they compound: a clue in your first region is dramatically
+    // more valuable than one in your last.
+    pub avg_clues_per_game: f64,
+    pub avg_by_clue_count: Vec<AvgByClueCount>,    // grouped by total clues at end of game
+    pub avg_by_clue_value: Vec<AvgByClueValue>,    // grouped by timing-weighted clue value bucket
 }
 
 #[derive(Debug, Serialize)]
@@ -206,6 +213,24 @@ pub struct AvgBySanctuaryCount {
     pub sanctuary_count: u32,
     pub games: u32,
     pub avg_score: f64,
+}
+
+#[derive(Debug, Serialize)]
+pub struct AvgByClueCount {
+    pub clue_count: u32,                  // clues in final tableau + sanctuaries
+    pub games: u32,
+    pub avg_score: f64,
+}
+
+#[derive(Debug, Serialize)]
+pub struct AvgByClueValue {
+    pub label: String,                    // bucket label e.g. "Late (1-7)"
+    pub bucket: u32,                      // 0..3 — for sorting on the client
+    pub min_value: u32,
+    pub max_value: u32,                   // inclusive (u32::MAX for the open-ended top bucket)
+    pub games: u32,
+    pub avg_score: f64,
+    pub avg_value: f64,                   // average clue-value for games in this bucket
 }
 
 #[derive(Debug, Serialize)]
@@ -481,18 +506,34 @@ pub fn player_stats(conn: &Connection, name: &str) -> SqlResult<PlayerStats> {
     avg_by_player_count.sort_by_key(|e| e.player_count);
 
     // ── Derived: top cards, biome preference, best single-card, scoring rate ──
-    // Build a lookup table for region biomes once; sanctuary biomes come from cards too.
-    let region_biome: HashMap<u8, crate::cards::Biome> = crate::cards::all_regions()
+    // Build lookup tables for region/sanctuary biome AND clue from the canonical
+    // card data. We need both because the JSON we store is just card numbers.
+    let region_meta: HashMap<u8, (crate::cards::Biome, bool)> = crate::cards::all_regions()
         .into_iter()
-        .map(|c| (c.number, c.biome))
+        .map(|c| (c.number, (c.biome, c.clue)))
         .collect();
-    let sanctuary_biome: HashMap<u8, crate::cards::Biome> = {
-        // Quick rehydration for sanctuaries: reuse the deck builder, drain, collect.
+    let region_biome: HashMap<u8, crate::cards::Biome> = region_meta
+        .iter()
+        .map(|(n, (b, _))| (*n, b.clone()))
+        .collect();
+    let region_clue: HashMap<u8, bool> = region_meta
+        .iter()
+        .map(|(n, (_, c))| (*n, *c))
+        .collect();
+    let (sanctuary_biome, sanctuary_clue): (
+        HashMap<u8, crate::cards::Biome>,
+        HashMap<u8, bool>,
+    ) = {
         use crate::cards::{get_sanctuary_deck, get_sanctuary_deck_with_expansion};
-        // get_sanctuary_deck_with_expansion is full set; shuffle order doesn't matter here.
         let mut deck = get_sanctuary_deck_with_expansion();
         if deck.is_empty() { deck = get_sanctuary_deck(); }
-        deck.into_iter().map(|c| (c.tile, c.biome)).collect()
+        let mut biome = HashMap::new();
+        let mut clue = HashMap::new();
+        for c in deck {
+            biome.insert(c.tile, c.biome);
+            clue.insert(c.tile, c.clue);
+        }
+        (biome, clue)
     };
 
     let mut region_card_counts: HashMap<u8, u32> = HashMap::new();
@@ -508,32 +549,51 @@ pub fn player_stats(conn: &Connection, name: &str) -> SqlResult<PlayerStats> {
     let mut sanctuary_entry_count: u32 = 0;
     let mut sanctuary_scored_count: u32 = 0;
     let mut total_sanctuaries: u32 = 0;
-    // (sanctuary_count, final_score) pairs for the avg-by-sanctuary-count breakdown.
+    let mut total_clues: u32 = 0;
+    // (sanctuary_count, final_score) and (clue_count, clue_value, final_score)
+    // per game for the avg-by-* breakdowns.
     let mut sanctuary_count_series: Vec<(u32, u32)> = Vec::with_capacity(all_games.len());
+    let mut clue_series: Vec<ClueGameSummary> = Vec::with_capacity(all_games.len());
 
     for g in &all_games {
-        // Region cards played → counts for top cards + biome prefs.
+        // Region cards played → counts for top cards + biome prefs + clue stats.
         let region_nums: Vec<u8> =
             serde_json::from_str(&g.region_cards_json).unwrap_or_default();
-        for n in &region_nums {
+        let mut region_clue_count: u32 = 0;
+        let mut clue_value: u32 = 0;
+        for (i, n) in region_nums.iter().enumerate() {
             *region_card_counts.entry(*n).or_insert(0) += 1;
             if let Some(b) = region_biome.get(n) {
                 *region_biome_counts.entry(biome_label(b)).or_insert(0) += 1;
                 region_biome_total += 1;
             }
+            // A clue at play-order index i is visible for (8 - i) rounds of
+            // sanctuary drawing, so weight earlier clues much more heavily.
+            if region_clue.get(n).copied().unwrap_or(false) {
+                region_clue_count += 1;
+                clue_value += (8 - i.min(7)) as u32;
+            }
         }
         // Sanctuary tiles.
         let sanct_nums: Vec<u8> =
             serde_json::from_str(&g.sanctuary_cards_json).unwrap_or_default();
+        let mut sanct_clue_count: u32 = 0;
         for n in &sanct_nums {
             *sanctuary_card_counts.entry(*n).or_insert(0) += 1;
             if let Some(b) = sanctuary_biome.get(n) {
                 *sanctuary_biome_counts.entry(biome_label(b)).or_insert(0) += 1;
                 sanctuary_biome_total += 1;
             }
+            if sanctuary_clue.get(n).copied().unwrap_or(false) {
+                sanct_clue_count += 1;
+            }
         }
         total_sanctuaries += sanct_nums.len() as u32;
         sanctuary_count_series.push((sanct_nums.len() as u32, g.final_score));
+
+        let clue_count = region_clue_count + sanct_clue_count;
+        total_clues += clue_count;
+        clue_series.push(ClueGameSummary { clue_count, clue_value, final_score: g.final_score });
 
         // Best single-card play (all kinds) + per-kind bests + scoring rates.
         let breakdown: serde_json::Value =
@@ -640,6 +700,34 @@ pub fn player_stats(conn: &Connection, name: &str) -> SqlResult<PlayerStats> {
         .collect();
     avg_by_sanctuary_count.sort_by_key(|e| e.sanctuary_count);
 
+    // ── Derived: clue stats ────────────────────────────────────────────
+    let avg_clues_per_game = if all_games.is_empty() {
+        0.0
+    } else {
+        total_clues as f64 / all_games.len() as f64
+    };
+
+    // Group games by total clue count.
+    let mut by_cc: HashMap<u32, (u32, u64)> = HashMap::new();
+    for c in &clue_series {
+        let e = by_cc.entry(c.clue_count).or_insert((0, 0));
+        e.0 += 1;
+        e.1 += c.final_score as u64;
+    }
+    let mut avg_by_clue_count: Vec<AvgByClueCount> = by_cc
+        .into_iter()
+        .map(|(clue_count, (games, sum))| AvgByClueCount {
+            clue_count,
+            games,
+            avg_score: sum as f64 / games as f64,
+        })
+        .collect();
+    avg_by_clue_count.sort_by_key(|e| e.clue_count);
+
+    // Bucket games by timing-weighted clue value: 0 (none), 1-7 (late only),
+    // 8-15 (mid-game), 16+ (heavy early-game investment).
+    let avg_by_clue_value = bucket_clue_value(&clue_series);
+
     // ── Derived: head-to-head ──────────────────────────────────────────
     let mut h2h_stmt = conn.prepare(
         "SELECT op.name_lower,
@@ -717,6 +805,9 @@ pub fn player_stats(conn: &Connection, name: &str) -> SqlResult<PlayerStats> {
         best_sanctuary_score: best_sanctuary,
         top_sanctuaries,
         avg_by_sanctuary_count,
+        avg_clues_per_game,
+        avg_by_clue_count,
+        avg_by_clue_value,
     })
 }
 
@@ -741,6 +832,58 @@ fn make_biome_prefs(counts: std::collections::HashMap<String, u32>, total: u32) 
         })
         .collect();
     out.sort_by(|a, b| b.count.cmp(&a.count));
+    out
+}
+
+/// Local helper carried through `player_stats`'s per-game pass for clue stats.
+#[derive(Clone, Copy)]
+struct ClueGameSummary {
+    clue_count: u32,   // total clues in tableau + sanctuaries at end of game
+    clue_value: u32,   // sum over region clues of (8 - play_order_index)
+    final_score: u32,
+}
+
+/// Group games into four meaningful timing buckets based on `clue_value`.
+fn bucket_clue_value(series: &[ClueGameSummary]) -> Vec<AvgByClueValue> {
+    // (bucket_id, label, min, max_inclusive). Buckets are chosen so each
+    // captures a qualitative strategy:
+    //   0 = no clue cards at all → most picks of 1 sanctuary per round
+    //   1 = late clues only      → minor extra sanctuary picks
+    //   2 = mid-game clues       → consistent extra picks for ~half the game
+    //   3 = early/heavy clues    → many extra picks for most of the game
+    const BUCKETS: [(u32, &str, u32, u32); 4] = [
+        (0, "None (0)",          0,  0),
+        (1, "Late (1\u{2013}7)", 1,  7),
+        (2, "Mid (8\u{2013}15)", 8, 15),
+        (3, "Early (16+)",      16, u32::MAX),
+    ];
+    let mut accum: std::collections::HashMap<u32, (u32, u64, u64)> = std::collections::HashMap::new();
+    for g in series {
+        for (id, _label, min, max) in BUCKETS.iter() {
+            if g.clue_value >= *min && g.clue_value <= *max {
+                let e = accum.entry(*id).or_insert((0, 0, 0));
+                e.0 += 1;
+                e.1 += g.final_score as u64;
+                e.2 += g.clue_value as u64;
+                break;
+            }
+        }
+    }
+    let mut out: Vec<AvgByClueValue> = BUCKETS
+        .iter()
+        .filter_map(|(id, label, min, max)| {
+            accum.get(id).map(|(games, sum, val_sum)| AvgByClueValue {
+                label: (*label).to_string(),
+                bucket: *id,
+                min_value: *min,
+                max_value: *max,
+                games: *games,
+                avg_score: *sum as f64 / *games as f64,
+                avg_value: *val_sum as f64 / *games as f64,
+            })
+        })
+        .collect();
+    out.sort_by_key(|e| e.bucket);
     out
 }
 

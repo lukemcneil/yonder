@@ -1694,7 +1694,13 @@ body {
   font-size: 0.8rem;
   color: #aaa;
   font-weight: 600;
-  margin: 0.7rem 0 0.35rem;
+  margin: 0.7rem 0 0.25rem;
+}
+.subsection-hint {
+  font-size: 0.7rem;
+  color: #777;
+  margin: 0 0 0.4rem;
+  line-height: 1.35;
 }
 
 /* ── Biome preference bar + legend ────────────────────────────────── */

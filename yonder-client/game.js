@@ -1759,6 +1759,62 @@ async function fetchAndRenderPlayerStats(name) {
       `;
     }
 
+    // ── Clue impact section ──────────────────────────────────────────
+    // Two views: simple count (clues at end → score) and timing-weighted
+    // (clue value, which weights early clues 8x more than late ones since
+    // an early clue gives extra sanctuary picks for many more rounds).
+    let clueSectionHtml = '';
+    const hasClueData = s.avg_by_clue_count.length > 0 || s.avg_by_clue_value.length > 0;
+    if (hasClueData) {
+      const cCards = [];
+      cCards.push(`<div class="stat-card"><div class="stat-label">Avg clues</div><div class="stat-value">${s.avg_clues_per_game.toFixed(1)}</div><div class="stat-sub">per game</div></div>`);
+
+      let byCountHtml = '';
+      if (s.avg_by_clue_count.length > 0) {
+        const maxAvg = Math.max(...s.avg_by_clue_count.map(e => e.avg_score)) || 1;
+        const rows = s.avg_by_clue_count.map(e => {
+          const pct = 100 * e.avg_score / maxAvg;
+          const label = e.clue_count === 1 ? '1 clue' : `${e.clue_count} clues`;
+          return `
+            <div class="bar-row">
+              <div class="bar-label">${label}</div>
+              <div class="bar-track"><div class="bar-fill" style="width:${pct.toFixed(1)}%"></div></div>
+              <div class="bar-value">${e.avg_score.toFixed(1)} <span class="bar-sub">· ${e.games}g</span></div>
+            </div>
+          `;
+        }).join('');
+        byCountHtml = `
+          <div class="subsection-title">Average score by total clues</div>
+          <div class="subsection-hint">Clues from your final tableau plus the sanctuaries you kept.</div>
+          <div class="bar-chart">${rows}</div>
+        `;
+      }
+
+      let byValueHtml = '';
+      if (s.avg_by_clue_value.length > 0) {
+        const maxAvg = Math.max(...s.avg_by_clue_value.map(e => e.avg_score)) || 1;
+        const rows = s.avg_by_clue_value.map(e => `
+          <div class="bar-row">
+            <div class="bar-label">${escapeHtml(e.label)}</div>
+            <div class="bar-track"><div class="bar-fill" style="width:${(100 * e.avg_score / maxAvg).toFixed(1)}%"></div></div>
+            <div class="bar-value">${e.avg_score.toFixed(1)} <span class="bar-sub">· ${e.games}g</span></div>
+          </div>
+        `).join('');
+        byValueHtml = `
+          <div class="subsection-title">Average score by clue timing</div>
+          <div class="subsection-hint">Earlier clues count for more — a clue in your first region card gives you extra sanctuary picks for the rest of the game.</div>
+          <div class="bar-chart">${rows}</div>
+        `;
+      }
+
+      clueSectionHtml = `
+        <h3 class="stats-section-title">Clue impact</h3>
+        <div class="stats-summary">${cCards.join('')}</div>
+        ${byCountHtml}
+        ${byValueHtml}
+      `;
+    }
+
     // ── Head to head ─────────────────────────────────────────────────
     let h2hHtml = '';
     if (s.head_to_head.length > 0) {
@@ -1806,6 +1862,7 @@ async function fetchAndRenderPlayerStats(name) {
       ${biomeSectionHtml}
       ${topCardsHtml}
       ${sanctuarySectionHtml}
+      ${clueSectionHtml}
       ${h2hHtml}
       ${recentHtml}
     `;
