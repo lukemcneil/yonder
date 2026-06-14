@@ -1,0 +1,34 @@
+yonder-client/index.html
+  s_121bf2dad9dd70::t_d9a97f5f65ce4a 10
+  s_121bf2dad9dd70::t_94bc5ba235be9c 134
+yonder-server/src/db.rs
+  s_121bf2dad9dd70::t_3b2ce7aaa76887 207-212
+  s_121bf2dad9dd70::t_1817acbf6b3598 731-732,734,746-748
+  s_121bf2dad9dd70::t_6249ef35cdd42e 559-561,568,597-615
+  s_121bf2dad9dd70::t_2bc7b07f8915b4 229-231,233-238
+  s_121bf2dad9dd70::t_c14244b6165b6f 857-902,905,907
+  s_121bf2dad9dd70::t_a4704f8066d796 829
+yonder-server/src/main.rs
+  s_121bf2dad9dd70::t_37d9b5998a560f 468
+yonder-client/style.css
+  s_121bf2dad9dd70::t_15ae3366d239c9 1691-1736
+yonder-client/game.js
+  s_121bf2dad9dd70::t_1231b1052953ff 1449-1542
+  s_121bf2dad9dd70::t_de8d89d6ef122b 1858-1859,1863-1867,1890-1901,1909
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.5.6",
+  "base_commit_sha": "a6366b72c2b82ea5af3673c60ff63945a84886cc",
+  "prompts": {},
+  "sessions": {
+    "s_121bf2dad9dd70": {
+      "agent_id": {
+        "tool": "cursor",
+        "id": "3a72a497-08e9-415c-8b8b-6cd020e58bf9",
+        "model": "claude-opus-4-7"
+      },
+      "human_author": "Luke McNeil <lukemcneil61@gmail.com>"
+    }
+  }
+}
