@@ -7,7 +7,7 @@
   <base href="/">
   <title>Yonder</title>
   <link rel="icon" type="image/png" href="region/card-back.png">
-  <link rel="stylesheet" href="style.css?v=12">
+  <link rel="stylesheet" href="style.css?v=13">
 </head>
 <body>
 
@@ -38,10 +38,14 @@
     </div>
     <div class="stats-tabs">
       <button class="stats-tab active" data-tab="me">My Stats</button>
+      <button class="stats-tab" data-tab="compare">Compare</button>
+      <button class="stats-tab" data-tab="everyone">Everyone</button>
       <button class="stats-tab" data-tab="highscores">High Scores</button>
       <button class="stats-tab" data-tab="recent">Recent Games</button>
     </div>
     <div id="stats-panel-me" class="stats-panel"></div>
+    <div id="stats-panel-compare" class="stats-panel hidden"></div>
+    <div id="stats-panel-everyone" class="stats-panel hidden"></div>
     <div id="stats-panel-highscores" class="stats-panel hidden"></div>
     <div id="stats-panel-recent" class="stats-panel hidden"></div>
   </div>
@@ -131,6 +135,6 @@
   <!-- Card hover zoom popover (shared, repositioned via JS) -->
   <div id="card-zoom"><img src="" alt=""></div>
 
-  <script src="game.js?v=13"></script>
+  <script src="game.js?v=14"></script>
 </body>
 </html>

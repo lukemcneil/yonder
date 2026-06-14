@@ -170,7 +170,7 @@ pub struct PlayerStats {
     pub name: String,
     pub games_played: u32,
     pub wins: u32,
-    pub win_rate: f64,                            // 0..100
+    pub win_rate: f64, // 0..100
     pub high_score: u32,
     pub high_score_game_id: Option<i64>,
     pub avg_score: f64,
@@ -180,31 +180,31 @@ pub struct PlayerStats {
     // Derived extras
     pub first_game_at: Option<i64>,
     pub last_game_at: Option<i64>,
-    pub recent_avg: Option<f64>,                  // last 5 games avg
-    pub total_play_time_secs: i64,                // sum of finished_at - started_at across saved games
+    pub recent_avg: Option<f64>,   // last 5 games avg
+    pub total_play_time_secs: i64, // sum of finished_at - started_at across saved games
     pub longest_win_streak: u32,
-    pub scoring_rate: Option<f64>,                // % of region cards that earned >0 points
-    pub best_card_score: Option<BestCard>,        // single best +N play, with source game
+    pub scoring_rate: Option<f64>, // % of region cards that earned >0 points
+    pub best_card_score: Option<BestCard>, // single best +N play, with source game
     pub avg_by_player_count: Vec<AvgByPlayerCount>,
-    pub top_cards: Vec<TopCard>,                  // 3 most-played region cards
-    pub biome_preference: Vec<BiomePref>,         // combined regions + sanctuaries
+    pub top_cards: Vec<TopCard>,          // 3 most-played region cards
+    pub biome_preference: Vec<BiomePref>, // combined regions + sanctuaries
     pub biome_preference_regions: Vec<BiomePref>, // regions only
     pub biome_preference_sanctuaries: Vec<BiomePref>, // sanctuaries only
-    pub head_to_head: Vec<HeadToHead>,            // top 6 opponents by games played
-    pub score_history: Vec<ScorePoint>,           // chronological scores for sparkline
+    pub head_to_head: Vec<HeadToHead>,    // top 6 opponents by games played
+    pub score_history: Vec<ScorePoint>,   // chronological scores for sparkline
 
     // Sanctuary-focused stats
     pub avg_sanctuaries_per_game: f64,
-    pub sanctuary_scoring_rate: Option<f64>,      // % of kept sanctuaries that earned >0 points
-    pub best_sanctuary_score: Option<BestCard>,   // best single sanctuary play
-    pub top_sanctuaries: Vec<TopCard>,            // 3 most-played sanctuary tiles
+    pub sanctuary_scoring_rate: Option<f64>, // % of kept sanctuaries that earned >0 points
+    pub best_sanctuary_score: Option<BestCard>, // best single sanctuary play
+    pub top_sanctuaries: Vec<TopCard>,       // 3 most-played sanctuary tiles
     pub avg_by_sanctuary_count: Vec<AvgBySanctuaryCount>,
 
     // Clue-focused stats. Clues let you pick from more sanctuary options each
     // round, so they compound: a clue in your first region is dramatically
     // more valuable than one in your last.
     pub avg_clues_per_game: f64,
-    pub avg_by_clue_count: Vec<AvgByClueCount>,        // grouped by total clues at end of game
+    pub avg_by_clue_count: Vec<AvgByClueCount>, // grouped by total clues at end of game
     /// Each game's (total sanctuary cards you got to choose from across all
     /// your drawing rounds, final score). Captures clue-timing value better
     /// than raw clue counts, since an early clue compounds into many more
@@ -221,7 +221,7 @@ pub struct AvgBySanctuaryCount {
 
 #[derive(Debug, Serialize)]
 pub struct AvgByClueCount {
-    pub clue_count: u32,                  // clues in final tableau + sanctuaries
+    pub clue_count: u32, // clues in final tableau + sanctuaries
     pub games: u32,
     pub avg_score: f64,
 }
@@ -240,7 +240,7 @@ pub struct SanctuariesSeenPoint {
 
 #[derive(Debug, Serialize)]
 pub struct BestCard {
-    pub kind: String,        // "region" | "sanctuary"
+    pub kind: String, // "region" | "sanctuary"
     pub number: u8,
     pub points: u32,
     pub explanation: String,
@@ -263,17 +263,17 @@ pub struct TopCard {
 
 #[derive(Debug, Serialize)]
 pub struct BiomePref {
-    pub biome: String,         // "Red" | "Green" | "Blue" | "Yellow" | "Colorless"
+    pub biome: String, // "Red" | "Green" | "Blue" | "Yellow" | "Colorless"
     pub count: u32,
-    pub percent: f64,          // 0..100
+    pub percent: f64, // 0..100
 }
 
 #[derive(Debug, Serialize)]
 pub struct HeadToHead {
-    pub name: String,          // opponent's display name (most recent casing)
+    pub name: String, // opponent's display name (most recent casing)
     pub games: u32,
-    pub wins: u32,             // times this player placed strictly better than the opponent
-    pub losses: u32,           // times opponent placed strictly better
+    pub wins: u32,   // times this player placed strictly better than the opponent
+    pub losses: u32, // times opponent placed strictly better
     pub ties: u32,
 }
 
@@ -342,6 +342,42 @@ pub struct GameDetailPlayer {
     pub region_cards: Vec<u8>,
     pub sanctuary_cards: Vec<u8>,
     pub score_breakdown: serde_json::Value,
+}
+
+pub fn empty_player_stats(name: &str) -> PlayerStats {
+    PlayerStats {
+        name: name.to_string(),
+        games_played: 0,
+        wins: 0,
+        win_rate: 0.0,
+        high_score: 0,
+        high_score_game_id: None,
+        avg_score: 0.0,
+        placements: vec![0; 6],
+        recent: vec![],
+        first_game_at: None,
+        last_game_at: None,
+        recent_avg: None,
+        total_play_time_secs: 0,
+        longest_win_streak: 0,
+        scoring_rate: None,
+        best_card_score: None,
+        avg_by_player_count: vec![],
+        top_cards: vec![],
+        biome_preference: vec![],
+        biome_preference_regions: vec![],
+        biome_preference_sanctuaries: vec![],
+        head_to_head: vec![],
+        score_history: vec![],
+        avg_sanctuaries_per_game: 0.0,
+        sanctuary_scoring_rate: None,
+        best_sanctuary_score: None,
+        top_sanctuaries: vec![],
+        avg_by_sanctuary_count: vec![],
+        avg_clues_per_game: 0.0,
+        avg_by_clue_count: vec![],
+        score_vs_sanctuaries_seen: vec![],
+    }
 }
 
 // ─── Query functions ─────────────────────────────────────────────────────────
@@ -521,17 +557,13 @@ pub fn player_stats(conn: &Connection, name: &str) -> SqlResult<PlayerStats> {
         .iter()
         .map(|(n, (b, _))| (*n, b.clone()))
         .collect();
-    let region_clue: HashMap<u8, bool> = region_meta
-        .iter()
-        .map(|(n, (_, c))| (*n, *c))
-        .collect();
-    let (sanctuary_biome, sanctuary_clue): (
-        HashMap<u8, crate::cards::Biome>,
-        HashMap<u8, bool>,
-    ) = {
+    let region_clue: HashMap<u8, bool> = region_meta.iter().map(|(n, (_, c))| (*n, *c)).collect();
+    let (sanctuary_biome, sanctuary_clue): (HashMap<u8, crate::cards::Biome>, HashMap<u8, bool>) = {
         use crate::cards::{get_sanctuary_deck, get_sanctuary_deck_with_expansion};
         let mut deck = get_sanctuary_deck_with_expansion();
-        if deck.is_empty() { deck = get_sanctuary_deck(); }
+        if deck.is_empty() {
+            deck = get_sanctuary_deck();
+        }
         let mut biome = HashMap::new();
         let mut clue = HashMap::new();
         for c in deck {
@@ -562,8 +594,7 @@ pub fn player_stats(conn: &Connection, name: &str) -> SqlResult<PlayerStats> {
 
     for g in &all_games {
         // Region cards played → counts for top cards + biome prefs + clue stats.
-        let region_nums: Vec<u8> =
-            serde_json::from_str(&g.region_cards_json).unwrap_or_default();
+        let region_nums: Vec<u8> = serde_json::from_str(&g.region_cards_json).unwrap_or_default();
         let mut region_clue_count: u32 = 0;
         for n in &region_nums {
             *region_card_counts.entry(*n).or_insert(0) += 1;
@@ -576,8 +607,7 @@ pub fn player_stats(conn: &Connection, name: &str) -> SqlResult<PlayerStats> {
             }
         }
         // Sanctuary tiles.
-        let sanct_nums: Vec<u8> =
-            serde_json::from_str(&g.sanctuary_cards_json).unwrap_or_default();
+        let sanct_nums: Vec<u8> = serde_json::from_str(&g.sanctuary_cards_json).unwrap_or_default();
         let mut sanct_clue_count: u32 = 0;
         for n in &sanct_nums {
             *sanctuary_card_counts.entry(*n).or_insert(0) += 1;
@@ -600,12 +630,8 @@ pub fn player_stats(conn: &Connection, name: &str) -> SqlResult<PlayerStats> {
         // player got to choose from across all their drawing rounds. The
         // player draws (1 + visible_clues) cards whenever the just-played
         // region number is strictly greater than the previous one.
-        let sanctuaries_seen = simulate_sanctuaries_seen(
-            &region_nums,
-            &sanct_nums,
-            &region_clue,
-            &sanctuary_clue,
-        );
+        let sanctuaries_seen =
+            simulate_sanctuaries_seen(&region_nums, &sanct_nums, &region_clue, &sanctuary_clue);
         score_vs_sanctuaries_seen.push(SanctuariesSeenPoint {
             game_id: g.game_id,
             finished_at: g.finished_at,
@@ -631,12 +657,17 @@ pub fn player_stats(conn: &Connection, name: &str) -> SqlResult<PlayerStats> {
                 match kind {
                     "region" => {
                         region_entry_count += 1;
-                        if points > 0 { region_scored_count += 1; }
+                        if points > 0 {
+                            region_scored_count += 1;
+                        }
                     }
                     "sanctuary" => {
                         sanctuary_entry_count += 1;
-                        if points > 0 { sanctuary_scored_count += 1; }
-                        if best_sanctuary.as_ref().map_or(true, |b| points > b.points) && points > 0 {
+                        if points > 0 {
+                            sanctuary_scored_count += 1;
+                        }
+                        if best_sanctuary.as_ref().map_or(true, |b| points > b.points) && points > 0
+                        {
                             best_sanctuary = Some(BestCard {
                                 kind: kind.to_string(),
                                 number,
@@ -681,26 +712,45 @@ pub fn player_stats(conn: &Connection, name: &str) -> SqlResult<PlayerStats> {
 
     let mut top_cards: Vec<TopCard> = region_card_counts
         .into_iter()
-        .map(|(number, times_played)| TopCard { number, times_played })
+        .map(|(number, times_played)| TopCard {
+            number,
+            times_played,
+        })
         .collect();
-    top_cards.sort_by(|a, b| b.times_played.cmp(&a.times_played).then(a.number.cmp(&b.number)));
+    top_cards.sort_by(|a, b| {
+        b.times_played
+            .cmp(&a.times_played)
+            .then(a.number.cmp(&b.number))
+    });
     top_cards.truncate(3);
 
     let mut top_sanctuaries: Vec<TopCard> = sanctuary_card_counts
         .into_iter()
-        .map(|(number, times_played)| TopCard { number, times_played })
+        .map(|(number, times_played)| TopCard {
+            number,
+            times_played,
+        })
         .collect();
-    top_sanctuaries.sort_by(|a, b| b.times_played.cmp(&a.times_played).then(a.number.cmp(&b.number)));
+    top_sanctuaries.sort_by(|a, b| {
+        b.times_played
+            .cmp(&a.times_played)
+            .then(a.number.cmp(&b.number))
+    });
     top_sanctuaries.truncate(3);
 
     // Combined biome preference (regions + sanctuaries) — preserved for back-compat.
     let mut combined_counts: HashMap<String, u32> = HashMap::new();
-    for (k, v) in &region_biome_counts { *combined_counts.entry(k.clone()).or_insert(0) += v; }
-    for (k, v) in &sanctuary_biome_counts { *combined_counts.entry(k.clone()).or_insert(0) += v; }
+    for (k, v) in &region_biome_counts {
+        *combined_counts.entry(k.clone()).or_insert(0) += v;
+    }
+    for (k, v) in &sanctuary_biome_counts {
+        *combined_counts.entry(k.clone()).or_insert(0) += v;
+    }
     let combined_total = region_biome_total + sanctuary_biome_total;
     let biome_preference = make_biome_prefs(combined_counts, combined_total);
     let biome_preference_regions = make_biome_prefs(region_biome_counts, region_biome_total);
-    let biome_preference_sanctuaries = make_biome_prefs(sanctuary_biome_counts, sanctuary_biome_total);
+    let biome_preference_sanctuaries =
+        make_biome_prefs(sanctuary_biome_counts, sanctuary_biome_total);
 
     // Avg score by number of sanctuaries kept this game.
     let mut by_sc: HashMap<u32, (u32, u64)> = HashMap::new();
@@ -847,7 +897,11 @@ fn make_biome_prefs(counts: std::collections::HashMap<String, u32>, total: u32) 
         .map(|(biome, count)| BiomePref {
             biome,
             count,
-            percent: if total > 0 { 100.0 * count as f64 / total as f64 } else { 0.0 },
+            percent: if total > 0 {
+                100.0 * count as f64 / total as f64
+            } else {
+                0.0
+            },
         })
         .collect();
     out.sort_by(|a, b| b.count.cmp(&a.count));
@@ -889,7 +943,9 @@ fn simulate_sanctuaries_seen(
             None => false,
         };
         // The just-played card's clue counts in this round's visible context.
-        if this_is_clue { clues_in_tableau += 1; }
+        if this_is_clue {
+            clues_in_tableau += 1;
+        }
 
         if eligible {
             let draw_count = 1 + clues_in_tableau + clues_in_sanctuaries;
@@ -930,7 +986,11 @@ fn map_leaderboard_row(r: &rusqlite::Row<'_>) -> rusqlite::Result<LeaderboardEnt
 }
 
 /// All-time leaderboard, or that player's best games ranked by score when `player` is set.
-pub fn leaderboard(conn: &Connection, limit: u32, player: Option<&str>) -> SqlResult<Vec<LeaderboardEntry>> {
+pub fn leaderboard(
+    conn: &Connection,
+    limit: u32,
+    player: Option<&str>,
+) -> SqlResult<Vec<LeaderboardEntry>> {
     let rows: Vec<LeaderboardEntry> = if let Some(p) = player.filter(|s| !s.is_empty()) {
         let name_lower = p.to_lowercase();
         let mut stmt = conn.prepare(
@@ -979,6 +1039,433 @@ pub fn leaderboard(conn: &Connection, limit: u32, player: Option<&str>) -> SqlRe
     Ok(entries)
 }
 
+/// Aggregate stats across every saved player result. `games_played` means
+/// player-games here (one row per seat in a completed game), which keeps the
+/// averages directly comparable to a single player's page.
+pub fn global_stats(conn: &Connection) -> SqlResult<PlayerStats> {
+    use std::collections::HashMap;
+
+    struct GameRow {
+        game_id: i64,
+        finished_at: i64,
+        started_at: i64,
+        player_count: u32,
+        final_score: u32,
+        placement: u32,
+        region_cards_json: String,
+        sanctuary_cards_json: String,
+        score_breakdown_json: String,
+    }
+
+    let row: Option<(i64, Option<i64>, Option<f64>)> = conn
+        .query_row(
+            "SELECT COUNT(*), MAX(final_score), AVG(final_score) FROM game_players",
+            [],
+            |r| Ok((r.get(0)?, r.get(1)?, r.get(2)?)),
+        )
+        .optional()?;
+
+    let (games_played, high_score, avg_score) = match row {
+        Some((c, h, a)) => (c as u32, h.unwrap_or(0) as u32, a.unwrap_or(0.0)),
+        None => (0, 0, 0.0),
+    };
+
+    let wins: u32 = conn
+        .query_row(
+            "SELECT COUNT(*) FROM game_players WHERE placement = 1",
+            [],
+            |r| r.get::<_, i64>(0),
+        )
+        .unwrap_or(0) as u32;
+    let win_rate = if games_played > 0 {
+        100.0 * wins as f64 / games_played as f64
+    } else {
+        0.0
+    };
+
+    let mut placements: Vec<u32> = vec![0; 6];
+    if games_played > 0 {
+        let mut stmt =
+            conn.prepare("SELECT placement, COUNT(*) FROM game_players GROUP BY placement")?;
+        let rows = stmt.query_map([], |r| {
+            Ok((r.get::<_, i64>(0)? as usize, r.get::<_, i64>(1)? as u32))
+        })?;
+        for row in rows {
+            let (pl, count) = row?;
+            if pl >= 1 && pl <= placements.len() {
+                placements[pl - 1] = count;
+            }
+        }
+    }
+
+    let high_score_game_id: Option<i64> = if high_score > 0 {
+        conn.query_row(
+            "SELECT game_id FROM game_players
+             ORDER BY final_score DESC, card_number_sum ASC, game_id ASC
+             LIMIT 1",
+            [],
+            |r| r.get(0),
+        )
+        .optional()?
+    } else {
+        None
+    };
+
+    let mut stmt = conn.prepare(
+        "SELECT gp.game_id, g.finished_at, g.started_at, g.player_count,
+                gp.final_score, gp.placement,
+                gp.region_cards_json, gp.sanctuary_cards_json, gp.score_breakdown_json
+         FROM game_players gp
+         JOIN games g ON g.id = gp.game_id
+         ORDER BY g.finished_at ASC, gp.id ASC",
+    )?;
+    let all_games: Vec<GameRow> = stmt
+        .query_map([], |r| {
+            Ok(GameRow {
+                game_id: r.get(0)?,
+                finished_at: r.get(1)?,
+                started_at: r.get(2)?,
+                player_count: r.get::<_, i64>(3)? as u32,
+                final_score: r.get::<_, i64>(4)? as u32,
+                placement: r.get::<_, i64>(5)? as u32,
+                region_cards_json: r.get(6)?,
+                sanctuary_cards_json: r.get(7)?,
+                score_breakdown_json: r.get(8)?,
+            })
+        })?
+        .collect::<SqlResult<Vec<_>>>()?;
+
+    let first_game_at = all_games.first().map(|g| g.finished_at);
+    let last_game_at = all_games.last().map(|g| g.finished_at);
+    let total_play_time_secs: i64 = all_games
+        .iter()
+        .map(|g| (g.finished_at - g.started_at).max(0))
+        .sum();
+
+    let score_history: Vec<ScorePoint> = all_games
+        .iter()
+        .map(|g| ScorePoint {
+            game_id: g.game_id,
+            finished_at: g.finished_at,
+            score: g.final_score,
+            placement: g.placement,
+        })
+        .collect();
+
+    let recent_avg: Option<f64> = if all_games.is_empty() {
+        None
+    } else {
+        let n = all_games.len().min(5);
+        let slice = &all_games[all_games.len() - n..];
+        let sum: u32 = slice.iter().map(|g| g.final_score).sum();
+        Some(sum as f64 / n as f64)
+    };
+
+    let mut by_pc: HashMap<u32, (u32, u64)> = HashMap::new();
+    for g in &all_games {
+        let e = by_pc.entry(g.player_count).or_insert((0, 0));
+        e.0 += 1;
+        e.1 += g.final_score as u64;
+    }
+    let mut avg_by_player_count: Vec<AvgByPlayerCount> = by_pc
+        .into_iter()
+        .map(|(pc, (games, sum))| AvgByPlayerCount {
+            player_count: pc,
+            games,
+            avg_score: sum as f64 / games as f64,
+        })
+        .collect();
+    avg_by_player_count.sort_by_key(|e| e.player_count);
+
+    let region_meta: HashMap<u8, (crate::cards::Biome, bool)> = crate::cards::all_regions()
+        .into_iter()
+        .map(|c| (c.number, (c.biome, c.clue)))
+        .collect();
+    let region_biome: HashMap<u8, crate::cards::Biome> = region_meta
+        .iter()
+        .map(|(n, (b, _))| (*n, b.clone()))
+        .collect();
+    let region_clue: HashMap<u8, bool> = region_meta.iter().map(|(n, (_, c))| (*n, *c)).collect();
+    let (sanctuary_biome, sanctuary_clue): (HashMap<u8, crate::cards::Biome>, HashMap<u8, bool>) = {
+        use crate::cards::{get_sanctuary_deck, get_sanctuary_deck_with_expansion};
+        let mut deck = get_sanctuary_deck_with_expansion();
+        if deck.is_empty() {
+            deck = get_sanctuary_deck();
+        }
+        let mut biome = HashMap::new();
+        let mut clue = HashMap::new();
+        for c in deck {
+            biome.insert(c.tile, c.biome);
+            clue.insert(c.tile, c.clue);
+        }
+        (biome, clue)
+    };
+
+    let mut region_card_counts: HashMap<u8, u32> = HashMap::new();
+    let mut sanctuary_card_counts: HashMap<u8, u32> = HashMap::new();
+    let mut region_biome_counts: HashMap<String, u32> = HashMap::new();
+    let mut region_biome_total: u32 = 0;
+    let mut sanctuary_biome_counts: HashMap<String, u32> = HashMap::new();
+    let mut sanctuary_biome_total: u32 = 0;
+    let mut best_card: Option<BestCard> = None;
+    let mut best_sanctuary: Option<BestCard> = None;
+    let mut region_entry_count: u32 = 0;
+    let mut region_scored_count: u32 = 0;
+    let mut sanctuary_entry_count: u32 = 0;
+    let mut sanctuary_scored_count: u32 = 0;
+    let mut total_sanctuaries: u32 = 0;
+    let mut total_clues: u32 = 0;
+    let mut sanctuary_count_series: Vec<(u32, u32)> = Vec::with_capacity(all_games.len());
+    let mut clue_count_series: Vec<(u32, u32)> = Vec::with_capacity(all_games.len());
+    let mut score_vs_sanctuaries_seen: Vec<SanctuariesSeenPoint> =
+        Vec::with_capacity(all_games.len());
+
+    for g in &all_games {
+        let region_nums: Vec<u8> = serde_json::from_str(&g.region_cards_json).unwrap_or_default();
+        let mut region_clue_count: u32 = 0;
+        for n in &region_nums {
+            *region_card_counts.entry(*n).or_insert(0) += 1;
+            if let Some(b) = region_biome.get(n) {
+                *region_biome_counts.entry(biome_label(b)).or_insert(0) += 1;
+                region_biome_total += 1;
+            }
+            if region_clue.get(n).copied().unwrap_or(false) {
+                region_clue_count += 1;
+            }
+        }
+
+        let sanct_nums: Vec<u8> = serde_json::from_str(&g.sanctuary_cards_json).unwrap_or_default();
+        let mut sanct_clue_count: u32 = 0;
+        for n in &sanct_nums {
+            *sanctuary_card_counts.entry(*n).or_insert(0) += 1;
+            if let Some(b) = sanctuary_biome.get(n) {
+                *sanctuary_biome_counts.entry(biome_label(b)).or_insert(0) += 1;
+                sanctuary_biome_total += 1;
+            }
+            if sanctuary_clue.get(n).copied().unwrap_or(false) {
+                sanct_clue_count += 1;
+            }
+        }
+        total_sanctuaries += sanct_nums.len() as u32;
+        sanctuary_count_series.push((sanct_nums.len() as u32, g.final_score));
+
+        let clue_count = region_clue_count + sanct_clue_count;
+        total_clues += clue_count;
+        clue_count_series.push((clue_count, g.final_score));
+
+        let sanctuaries_seen =
+            simulate_sanctuaries_seen(&region_nums, &sanct_nums, &region_clue, &sanctuary_clue);
+        score_vs_sanctuaries_seen.push(SanctuariesSeenPoint {
+            game_id: g.game_id,
+            finished_at: g.finished_at,
+            sanctuaries_seen,
+            final_score: g.final_score,
+            placement: g.placement,
+        });
+
+        let breakdown: serde_json::Value =
+            serde_json::from_str(&g.score_breakdown_json).unwrap_or(serde_json::Value::Null);
+        if let Some(arr) = breakdown.as_array() {
+            for entry in arr {
+                let kind = entry.get("kind").and_then(|v| v.as_str()).unwrap_or("");
+                let number = entry.get("number").and_then(|v| v.as_u64()).unwrap_or(0) as u8;
+                let points = entry.get("points").and_then(|v| v.as_u64()).unwrap_or(0) as u32;
+                let explanation = entry
+                    .get("explanation")
+                    .and_then(|v| v.as_str())
+                    .unwrap_or("")
+                    .to_string();
+
+                match kind {
+                    "region" => {
+                        region_entry_count += 1;
+                        if points > 0 {
+                            region_scored_count += 1;
+                        }
+                    }
+                    "sanctuary" => {
+                        sanctuary_entry_count += 1;
+                        if points > 0 {
+                            sanctuary_scored_count += 1;
+                        }
+                        if best_sanctuary.as_ref().map_or(true, |b| points > b.points) && points > 0
+                        {
+                            best_sanctuary = Some(BestCard {
+                                kind: kind.to_string(),
+                                number,
+                                points,
+                                explanation: explanation.clone(),
+                                game_id: g.game_id,
+                                finished_at: g.finished_at,
+                            });
+                        }
+                    }
+                    _ => {}
+                }
+                if best_card.as_ref().map_or(true, |b| points > b.points) && points > 0 {
+                    best_card = Some(BestCard {
+                        kind: kind.to_string(),
+                        number,
+                        points,
+                        explanation,
+                        game_id: g.game_id,
+                        finished_at: g.finished_at,
+                    });
+                }
+            }
+        }
+    }
+
+    let scoring_rate = if region_entry_count > 0 {
+        Some(100.0 * region_scored_count as f64 / region_entry_count as f64)
+    } else {
+        None
+    };
+    let sanctuary_scoring_rate = if sanctuary_entry_count > 0 {
+        Some(100.0 * sanctuary_scored_count as f64 / sanctuary_entry_count as f64)
+    } else {
+        None
+    };
+    let avg_sanctuaries_per_game = if all_games.is_empty() {
+        0.0
+    } else {
+        total_sanctuaries as f64 / all_games.len() as f64
+    };
+
+    let mut top_cards: Vec<TopCard> = region_card_counts
+        .into_iter()
+        .map(|(number, times_played)| TopCard {
+            number,
+            times_played,
+        })
+        .collect();
+    top_cards.sort_by(|a, b| {
+        b.times_played
+            .cmp(&a.times_played)
+            .then(a.number.cmp(&b.number))
+    });
+    top_cards.truncate(3);
+
+    let mut top_sanctuaries: Vec<TopCard> = sanctuary_card_counts
+        .into_iter()
+        .map(|(number, times_played)| TopCard {
+            number,
+            times_played,
+        })
+        .collect();
+    top_sanctuaries.sort_by(|a, b| {
+        b.times_played
+            .cmp(&a.times_played)
+            .then(a.number.cmp(&b.number))
+    });
+    top_sanctuaries.truncate(3);
+
+    let mut combined_counts: HashMap<String, u32> = HashMap::new();
+    for (k, v) in &region_biome_counts {
+        *combined_counts.entry(k.clone()).or_insert(0) += v;
+    }
+    for (k, v) in &sanctuary_biome_counts {
+        *combined_counts.entry(k.clone()).or_insert(0) += v;
+    }
+    let combined_total = region_biome_total + sanctuary_biome_total;
+    let biome_preference = make_biome_prefs(combined_counts, combined_total);
+    let biome_preference_regions = make_biome_prefs(region_biome_counts, region_biome_total);
+    let biome_preference_sanctuaries =
+        make_biome_prefs(sanctuary_biome_counts, sanctuary_biome_total);
+
+    let mut by_sc: HashMap<u32, (u32, u64)> = HashMap::new();
+    for (count, score) in &sanctuary_count_series {
+        let e = by_sc.entry(*count).or_insert((0, 0));
+        e.0 += 1;
+        e.1 += *score as u64;
+    }
+    let mut avg_by_sanctuary_count: Vec<AvgBySanctuaryCount> = by_sc
+        .into_iter()
+        .map(|(sanctuary_count, (games, sum))| AvgBySanctuaryCount {
+            sanctuary_count,
+            games,
+            avg_score: sum as f64 / games as f64,
+        })
+        .collect();
+    avg_by_sanctuary_count.sort_by_key(|e| e.sanctuary_count);
+
+    let avg_clues_per_game = if all_games.is_empty() {
+        0.0
+    } else {
+        total_clues as f64 / all_games.len() as f64
+    };
+
+    let mut by_cc: HashMap<u32, (u32, u64)> = HashMap::new();
+    for (clue_count, score) in &clue_count_series {
+        let e = by_cc.entry(*clue_count).or_insert((0, 0));
+        e.0 += 1;
+        e.1 += *score as u64;
+    }
+    let mut avg_by_clue_count: Vec<AvgByClueCount> = by_cc
+        .into_iter()
+        .map(|(clue_count, (games, sum))| AvgByClueCount {
+            clue_count,
+            games,
+            avg_score: sum as f64 / games as f64,
+        })
+        .collect();
+    avg_by_clue_count.sort_by_key(|e| e.clue_count);
+    score_vs_sanctuaries_seen.sort_by_key(|p| (p.sanctuaries_seen, p.game_id));
+
+    let mut recent_stmt = conn.prepare(
+        "SELECT gp.game_id, g.finished_at, gp.final_score, gp.placement, g.player_count
+         FROM game_players gp
+         JOIN games g ON g.id = gp.game_id
+         ORDER BY g.finished_at DESC, gp.final_score DESC, gp.id ASC
+         LIMIT 10",
+    )?;
+    let recent = recent_stmt
+        .query_map([], |r| {
+            Ok(RecentEntry {
+                game_id: r.get(0)?,
+                finished_at: r.get(1)?,
+                score: r.get::<_, i64>(2)? as u32,
+                placement: r.get::<_, i64>(3)? as u32,
+                player_count: r.get::<_, i64>(4)? as u32,
+            })
+        })?
+        .collect::<SqlResult<Vec<_>>>()?;
+
+    Ok(PlayerStats {
+        name: "Everyone".to_string(),
+        games_played,
+        wins,
+        win_rate,
+        high_score,
+        high_score_game_id,
+        avg_score,
+        placements,
+        recent,
+        first_game_at,
+        last_game_at,
+        recent_avg,
+        total_play_time_secs,
+        longest_win_streak: 0,
+        scoring_rate,
+        best_card_score: best_card,
+        avg_by_player_count,
+        top_cards,
+        biome_preference,
+        biome_preference_regions,
+        biome_preference_sanctuaries,
+        head_to_head: vec![],
+        score_history,
+        avg_sanctuaries_per_game,
+        sanctuary_scoring_rate,
+        best_sanctuary_score: best_sanctuary,
+        top_sanctuaries,
+        avg_by_sanctuary_count,
+        avg_clues_per_game,
+        avg_by_clue_count,
+        score_vs_sanctuaries_seen,
+    })
+}
+
 pub fn recent_games(conn: &Connection, limit: u32) -> SqlResult<Vec<GameSummary>> {
     let mut stmt = conn.prepare(
         "SELECT g.id, g.finished_at, g.player_count,
@@ -1010,7 +1497,16 @@ pub fn game_detail(conn: &Connection, game_id: i64) -> SqlResult<Option<GameDeta
             "SELECT room_code, started_at, finished_at, player_count, advanced, expansion
              FROM games WHERE id = ?1",
             params![game_id],
-            |r| Ok((r.get(0)?, r.get(1)?, r.get(2)?, r.get(3)?, r.get(4)?, r.get(5)?)),
+            |r| {
+                Ok((
+                    r.get(0)?,
+                    r.get(1)?,
+                    r.get(2)?,
+                    r.get(3)?,
+                    r.get(4)?,
+                    r.get(5)?,
+                ))
+            },
         )
         .optional()?;
 
@@ -1174,7 +1670,10 @@ mod tests {
             .map(|p| PlayerScore {
                 seat: p.seat,
                 name: p.name.clone(),
-                total: super::score_player_detailed(p).iter().map(|e| e.points).sum(),
+                total: super::score_player_detailed(p)
+                    .iter()
+                    .map(|e| e.points)
+                    .sum(),
                 card_number_sum: p.tableau.iter().map(|c| c.number as u32).sum(),
             })
             .collect();
@@ -1196,7 +1695,7 @@ mod tests {
         let t1 = t0 + Duration::from_secs(1200);
         let game = make_game(vec![
             player(0, "Alice", vec![1, 2, 3, 4, 5, 6, 7, 8], vec![10, 11]),
-            player(1, "Bob",   vec![2, 3, 4, 5, 6, 7, 8, 9], vec![12]),
+            player(1, "Bob", vec![2, 3, 4, 5, 6, 7, 8, 9], vec![12]),
         ]);
         let id = save_game(&mut conn, "ABCD", t0, t1, &game, false, true).unwrap();
         assert!(id > 0);
@@ -1206,8 +1705,8 @@ mod tests {
         assert_eq!(detail.player_count, 2);
         assert_eq!(detail.expansion, true);
         assert_eq!(detail.players.len(), 2);
-        assert_eq!(detail.players[0].region_cards, vec![1,2,3,4,5,6,7,8]);
-        assert_eq!(detail.players[0].sanctuary_cards, vec![10,11]);
+        assert_eq!(detail.players[0].region_cards, vec![1, 2, 3, 4, 5, 6, 7, 8]);
+        assert_eq!(detail.players[0].sanctuary_cards, vec![10, 11]);
     }
 
     #[test]
@@ -1215,15 +1714,24 @@ mod tests {
         let mut conn = open_in_memory().unwrap();
         let t = SystemTime::UNIX_EPOCH + Duration::from_secs(2_000_000);
         let g1 = make_game(vec![
-            player(0, "Luke",  vec![10,11,12,13,14,15,16,17], vec![]),
-            player(1, "Alice", vec![1,2,3,4,5,6,7,8], vec![]),
+            player(0, "Luke", vec![10, 11, 12, 13, 14, 15, 16, 17], vec![]),
+            player(1, "Alice", vec![1, 2, 3, 4, 5, 6, 7, 8], vec![]),
         ]);
         let g2 = make_game(vec![
-            player(0, "LUKE",  vec![20,21,22,23,24,25,26,27], vec![]),
-            player(1, "bob",   vec![2,3,4,5,6,7,8,9], vec![]),
+            player(0, "LUKE", vec![20, 21, 22, 23, 24, 25, 26, 27], vec![]),
+            player(1, "bob", vec![2, 3, 4, 5, 6, 7, 8, 9], vec![]),
         ]);
         save_game(&mut conn, "R1", t, t, &g1, false, false).unwrap();
-        save_game(&mut conn, "R2", t + Duration::from_secs(10), t + Duration::from_secs(10), &g2, false, false).unwrap();
+        save_game(
+            &mut conn,
+            "R2",
+            t + Duration::from_secs(10),
+            t + Duration::from_secs(10),
+            &g2,
+            false,
+            false,
+        )
+        .unwrap();
 
         let stats = player_stats(&conn, "luke").unwrap();
         assert_eq!(stats.games_played, 2, "case-insensitive should find both");
@@ -1239,8 +1747,8 @@ mod tests {
         let t = SystemTime::UNIX_EPOCH + Duration::from_secs(3_000_000);
         // Alice should win (higher card numbers → higher Flat fame).
         let g = make_game(vec![
-            player(0, "Alice", vec![60,61,62,63,64,65,66,67], vec![]),
-            player(1, "Bob",   vec![1,2,3,4,5,6,7,8], vec![]),
+            player(0, "Alice", vec![60, 61, 62, 63, 64, 65, 66, 67], vec![]),
+            player(1, "Bob", vec![1, 2, 3, 4, 5, 6, 7, 8], vec![]),
         ]);
         save_game(&mut conn, "W1", t, t, &g, false, false).unwrap();
 
@@ -1259,14 +1767,32 @@ mod tests {
     fn leaderboard_ordering() {
         let mut conn = open_in_memory().unwrap();
         let t = SystemTime::UNIX_EPOCH + Duration::from_secs(4_000_000);
-        save_game(&mut conn, "G1", t, t, &make_game(vec![
-            player(0, "P1", vec![1,2,3,4,5,6,7,8], vec![]),
-            player(1, "P2", vec![10,11,12,13,14,15,16,17], vec![]),
-        ]), false, false).unwrap();
-        save_game(&mut conn, "G2", t+Duration::from_secs(1), t+Duration::from_secs(1), &make_game(vec![
-            player(0, "P3", vec![60,61,62,63,64,65,66,67], vec![]),
-            player(1, "P4", vec![2,3,4,5,6,7,8,9], vec![]),
-        ]), false, false).unwrap();
+        save_game(
+            &mut conn,
+            "G1",
+            t,
+            t,
+            &make_game(vec![
+                player(0, "P1", vec![1, 2, 3, 4, 5, 6, 7, 8], vec![]),
+                player(1, "P2", vec![10, 11, 12, 13, 14, 15, 16, 17], vec![]),
+            ]),
+            false,
+            false,
+        )
+        .unwrap();
+        save_game(
+            &mut conn,
+            "G2",
+            t + Duration::from_secs(1),
+            t + Duration::from_secs(1),
+            &make_game(vec![
+                player(0, "P3", vec![60, 61, 62, 63, 64, 65, 66, 67], vec![]),
+                player(1, "P4", vec![2, 3, 4, 5, 6, 7, 8, 9], vec![]),
+            ]),
+            false,
+            false,
+        )
+        .unwrap();
 
         let lb = leaderboard(&conn, 10, None).unwrap();
         assert!(lb.len() >= 4);
@@ -1282,14 +1808,32 @@ mod tests {
     fn leaderboard_filter_by_player() {
         let mut conn = open_in_memory().unwrap();
         let t = SystemTime::UNIX_EPOCH + Duration::from_secs(4_000_000);
-        save_game(&mut conn, "G1", t, t, &make_game(vec![
-            player(0, "P1", vec![1,2,3,4,5,6,7,8], vec![]),
-            player(1, "P2", vec![10,11,12,13,14,15,16,17], vec![]),
-        ]), false, false).unwrap();
-        save_game(&mut conn, "G2", t+Duration::from_secs(1), t+Duration::from_secs(1), &make_game(vec![
-            player(0, "P3", vec![60,61,62,63,64,65,66,67], vec![]),
-            player(1, "P4", vec![2,3,4,5,6,7,8,9], vec![]),
-        ]), false, false).unwrap();
+        save_game(
+            &mut conn,
+            "G1",
+            t,
+            t,
+            &make_game(vec![
+                player(0, "P1", vec![1, 2, 3, 4, 5, 6, 7, 8], vec![]),
+                player(1, "P2", vec![10, 11, 12, 13, 14, 15, 16, 17], vec![]),
+            ]),
+            false,
+            false,
+        )
+        .unwrap();
+        save_game(
+            &mut conn,
+            "G2",
+            t + Duration::from_secs(1),
+            t + Duration::from_secs(1),
+            &make_game(vec![
+                player(0, "P3", vec![60, 61, 62, 63, 64, 65, 66, 67], vec![]),
+                player(1, "P4", vec![2, 3, 4, 5, 6, 7, 8, 9], vec![]),
+            ]),
+            false,
+            false,
+        )
+        .unwrap();
 
         let p1_only = leaderboard(&conn, 10, Some("p1")).unwrap();
         assert_eq!(p1_only.len(), 1);
@@ -1303,23 +1847,52 @@ mod tests {
     fn personal_best_and_rank() {
         let mut conn = open_in_memory().unwrap();
         let t = SystemTime::UNIX_EPOCH + Duration::from_secs(5_000_000);
-        let id1 = save_game(&mut conn, "G1", t, t, &make_game(vec![
-            player(0, "Luke", vec![1,2,3,4,5,6,7,8], vec![]),
-        ]), false, false).unwrap();
+        let id1 = save_game(
+            &mut conn,
+            "G1",
+            t,
+            t,
+            &make_game(vec![player(
+                0,
+                "Luke",
+                vec![1, 2, 3, 4, 5, 6, 7, 8],
+                vec![],
+            )]),
+            false,
+            false,
+        )
+        .unwrap();
         // Before the second save, Luke's PB excluding id2 should exist.
         let pb_excluding_nothing = previous_personal_best(&conn, "luke", 9999).unwrap();
         assert!(pb_excluding_nothing.is_some());
 
-        let id2 = save_game(&mut conn, "G2", t+Duration::from_secs(1), t+Duration::from_secs(1), &make_game(vec![
-            player(0, "luke", vec![60,61,62,63,64,65,66,67], vec![]),
-        ]), false, false).unwrap();
+        let id2 = save_game(
+            &mut conn,
+            "G2",
+            t + Duration::from_secs(1),
+            t + Duration::from_secs(1),
+            &make_game(vec![player(
+                0,
+                "luke",
+                vec![60, 61, 62, 63, 64, 65, 66, 67],
+                vec![],
+            )]),
+            false,
+            false,
+        )
+        .unwrap();
         let pb_before_id2 = previous_personal_best(&conn, "luke", id2).unwrap().unwrap();
         let detail_id1 = game_detail(&conn, id1).unwrap().unwrap();
         assert_eq!(pb_before_id2, detail_id1.players[0].final_score);
 
         // Rank of the first-place score should be 1.
         let detail_id2 = game_detail(&conn, id2).unwrap().unwrap();
-        let r = rank_of_score(&conn, detail_id2.players[0].final_score, detail_id2.players[0].card_number_sum).unwrap();
+        let r = rank_of_score(
+            &conn,
+            detail_id2.players[0].final_score,
+            detail_id2.players[0].card_number_sum,
+        )
+        .unwrap();
         assert_eq!(r, 1);
     }
 
@@ -1327,10 +1900,19 @@ mod tests {
     fn recent_games_returns_winner() {
         let mut conn = open_in_memory().unwrap();
         let t = SystemTime::UNIX_EPOCH + Duration::from_secs(6_000_000);
-        save_game(&mut conn, "R1", t, t, &make_game(vec![
-            player(0, "Alice", vec![60,61,62,63,64,65,66,67], vec![]),
-            player(1, "Bob",   vec![1,2,3,4,5,6,7,8], vec![]),
-        ]), false, false).unwrap();
+        save_game(
+            &mut conn,
+            "R1",
+            t,
+            t,
+            &make_game(vec![
+                player(0, "Alice", vec![60, 61, 62, 63, 64, 65, 66, 67], vec![]),
+                player(1, "Bob", vec![1, 2, 3, 4, 5, 6, 7, 8], vec![]),
+            ]),
+            false,
+            false,
+        )
+        .unwrap();
         let summaries = recent_games(&conn, 10).unwrap();
         assert_eq!(summaries.len(), 1);
         assert_eq!(summaries[0].winner_name, "Alice");
@@ -1341,18 +1923,36 @@ mod tests {
         let mut conn = open_in_memory().unwrap();
         let t = SystemTime::UNIX_EPOCH + Duration::from_secs(7_000_000);
         // First game — no prior history for anyone.
-        let g1 = save_game(&mut conn, "G1", t, t, &make_game(vec![
-            player(0, "Luke",  vec![10,11,12,13,14,15,16,17], vec![]),
-            player(1, "Alice", vec![1,2,3,4,5,6,7,8],         vec![]),
-        ]), false, false).unwrap();
+        let g1 = save_game(
+            &mut conn,
+            "G1",
+            t,
+            t,
+            &make_game(vec![
+                player(0, "Luke", vec![10, 11, 12, 13, 14, 15, 16, 17], vec![]),
+                player(1, "Alice", vec![1, 2, 3, 4, 5, 6, 7, 8], vec![]),
+            ]),
+            false,
+            false,
+        )
+        .unwrap();
         // Luke has no prior games → average excluding g1 is None.
         assert!(previous_player_avg(&conn, "luke", g1).unwrap().is_none());
 
         // Play a second game — Luke has one prior result now.
-        let g2 = save_game(&mut conn, "G2", t + std::time::Duration::from_secs(10), t + std::time::Duration::from_secs(10), &make_game(vec![
-            player(0, "LUKE",  vec![20,21,22,23,24,25,26,27], vec![]),
-            player(1, "Bob",   vec![2,3,4,5,6,7,8,9],         vec![]),
-        ]), false, false).unwrap();
+        let g2 = save_game(
+            &mut conn,
+            "G2",
+            t + std::time::Duration::from_secs(10),
+            t + std::time::Duration::from_secs(10),
+            &make_game(vec![
+                player(0, "LUKE", vec![20, 21, 22, 23, 24, 25, 26, 27], vec![]),
+                player(1, "Bob", vec![2, 3, 4, 5, 6, 7, 8, 9], vec![]),
+            ]),
+            false,
+            false,
+        )
+        .unwrap();
 
         // Before g2, Luke's only prior score is from g1 — avg equals that score.
         let g1_luke_score = game_detail(&conn, g1).unwrap().unwrap().players[0].final_score as f64;
@@ -1373,20 +1973,38 @@ mod tests {
 
         // Save two games; after the second, global avg before that game
         // should equal the (mean of both players from g1).
-        let g1 = save_game(&mut conn, "G1", t, t, &make_game(vec![
-            player(0, "A", vec![1,2,3,4,5,6,7,8],            vec![]),
-            player(1, "B", vec![10,11,12,13,14,15,16,17],    vec![]),
-        ]), false, false).unwrap();
-        let g2 = save_game(&mut conn, "G2", t + std::time::Duration::from_secs(10), t + std::time::Duration::from_secs(10), &make_game(vec![
-            player(0, "C", vec![60,61,62,63,64,65,66,67], vec![]),
-            player(1, "D", vec![2,3,4,5,6,7,8,9],         vec![]),
-        ]), false, false).unwrap();
+        let g1 = save_game(
+            &mut conn,
+            "G1",
+            t,
+            t,
+            &make_game(vec![
+                player(0, "A", vec![1, 2, 3, 4, 5, 6, 7, 8], vec![]),
+                player(1, "B", vec![10, 11, 12, 13, 14, 15, 16, 17], vec![]),
+            ]),
+            false,
+            false,
+        )
+        .unwrap();
+        let g2 = save_game(
+            &mut conn,
+            "G2",
+            t + std::time::Duration::from_secs(10),
+            t + std::time::Duration::from_secs(10),
+            &make_game(vec![
+                player(0, "C", vec![60, 61, 62, 63, 64, 65, 66, 67], vec![]),
+                player(1, "D", vec![2, 3, 4, 5, 6, 7, 8, 9], vec![]),
+            ]),
+            false,
+            false,
+        )
+        .unwrap();
 
         let g1_detail = game_detail(&conn, g1).unwrap().unwrap();
         let g1_mean = (g1_detail.players[0].final_score as f64
-            + g1_detail.players[1].final_score as f64) / 2.0;
+            + g1_detail.players[1].final_score as f64)
+            / 2.0;
         let avg_before_g2 = previous_global_avg(&conn, g2).unwrap().unwrap();
         assert!((avg_before_g2 - g1_mean).abs() < 1e-9);
     }
-
 }

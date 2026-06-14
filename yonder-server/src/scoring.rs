@@ -1,6 +1,6 @@
-use serde::Serialize;
 use crate::cards::{Biome, Fame, RegionCard, SanctuaryCard, Wonder, WonderCount};
 use crate::game::PlayerState;
+use serde::Serialize;
 
 /// Per-player score detail (for the scoring table visible to all).
 #[derive(Debug, Clone, Serialize)]
@@ -61,10 +61,16 @@ fn quest_not_met_explanation(
         missing.push(format!("need {} Stone, have {}", quest.stone, have.stone));
     }
     if have.chimera < quest.chimera {
-        missing.push(format!("need {} Chimera, have {}", quest.chimera, have.chimera));
+        missing.push(format!(
+            "need {} Chimera, have {}",
+            quest.chimera, have.chimera
+        ));
     }
     if have.thistle < quest.thistle {
-        missing.push(format!("need {} Thistle, have {}", quest.thistle, have.thistle));
+        missing.push(format!(
+            "need {} Thistle, have {}",
+            quest.thistle, have.thistle
+        ));
     }
     format!("Quest not met: {}", missing.join(", "))
 }
@@ -100,7 +106,11 @@ fn count_wonders_in_context(
         chimera += s.wonders.chimera;
         thistle += s.wonders.thistle;
     }
-    WonderCount { stone, chimera, thistle }
+    WonderCount {
+        stone,
+        chimera,
+        thistle,
+    }
 }
 
 fn count_biome<'a>(
@@ -152,17 +162,17 @@ fn compute_fame(
         Fame::PerColour { biome, score_per } => {
             count_biome(biome, visible_regions, sanctuaries) * score_per
         }
-        Fame::PerColourPair { biome1, biome2, score_per } => {
+        Fame::PerColourPair {
+            biome1,
+            biome2,
+            score_per,
+        } => {
             let n = count_biome(biome1, visible_regions, sanctuaries)
                 + count_biome(biome2, visible_regions, sanctuaries);
             n * score_per
         }
-        Fame::PerNight { score_per } => {
-            count_nights(visible_regions, sanctuaries) * score_per
-        }
-        Fame::PerClue { score_per } => {
-            count_clues(visible_regions, sanctuaries) * score_per
-        }
+        Fame::PerNight { score_per } => count_nights(visible_regions, sanctuaries) * score_per,
+        Fame::PerClue { score_per } => count_clues(visible_regions, sanctuaries) * score_per,
         Fame::PerWonderSet { score_per } => {
             let w = count_wonders_in_context(visible_regions, sanctuaries);
             let sets = w.stone.min(w.chimera).min(w.thistle) as u32;
@@ -210,10 +220,20 @@ fn fame_explanation(
             let count = count_biome(biome, visible_regions, sanctuaries);
             format!("{} {} × {}", count, biome_name(biome), score_per)
         }
-        Fame::PerColourPair { biome1, biome2, score_per } => {
+        Fame::PerColourPair {
+            biome1,
+            biome2,
+            score_per,
+        } => {
             let n = count_biome(biome1, visible_regions, sanctuaries)
                 + count_biome(biome2, visible_regions, sanctuaries);
-            format!("{} {}/{} × {}", n, biome_name(biome1), biome_name(biome2), score_per)
+            format!(
+                "{} {}/{} × {}",
+                n,
+                biome_name(biome1),
+                biome_name(biome2),
+                score_per
+            )
         }
         Fame::PerNight { score_per } => {
             let count = count_nights(visible_regions, sanctuaries);
@@ -293,8 +313,24 @@ mod tests {
     use super::*;
     use crate::cards::{Biome, Fame, RegionCard, Wonder, WonderCount};
 
-    fn region(number: u8, biome: Biome, night: bool, clue: bool, wonders: WonderCount, quest: WonderCount, fame: Fame) -> RegionCard {
-        RegionCard { number, biome, night, clue, wonders, quest, fame }
+    fn region(
+        number: u8,
+        biome: Biome,
+        night: bool,
+        clue: bool,
+        wonders: WonderCount,
+        quest: WonderCount,
+        fame: Fame,
+    ) -> RegionCard {
+        RegionCard {
+            number,
+            biome,
+            night,
+            clue,
+            wonders,
+            quest,
+            fame,
+        }
     }
 
     fn no_wonders() -> WonderCount {
@@ -302,36 +338,99 @@ mod tests {
     }
 
     fn w(stone: u8, chimera: u8, thistle: u8) -> WonderCount {
-        WonderCount { stone, chimera, thistle }
+        WonderCount {
+            stone,
+            chimera,
+            thistle,
+        }
     }
 
     #[test]
     fn flat_fame_no_quest() {
-        let card = region(9, Biome::Blue, false, false, no_wonders(), no_wonders(), Fame::Flat(5));
+        let card = region(
+            9,
+            Biome::Blue,
+            false,
+            false,
+            no_wonders(),
+            no_wonders(),
+            Fame::Flat(5),
+        );
         let score = score_region_card(&card, &[], &[]);
         assert_eq!(score, 5);
     }
 
     #[test]
     fn flat_fame_quest_met() {
-        let visible = region(2, Biome::Blue, false, false, w(2,0,0), no_wonders(), Fame::None);
-        let card = region(21, Biome::Blue, true, false, no_wonders(), w(2,0,0), Fame::Flat(8));
+        let visible = region(
+            2,
+            Biome::Blue,
+            false,
+            false,
+            w(2, 0, 0),
+            no_wonders(),
+            Fame::None,
+        );
+        let card = region(
+            21,
+            Biome::Blue,
+            true,
+            false,
+            no_wonders(),
+            w(2, 0, 0),
+            Fame::Flat(8),
+        );
         let score = score_region_card(&card, &[&visible], &[]);
         assert_eq!(score, 8);
     }
 
     #[test]
     fn flat_fame_quest_not_met() {
-        let card = region(21, Biome::Blue, true, false, no_wonders(), w(2,0,0), Fame::Flat(8));
+        let card = region(
+            21,
+            Biome::Blue,
+            true,
+            false,
+            no_wonders(),
+            w(2, 0, 0),
+            Fame::Flat(8),
+        );
         let score = score_region_card(&card, &[], &[]);
         assert_eq!(score, 0);
     }
 
     #[test]
     fn per_icon_stone() {
-        let v1 = region(1, Biome::Red, false, false, w(1,1,0), no_wonders(), Fame::None);
-        let v2 = region(2, Biome::Blue, false, false, w(2,0,0), no_wonders(), Fame::None);
-        let card = region(13, Biome::Blue, false, false, no_wonders(), no_wonders(), Fame::PerIcon { icon: Wonder::Stone, score_per: 2 });
+        let v1 = region(
+            1,
+            Biome::Red,
+            false,
+            false,
+            w(1, 1, 0),
+            no_wonders(),
+            Fame::None,
+        );
+        let v2 = region(
+            2,
+            Biome::Blue,
+            false,
+            false,
+            w(2, 0, 0),
+            no_wonders(),
+            Fame::None,
+        );
+        let card = region(
+            13,
+            Biome::Blue,
+            false,
+            false,
+            no_wonders(),
+            no_wonders(),
+            Fame::PerIcon {
+                icon: Wonder::Stone,
+                score_per: 2,
+            },
+        );
         // 1 + 2 = 3 stone icons visible → 3 * 2 = 6
         let score = score_region_card(&card, &[&v1, &v2], &[]);
         assert_eq!(score, 6);
@@ -339,37 +438,148 @@ mod tests {
 
     #[test]
     fn per_night() {
-        let night1 = region(20, Biome::Green, true, true, no_wonders(), no_wonders(), Fame::None);
-        let night2 = region(21, Biome::Blue, true, false, no_wonders(), no_wonders(), Fame::None);
-        let card = region(10, Biome::Red, false, false, no_wonders(), no_wonders(), Fame::PerNight { score_per: 3 });
+        let night1 = region(
+            20,
+            Biome::Green,
+            true,
+            true,
+            no_wonders(),
+            no_wonders(),
+            Fame::None,
+        );
+        let night2 = region(
+            21,
+            Biome::Blue,
+            true,
+            false,
+            no_wonders(),
+            no_wonders(),
+            Fame::None,
+        );
+        let card = region(
+            10,
+            Biome::Red,
+            false,
+            false,
+            no_wonders(),
+            no_wonders(),
+            Fame::PerNight { score_per: 3 },
+        );
         let score = score_region_card(&card, &[&night1, &night2], &[]);
         assert_eq!(score, 6);
     }
 
     #[test]
     fn per_clue() {
-        let c1 = region(6, Biome::Blue, false, true, no_wonders(), no_wonders(), Fame::None);
-        let c2 = region(8, Biome::Green, false, true, no_wonders(), no_wonders(), Fame::None);
-        let card = region(11, Biome::Green, false, false, no_wonders(), no_wonders(), Fame::PerClue { score_per: 3 });
+        let c1 = region(
+            6,
+            Biome::Blue,
+            false,
+            true,
+            no_wonders(),
+            no_wonders(),
+            Fame::None,
+        );
+        let c2 = region(
+            8,
+            Biome::Green,
+            false,
+            true,
+            no_wonders(),
+            no_wonders(),
+            Fame::None,
+        );
+        let card = region(
+            11,
+            Biome::Green,
+            false,
+            false,
+            no_wonders(),
+            no_wonders(),
+            Fame::PerClue { score_per: 3 },
+        );
         let score = score_region_card(&card, &[&c1, &c2], &[]);
         assert_eq!(score, 6);
     }
 
     #[test]
     fn per_colour() {
-        let r1 = region(1, Biome::Red, false, false, no_wonders(), no_wonders(), Fame::None);
-        let r2 = region(4, Biome::Red, false, false, no_wonders(), no_wonders(), Fame::None);
-        let card = region(53, Biome::Yellow, false, false, w(0,1,0), no_wonders(), Fame::PerColour { biome: Biome::Red, score_per: 4 });
+        let r1 = region(
+            1,
+            Biome::Red,
+            false,
+            false,
+            no_wonders(),
+            no_wonders(),
+            Fame::None,
+        );
+        let r2 = region(
+            4,
+            Biome::Red,
+            false,
+            false,
+            no_wonders(),
+            no_wonders(),
+            Fame::None,
+        );
+        let card = region(
+            53,
+            Biome::Yellow,
+            false,
+            false,
+            w(0, 1, 0),
+            no_wonders(),
+            Fame::PerColour {
+                biome: Biome::Red,
+                score_per: 4,
+            },
+        );
         let score = score_region_card(&card, &[&r1, &r2], &[]);
         assert_eq!(score, 8);
     }
 
     #[test]
     fn per_colour_pair() {
-        let y1 = region(25, Biome::Yellow, true, false, no_wonders(), no_wonders(), Fame::None);
-        let g1 = region(3, Biome::Green, false, false, no_wonders(), no_wonders(), Fame::None);
-        let g2 = region(5, Biome::Green, false, false, no_wonders(), no_wonders(), Fame::None);
-        let card = region(42, Biome::Yellow, false, false, no_wonders(), no_wonders(), Fame::PerColourPair { biome1: Biome::Yellow, biome2: Biome::Green, score_per: 2 });
+        let y1 = region(
+            25,
+            Biome::Yellow,
+            true,
+            false,
+            no_wonders(),
+            no_wonders(),
+            Fame::None,
+        );
+        let g1 = region(
+            3,
+            Biome::Green,
+            false,
+            false,
+            no_wonders(),
+            no_wonders(),
+            Fame::None,
+        );
+        let g2 = region(
+            5,
+            Biome::Green,
+            false,
+            false,
+            no_wonders(),
+            no_wonders(),
+            Fame::None,
+        );
+        let card = region(
+            42,
+            Biome::Yellow,
+            false,
+            false,
+            no_wonders(),
+            no_wonders(),
+            Fame::PerColourPair {
+                biome1: Biome::Yellow,
+                biome2: Biome::Green,
+                score_per: 2,
+            },
+        );
         // 1 yellow + 2 green = 3 → 3 * 2 = 6
         let score = score_region_card(&card, &[&y1, &g1, &g2], &[]);
         assert_eq!(score, 6);
@@ -377,22 +587,86 @@ mod tests {
 
     #[test]
     fn per_wonder_set() {
-        let v1 = region(1, Biome::Red, false, false, w(1,1,0), no_wonders(), Fame::None);
-        let v2 = region(7, Biome::Red, false, false, w(0,1,1), no_wonders(), Fame::None);
+        let v1 = region(
+            1,
+            Biome::Red,
+            false,
+            false,
+            w(1, 1, 0),
+            no_wonders(),
+            Fame::None,
+        );
+        let v2 = region(
+            7,
+            Biome::Red,
+            false,
+            false,
+            w(0, 1, 1),
+            no_wonders(),
+            Fame::None,
+        );
         // stone=1, chimera=2, thistle=1 → min=1 → 1*10=10
-        let card = region(18, Biome::Green, false, false, w(0,1,0), no_wonders(), Fame::PerWonderSet { score_per: 10 });
+        let card = region(
+            18,
+            Biome::Green,
+            false,
+            false,
+            w(0, 1, 0),
+            no_wonders(),
+            Fame::PerWonderSet { score_per: 10 },
+        );
         let score = score_region_card(&card, &[&v1, &v2], &[]);
         assert_eq!(score, 10);
     }
 
     #[test]
     fn per_colour_set() {
-        let r = region(1, Biome::Red, false, false, no_wonders(), no_wonders(), Fame::None);
-        let g = region(3, Biome::Green, false, false, no_wonders(), no_wonders(), Fame::None);
-        let b = region(2, Biome::Blue, false, false, no_wonders(), no_wonders(), Fame::None);
-        let y = region(12, Biome::Yellow, false, true, no_wonders(), no_wonders(), Fame::None);
+        let r = region(
+            1,
+            Biome::Red,
+            false,
+            false,
+            no_wonders(),
+            no_wonders(),
+            Fame::None,
+        );
+        let g = region(
+            3,
+            Biome::Green,
+            false,
+            false,
+            no_wonders(),
+            no_wonders(),
+            Fame::None,
+        );
+        let b = region(
+            2,
+            Biome::Blue,
+            false,
+            false,
+            no_wonders(),
+            no_wonders(),
+            Fame::None,
+        );
+        let y = region(
+            12,
+            Biome::Yellow,
+            false,
+            true,
+            no_wonders(),
+            no_wonders(),
+            Fame::None,
+        );
         // min(1,1,1,1) = 1 → 1*10=10
-        let card = region(23, Biome::Red, true, false, w(1,1,0), no_wonders(), Fame::PerColourSet { score_per: 10 });
+        let card = region(
+            23,
+            Biome::Red,
+            true,
+            false,
+            w(1, 1, 0),
+            no_wonders(),
+            Fame::PerColourSet { score_per: 10 },
+        );
         let score = score_region_card(&card, &[&r, &g, &b, &y], &[]);
         assert_eq!(score, 10);
     }
@@ -430,20 +704,121 @@ mod tests {
         use crate::game::PlayerState;
 
         let tableau = vec![
-            RegionCard { number: 3,  biome: Biome::Green,  night: false, clue: false, wonders: WonderCount::zero(), quest: WonderCount::zero(), fame: Fame::Flat(4) },
-            RegionCard { number: 9,  biome: Biome::Blue,   night: false, clue: false, wonders: WonderCount::zero(), quest: WonderCount::zero(), fame: Fame::Flat(5) },
-            RegionCard { number: 11, biome: Biome::Green,  night: false, clue: false, wonders: WonderCount::zero(), quest: WonderCount::zero(), fame: Fame::PerClue { score_per: 3 } },
-            RegionCard { number: 13, biome: Biome::Blue,   night: false, clue: false, wonders: WonderCount::zero(), quest: WonderCount::zero(), fame: Fame::PerIcon { icon: Wonder::Stone, score_per: 2 } },
-            RegionCard { number: 14, biome: Biome::Red,    night: false, clue: false, wonders: WonderCount::zero(), quest: WonderCount::zero(), fame: Fame::PerNight { score_per: 2 } },
-            RegionCard { number: 16, biome: Biome::Red,    night: false, clue: false, wonders: w(0,1,0),           quest: WonderCount::zero(), fame: Fame::PerIcon { icon: Wonder::Chimera, score_per: 2 } },
-            RegionCard { number: 25, biome: Biome::Yellow, night: true,  clue: false, wonders: WonderCount::zero(), quest: WonderCount::zero(), fame: Fame::PerColourPair { biome1: Biome::Yellow, biome2: Biome::Green, score_per: 1 } },
-            RegionCard { number: 30, biome: Biome::Red,    night: true,  clue: false, wonders: w(1,0,0),           quest: WonderCount::zero(), fame: Fame::PerIcon { icon: Wonder::Stone, score_per: 2 } },
+            RegionCard {
+                number: 3,
+                biome: Biome::Green,
+                night: false,
+                clue: false,
+                wonders: WonderCount::zero(),
+                quest: WonderCount::zero(),
+                fame: Fame::Flat(4),
+            },
+            RegionCard {
+                number: 9,
+                biome: Biome::Blue,
+                night: false,
+                clue: false,
+                wonders: WonderCount::zero(),
+                quest: WonderCount::zero(),
+                fame: Fame::Flat(5),
+            },
+            RegionCard {
+                number: 11,
+                biome: Biome::Green,
+                night: false,
+                clue: false,
+                wonders: WonderCount::zero(),
+                quest: WonderCount::zero(),
+                fame: Fame::PerClue { score_per: 3 },
+            },
+            RegionCard {
+                number: 13,
+                biome: Biome::Blue,
+                night: false,
+                clue: false,
+                wonders: WonderCount::zero(),
+                quest: WonderCount::zero(),
+                fame: Fame::PerIcon {
+                    icon: Wonder::Stone,
+                    score_per: 2,
+                },
+            },
+            RegionCard {
+                number: 14,
+                biome: Biome::Red,
+                night: false,
+                clue: false,
+                wonders: WonderCount::zero(),
+                quest: WonderCount::zero(),
+                fame: Fame::PerNight { score_per: 2 },
+            },
+            RegionCard {
+                number: 16,
+                biome: Biome::Red,
+                night: false,
+                clue: false,
+                wonders: w(0, 1, 0),
+                quest: WonderCount::zero(),
+                fame: Fame::PerIcon {
+                    icon: Wonder::Chimera,
+                    score_per: 2,
+                },
+            },
+            RegionCard {
+                number: 25,
+                biome: Biome::Yellow,
+                night: true,
+                clue: false,
+                wonders: WonderCount::zero(),
+                quest: WonderCount::zero(),
+                fame: Fame::PerColourPair {
+                    biome1: Biome::Yellow,
+                    biome2: Biome::Green,
+                    score_per: 1,
+                },
+            },
+            RegionCard {
+                number: 30,
+                biome: Biome::Red,
+                night: true,
+                clue: false,
+                wonders: w(1, 0, 0),
+                quest: WonderCount::zero(),
+                fame: Fame::PerIcon {
+                    icon: Wonder::Stone,
+                    score_per: 2,
+                },
+            },
         ];
         let sanctuaries = vec![
-            SanctuaryCard { tile: 24, biome: Biome::Colorless, night: false, clue: false, wonders: WonderCount::zero(), fame: Fame::Flat(5) },
-            SanctuaryCard { tile: 1,  biome: Biome::Green,     night: false, clue: false, wonders: WonderCount::zero(), fame: Fame::PerColour { biome: Biome::Green, score_per: 1 } },
+            SanctuaryCard {
+                tile: 24,
+                biome: Biome::Colorless,
+                night: false,
+                clue: false,
+                wonders: WonderCount::zero(),
+                fame: Fame::Flat(5),
+            },
+            SanctuaryCard {
+                tile: 1,
+                biome: Biome::Green,
+                night: false,
+                clue: false,
+                wonders: WonderCount::zero(),
+                fame: Fame::PerColour {
+                    biome: Biome::Green,
+                    score_per: 1,
+                },
+            },
         ];
-        let player = PlayerState { seat: 0, name: "Test".into(), tableau, sanctuaries, hand: vec![], played_this_round: None };
+        let player = PlayerState {
+            seat: 0,
+            name: "Test".into(),
+            tableau,
+            sanctuaries,
+            hand: vec![],
+            played_this_round: None,
+        };
         assert_eq!(super::score_player(&player), 29);
     }
 
@@ -453,20 +828,121 @@ mod tests {
         use crate::game::PlayerState;
 
         let tableau = vec![
-            RegionCard { number: 3,  biome: Biome::Green,  night: false, clue: false, wonders: WonderCount::zero(), quest: WonderCount::zero(), fame: Fame::Flat(4) },
-            RegionCard { number: 9,  biome: Biome::Blue,   night: false, clue: false, wonders: WonderCount::zero(), quest: WonderCount::zero(), fame: Fame::Flat(5) },
-            RegionCard { number: 11, biome: Biome::Green,  night: false, clue: false, wonders: WonderCount::zero(), quest: WonderCount::zero(), fame: Fame::PerClue { score_per: 3 } },
-            RegionCard { number: 13, biome: Biome::Blue,   night: false, clue: false, wonders: WonderCount::zero(), quest: WonderCount::zero(), fame: Fame::PerIcon { icon: Wonder::Stone, score_per: 2 } },
-            RegionCard { number: 14, biome: Biome::Red,    night: false, clue: false, wonders: WonderCount::zero(), quest: WonderCount::zero(), fame: Fame::PerNight { score_per: 2 } },
-            RegionCard { number: 16, biome: Biome::Red,    night: false, clue: false, wonders: w(0,1,0),           quest: WonderCount::zero(), fame: Fame::PerIcon { icon: Wonder::Chimera, score_per: 2 } },
-            RegionCard { number: 25, biome: Biome::Yellow, night: true,  clue: false, wonders: WonderCount::zero(), quest: WonderCount::zero(), fame: Fame::PerColourPair { biome1: Biome::Yellow, biome2: Biome::Green, score_per: 1 } },
-            RegionCard { number: 30, biome: Biome::Red,    night: true,  clue: false, wonders: w(1,0,0),           quest: WonderCount::zero(), fame: Fame::PerIcon { icon: Wonder::Stone, score_per: 2 } },
+            RegionCard {
+                number: 3,
+                biome: Biome::Green,
+                night: false,
+                clue: false,
+                wonders: WonderCount::zero(),
+                quest: WonderCount::zero(),
+                fame: Fame::Flat(4),
+            },
+            RegionCard {
+                number: 9,
+                biome: Biome::Blue,
+                night: false,
+                clue: false,
+                wonders: WonderCount::zero(),
+                quest: WonderCount::zero(),
+                fame: Fame::Flat(5),
+            },
+            RegionCard {
+                number: 11,
+                biome: Biome::Green,
+                night: false,
+                clue: false,
+                wonders: WonderCount::zero(),
+                quest: WonderCount::zero(),
+                fame: Fame::PerClue { score_per: 3 },
+            },
+            RegionCard {
+                number: 13,
+                biome: Biome::Blue,
+                night: false,
+                clue: false,
+                wonders: WonderCount::zero(),
+                quest: WonderCount::zero(),
+                fame: Fame::PerIcon {
+                    icon: Wonder::Stone,
+                    score_per: 2,
+                },
+            },
+            RegionCard {
+                number: 14,
+                biome: Biome::Red,
+                night: false,
+                clue: false,
+                wonders: WonderCount::zero(),
+                quest: WonderCount::zero(),
+                fame: Fame::PerNight { score_per: 2 },
+            },
+            RegionCard {
+                number: 16,
+                biome: Biome::Red,
+                night: false,
+                clue: false,
+                wonders: w(0, 1, 0),
+                quest: WonderCount::zero(),
+                fame: Fame::PerIcon {
+                    icon: Wonder::Chimera,
+                    score_per: 2,
+                },
+            },
+            RegionCard {
+                number: 25,
+                biome: Biome::Yellow,
+                night: true,
+                clue: false,
+                wonders: WonderCount::zero(),
+                quest: WonderCount::zero(),
+                fame: Fame::PerColourPair {
+                    biome1: Biome::Yellow,
+                    biome2: Biome::Green,
+                    score_per: 1,
+                },
+            },
+            RegionCard {
+                number: 30,
+                biome: Biome::Red,
+                night: true,
+                clue: false,
+                wonders: w(1, 0, 0),
+                quest: WonderCount::zero(),
+                fame: Fame::PerIcon {
+                    icon: Wonder::Stone,
+                    score_per: 2,
+                },
+            },
         ];
         let sanctuaries = vec![
-            SanctuaryCard { tile: 24, biome: Biome::Colorless, night: false, clue: false, wonders: WonderCount::zero(), fame: Fame::Flat(5) },
-            SanctuaryCard { tile: 1,  biome: Biome::Green,     night: false, clue: false, wonders: WonderCount::zero(), fame: Fame::PerColour { biome: Biome::Green, score_per: 1 } },
+            SanctuaryCard {
+                tile: 24,
+                biome: Biome::Colorless,
+                night: false,
+                clue: false,
+                wonders: WonderCount::zero(),
+                fame: Fame::Flat(5),
+            },
+            SanctuaryCard {
+                tile: 1,
+                biome: Biome::Green,
+                night: false,
+                clue: false,
+                wonders: WonderCount::zero(),
+                fame: Fame::PerColour {
+                    biome: Biome::Green,
+                    score_per: 1,
+                },
+            },
         ];
-        let player = PlayerState { seat: 0, name: "Test".into(), tableau, sanctuaries, hand: vec![], played_this_round: None };
+        let player = PlayerState {
+            seat: 0,
+            name: "Test".into(),
+            tableau,
+            sanctuaries,
+            hand: vec![],
+            played_this_round: None,
+        };
 
         let detail = super::score_player_detailed(&player);
         // Should have 8 region + 2 sanctuary = 10 entries
@@ -521,52 +997,120 @@ mod tests {
 
         let tableau = vec![
             // [0] #10 Red — PerNight×3
-            RegionCard { number: 10, biome: Biome::Red, night: false, clue: false,
-                wonders: WonderCount::zero(), quest: WonderCount::zero(),
-                fame: Fame::PerNight { score_per: 3 } },
+            RegionCard {
+                number: 10,
+                biome: Biome::Red,
+                night: false,
+                clue: false,
+                wonders: WonderCount::zero(),
+                quest: WonderCount::zero(),
+                fame: Fame::PerNight { score_per: 3 },
+            },
             // [1] #14 Red — PerNight×2
-            RegionCard { number: 14, biome: Biome::Red, night: false, clue: false,
-                wonders: WonderCount::zero(), quest: WonderCount::zero(),
-                fame: Fame::PerNight { score_per: 2 } },
+            RegionCard {
+                number: 14,
+                biome: Biome::Red,
+                night: false,
+                clue: false,
+                wonders: WonderCount::zero(),
+                quest: WonderCount::zero(),
+                fame: Fame::PerNight { score_per: 2 },
+            },
             // [2] #22 Green — night, clue, PerClue×1
-            RegionCard { number: 22, biome: Biome::Green, night: true, clue: true,
-                wonders: WonderCount::zero(), quest: WonderCount::zero(),
-                fame: Fame::PerClue { score_per: 1 } },
+            RegionCard {
+                number: 22,
+                biome: Biome::Green,
+                night: true,
+                clue: true,
+                wonders: WonderCount::zero(),
+                quest: WonderCount::zero(),
+                fame: Fame::PerClue { score_per: 1 },
+            },
             // [3] #26 Red — night, chimera:1, PerIcon(Thistle)×3
-            RegionCard { number: 26, biome: Biome::Red, night: true, clue: false,
-                wonders: w(0,1,0), quest: WonderCount::zero(),
-                fame: Fame::PerIcon { icon: Wonder::Thistle, score_per: 3 } },
+            RegionCard {
+                number: 26,
+                biome: Biome::Red,
+                night: true,
+                clue: false,
+                wonders: w(0, 1, 0),
+                quest: WonderCount::zero(),
+                fame: Fame::PerIcon {
+                    icon: Wonder::Thistle,
+                    score_per: 3,
+                },
+            },
             // [4] #29 Yellow — night, thistle:1, PerIcon(Thistle)×2
-            RegionCard { number: 29, biome: Biome::Yellow, night: true, clue: false,
-                wonders: w(0,0,1), quest: WonderCount::zero(),
-                fame: Fame::PerIcon { icon: Wonder::Thistle, score_per: 2 } },
+            RegionCard {
+                number: 29,
+                biome: Biome::Yellow,
+                night: true,
+                clue: false,
+                wonders: w(0, 0, 1),
+                quest: WonderCount::zero(),
+                fame: Fame::PerIcon {
+                    icon: Wonder::Thistle,
+                    score_per: 2,
+                },
+            },
             // [5] #12 Yellow — clue, thistle:1, no fame
-            RegionCard { number: 12, biome: Biome::Yellow, night: false, clue: true,
-                wonders: w(0,0,1), quest: WonderCount::zero(),
-                fame: Fame::None },
+            RegionCard {
+                number: 12,
+                biome: Biome::Yellow,
+                night: false,
+                clue: true,
+                wonders: w(0, 0, 1),
+                quest: WonderCount::zero(),
+                fame: Fame::None,
+            },
             // [6] #7 Red — chimera:1 thistle:1, no fame
-            RegionCard { number: 7, biome: Biome::Red, night: false, clue: false,
-                wonders: w(0,1,1), quest: WonderCount::zero(),
-                fame: Fame::None },
+            RegionCard {
+                number: 7,
+                biome: Biome::Red,
+                night: false,
+                clue: false,
+                wonders: w(0, 1, 1),
+                quest: WonderCount::zero(),
+                fame: Fame::None,
+            },
             // [7] #1 Red — stone:1 chimera:1, no fame
-            RegionCard { number: 1, biome: Biome::Red, night: false, clue: false,
-                wonders: w(1,1,0), quest: WonderCount::zero(),
-                fame: Fame::None },
+            RegionCard {
+                number: 1,
+                biome: Biome::Red,
+                night: false,
+                clue: false,
+                wonders: w(1, 1, 0),
+                quest: WonderCount::zero(),
+                fame: Fame::None,
+            },
         ];
         let sanctuaries = vec![
             // tile34 Green — PerNight×1
-            SanctuaryCard { tile: 34, biome: Biome::Green, night: false, clue: false,
+            SanctuaryCard {
+                tile: 34,
+                biome: Biome::Green,
+                night: false,
+                clue: false,
                 wonders: WonderCount::zero(),
-                fame: Fame::PerNight { score_per: 1 } },
+                fame: Fame::PerNight { score_per: 1 },
+            },
             // tile42 Red — night
-            SanctuaryCard { tile: 42, biome: Biome::Red, night: true, clue: false,
+            SanctuaryCard {
+                tile: 42,
+                biome: Biome::Red,
+                night: true,
+                clue: false,
                 wonders: WonderCount::zero(),
-                fame: Fame::None },
+                fame: Fame::None,
+            },
         ];
 
         let player = PlayerState {
-            seat: 0, name: "NightPatrol".into(),
-            tableau, sanctuaries, hand: vec![], played_this_round: None,
+            seat: 0,
+            name: "NightPatrol".into(),
+            tableau,
+            sanctuaries,
+            hand: vec![],
+            played_this_round: None,
         };
 
         // Per-card breakdown:  0 + 0 + 0 + 6 + 9 + 2 + 8 + 12 + (sanct: 4 + 0) = 41
@@ -616,52 +1160,117 @@ mod tests {
 
         let tableau = vec![
             // [0] #46 Blue — clue, quest=(2,1,0), Flat(10)
-            RegionCard { number: 46, biome: Biome::Blue, night: false, clue: true,
-                wonders: WonderCount::zero(), quest: w(2,1,0),
-                fame: Fame::Flat(10) },
+            RegionCard {
+                number: 46,
+                biome: Biome::Blue,
+                night: false,
+                clue: true,
+                wonders: WonderCount::zero(),
+                quest: w(2, 1, 0),
+                fame: Fame::Flat(10),
+            },
             // [1] #21 Blue — night, quest=(2,0,0), Flat(8)
-            RegionCard { number: 21, biome: Biome::Blue, night: true, clue: false,
-                wonders: WonderCount::zero(), quest: w(2,0,0),
-                fame: Fame::Flat(8) },
+            RegionCard {
+                number: 21,
+                biome: Biome::Blue,
+                night: true,
+                clue: false,
+                wonders: WonderCount::zero(),
+                quest: w(2, 0, 0),
+                fame: Fame::Flat(8),
+            },
             // [2] #20 Green — night, clue, quest=(1,0,0), PerNight×2
-            RegionCard { number: 20, biome: Biome::Green, night: true, clue: true,
-                wonders: WonderCount::zero(), quest: w(1,0,0),
-                fame: Fame::PerNight { score_per: 2 } },
+            RegionCard {
+                number: 20,
+                biome: Biome::Green,
+                night: true,
+                clue: true,
+                wonders: WonderCount::zero(),
+                quest: w(1, 0, 0),
+                fame: Fame::PerNight { score_per: 2 },
+            },
             // [3] #38 Green — night, quest=(0,1,1), PerClue×3
-            RegionCard { number: 38, biome: Biome::Green, night: true, clue: false,
-                wonders: WonderCount::zero(), quest: w(0,1,1),
-                fame: Fame::PerClue { score_per: 3 } },
+            RegionCard {
+                number: 38,
+                biome: Biome::Green,
+                night: true,
+                clue: false,
+                wonders: WonderCount::zero(),
+                quest: w(0, 1, 1),
+                fame: Fame::PerClue { score_per: 3 },
+            },
             // [4] #4 Red — stone:1 chimera:1
-            RegionCard { number: 4, biome: Biome::Red, night: false, clue: false,
-                wonders: w(1,1,0), quest: WonderCount::zero(),
-                fame: Fame::None },
+            RegionCard {
+                number: 4,
+                biome: Biome::Red,
+                night: false,
+                clue: false,
+                wonders: w(1, 1, 0),
+                quest: WonderCount::zero(),
+                fame: Fame::None,
+            },
             // [5] #8 Green — clue, chimera:1
-            RegionCard { number: 8, biome: Biome::Green, night: false, clue: true,
-                wonders: w(0,1,0), quest: WonderCount::zero(),
-                fame: Fame::None },
+            RegionCard {
+                number: 8,
+                biome: Biome::Green,
+                night: false,
+                clue: true,
+                wonders: w(0, 1, 0),
+                quest: WonderCount::zero(),
+                fame: Fame::None,
+            },
             // [6] #19 Red — thistle:1, PerIcon(Thistle)×2
-            RegionCard { number: 19, biome: Biome::Red, night: false, clue: false,
-                wonders: w(0,0,1), quest: WonderCount::zero(),
-                fame: Fame::PerIcon { icon: Wonder::Thistle, score_per: 2 } },
+            RegionCard {
+                number: 19,
+                biome: Biome::Red,
+                night: false,
+                clue: false,
+                wonders: w(0, 0, 1),
+                quest: WonderCount::zero(),
+                fame: Fame::PerIcon {
+                    icon: Wonder::Thistle,
+                    score_per: 2,
+                },
+            },
             // [7] #2 Blue — stone:2
-            RegionCard { number: 2, biome: Biome::Blue, night: false, clue: false,
-                wonders: w(2,0,0), quest: WonderCount::zero(),
-                fame: Fame::None },
+            RegionCard {
+                number: 2,
+                biome: Biome::Blue,
+                night: false,
+                clue: false,
+                wonders: w(2, 0, 0),
+                quest: WonderCount::zero(),
+                fame: Fame::None,
+            },
         ];
         let sanctuaries = vec![
             // tile28 Colorless — clue, thistle:1
-            SanctuaryCard { tile: 28, biome: Biome::Colorless, night: false, clue: true,
-                wonders: w(0,0,1),
-                fame: Fame::None },
+            SanctuaryCard {
+                tile: 28,
+                biome: Biome::Colorless,
+                night: false,
+                clue: true,
+                wonders: w(0, 0, 1),
+                fame: Fame::None,
+            },
             // tile32 Colorless — PerClue×2
-            SanctuaryCard { tile: 32, biome: Biome::Colorless, night: false, clue: false,
+            SanctuaryCard {
+                tile: 32,
+                biome: Biome::Colorless,
+                night: false,
+                clue: false,
                 wonders: WonderCount::zero(),
-                fame: Fame::PerClue { score_per: 2 } },
+                fame: Fame::PerClue { score_per: 2 },
+            },
         ];
 
         let player = PlayerState {
-            seat: 0, name: "QuestMaster".into(),
-            tableau, sanctuaries, hand: vec![], played_this_round: None,
+            seat: 0,
+            name: "QuestMaster".into(),
+            tableau,
+            sanctuaries,
+            hand: vec![],
+            played_this_round: None,
         };
 
         // Per-card breakdown:  0 + 4 + 0 + 0 + 6 + 4 + 8 + 10 + (sanct: 0 + 8) = 40
@@ -706,52 +1315,117 @@ mod tests {
 
         let tableau = vec![
             // [0] #68 Blue — quest=(5,0,0), Flat(24) — needs 5 stone
-            RegionCard { number: 68, biome: Biome::Blue, night: false, clue: false,
-                wonders: WonderCount::zero(), quest: w(5,0,0),
-                fame: Fame::Flat(24) },
+            RegionCard {
+                number: 68,
+                biome: Biome::Blue,
+                night: false,
+                clue: false,
+                wonders: WonderCount::zero(),
+                quest: w(5, 0, 0),
+                fame: Fame::Flat(24),
+            },
             // [1] #51 Blue — stone:1, quest=(4,0,0), Flat(14) — needs 4 stone
-            RegionCard { number: 51, biome: Biome::Blue, night: false, clue: false,
-                wonders: w(1,0,0), quest: w(4,0,0),
-                fame: Fame::Flat(14) },
+            RegionCard {
+                number: 51,
+                biome: Biome::Blue,
+                night: false,
+                clue: false,
+                wonders: w(1, 0, 0),
+                quest: w(4, 0, 0),
+                fame: Fame::Flat(14),
+            },
             // [2] #21 Blue — night, quest=(2,0,0), Flat(8)
-            RegionCard { number: 21, biome: Biome::Blue, night: true, clue: false,
-                wonders: WonderCount::zero(), quest: w(2,0,0),
-                fame: Fame::Flat(8) },
+            RegionCard {
+                number: 21,
+                biome: Biome::Blue,
+                night: true,
+                clue: false,
+                wonders: WonderCount::zero(),
+                quest: w(2, 0, 0),
+                fame: Fame::Flat(8),
+            },
             // [3] #9 Blue — Flat(5)
-            RegionCard { number: 9, biome: Biome::Blue, night: false, clue: false,
-                wonders: WonderCount::zero(), quest: WonderCount::zero(),
-                fame: Fame::Flat(5) },
+            RegionCard {
+                number: 9,
+                biome: Biome::Blue,
+                night: false,
+                clue: false,
+                wonders: WonderCount::zero(),
+                quest: WonderCount::zero(),
+                fame: Fame::Flat(5),
+            },
             // [4] #6 Blue — clue, stone:1
-            RegionCard { number: 6, biome: Biome::Blue, night: false, clue: true,
-                wonders: w(1,0,0), quest: WonderCount::zero(),
-                fame: Fame::None },
+            RegionCard {
+                number: 6,
+                biome: Biome::Blue,
+                night: false,
+                clue: true,
+                wonders: w(1, 0, 0),
+                quest: WonderCount::zero(),
+                fame: Fame::None,
+            },
             // [5] #12 Yellow — clue, thistle:1
-            RegionCard { number: 12, biome: Biome::Yellow, night: false, clue: true,
-                wonders: w(0,0,1), quest: WonderCount::zero(),
-                fame: Fame::None },
+            RegionCard {
+                number: 12,
+                biome: Biome::Yellow,
+                night: false,
+                clue: true,
+                wonders: w(0, 0, 1),
+                quest: WonderCount::zero(),
+                fame: Fame::None,
+            },
             // [6] #3 Green — Flat(4)
-            RegionCard { number: 3, biome: Biome::Green, night: false, clue: false,
-                wonders: WonderCount::zero(), quest: WonderCount::zero(),
-                fame: Fame::Flat(4) },
+            RegionCard {
+                number: 3,
+                biome: Biome::Green,
+                night: false,
+                clue: false,
+                wonders: WonderCount::zero(),
+                quest: WonderCount::zero(),
+                fame: Fame::Flat(4),
+            },
             // [7] #5 Green — chimera:1
-            RegionCard { number: 5, biome: Biome::Green, night: false, clue: false,
-                wonders: w(0,1,0), quest: WonderCount::zero(),
-                fame: Fame::None },
+            RegionCard {
+                number: 5,
+                biome: Biome::Green,
+                night: false,
+                clue: false,
+                wonders: w(0, 1, 0),
+                quest: WonderCount::zero(),
+                fame: Fame::None,
+            },
         ];
         let sanctuaries = vec![
             // tile12 Blue — stone:1
-            SanctuaryCard { tile: 12, biome: Biome::Blue, night: false, clue: false,
-                wonders: w(1,0,0),
-                fame: Fame::None },
+            SanctuaryCard {
+                tile: 12,
+                biome: Biome::Blue,
+                night: false,
+                clue: false,
+                wonders: w(1, 0, 0),
+                fame: Fame::None,
+            },
             // tile3 Blue — PerColour(Blue)×1
-            SanctuaryCard { tile: 3, biome: Biome::Blue, night: false, clue: false,
+            SanctuaryCard {
+                tile: 3,
+                biome: Biome::Blue,
+                night: false,
+                clue: false,
                 wonders: WonderCount::zero(),
-                fame: Fame::PerColour { biome: Biome::Blue, score_per: 1 } },
+                fame: Fame::PerColour {
+                    biome: Biome::Blue,
+                    score_per: 1,
+                },
+            },
         ];
 
         let player = PlayerState {
-            seat: 0, name: "FailedExpedition".into(),
-            tableau, sanctuaries, hand: vec![], played_this_round: None,
+            seat: 0,
+            name: "FailedExpedition".into(),
+            tableau,
+            sanctuaries,
+            hand: vec![],
+            played_this_round: None,
         };
 
         // Per-card breakdown:  0 + 4 + 0 + 0 + 5 + 8 + 0 + 0 + (sanct: 0 + 7) = 24
@@ -770,7 +1444,15 @@ mod tests {
             wonders: no_wonders(),
             fame: Fame::PerClue { score_per: 2 },
         };
-        let c1 = region(6, Biome::Blue, false, true, no_wonders(), no_wonders(), Fame::None);
+        let c1 = region(
+            6,
+            Biome::Blue,
+            false,
+            true,
+            no_wonders(),
+            no_wonders(),
+            Fame::None,
+        );
         let score = score_sanctuary(&sanc, &[&c1], &[]);
         assert_eq!(score, 2);
     }

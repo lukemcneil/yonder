@@ -114,6 +114,7 @@ _(Add tasks here as they are discovered during implementation)_
 - [x] card 55 isn't right
 - [x] sometimes have to refresh for rejoin game to work at the end
 - [x] persist completed games to a local SQLite DB and expose per-player stats, all-time leaderboard, recent games, and a "personal best / #N all-time" banner on the game-over screen
+- [x] add compare and everyone modes to stats pages
 - [ ] show rules link from main page
 - [ ] spectate existing games
 - [ ] rejoin game from start screen

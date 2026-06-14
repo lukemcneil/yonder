@@ -1192,6 +1192,8 @@ const statsBtn         = document.getElementById('stats-btn');
 const statsCloseBtn    = document.getElementById('stats-close-btn');
 const statsTabs        = document.querySelectorAll('.stats-tab');
 const statsPanelMe     = document.getElementById('stats-panel-me');
+const statsPanelCompare = document.getElementById('stats-panel-compare');
+const statsPanelEveryone = document.getElementById('stats-panel-everyone');
 const statsPanelHs     = document.getElementById('stats-panel-highscores');
 const statsPanelRecent = document.getElementById('stats-panel-recent');
 const gameDetailScreen = document.getElementById('game-detail-screen');
@@ -1218,6 +1220,8 @@ async function apiGet(path) {
 //   /                          → lobby (with optional #ROOM or #ROOM/Name hash)
 //   /stats                     → stats hub (defaults to My Stats)
 //   /stats/me                  → My Stats (uses saved name)
+//   /stats/compare?a=&b=       → compare two players using existing player stats
+//   /stats/everyone            → aggregate stats across all saved player-games
 //   /stats/leaderboard         → all-time leaderboard (alias for high-scores)
 //   /stats/high-scores?player= → optional filter (see /api/stats/leaderboard)
 //   /stats/recent              → recent games list
@@ -1228,6 +1232,8 @@ function parseRoute(pathname) {
   const path = pathname.replace(/\/+$/, '') || '/';
   if (path === '' || path === '/') return { view: 'lobby' };
   if (path === '/stats' || path === '/stats/me') return { view: 'stats', tab: 'me' };
+  if (path === '/stats/compare') return { view: 'stats', tab: 'compare' };
+  if (path === '/stats/everyone' || path === '/stats/community') return { view: 'stats', tab: 'everyone' };
   // /stats/leaderboard is kept as an alias for the old URL; new canonical is /stats/high-scores.
   if (path === '/stats/high-scores' || path === '/stats/leaderboard') return { view: 'stats', tab: 'highscores' };
   if (path === '/stats/recent') return { view: 'stats', tab: 'recent' };
@@ -1260,6 +1266,17 @@ function statsHighScoresUrl(playerName) {
   return '/stats/high-scores' + (q ? '?' + q : '');
 }
 
+/** Merge compare player names into the query string while preserving e.g. `server=`. */
+function statsCompareUrl(playerA, playerB) {
+  const params = new URLSearchParams(location.search);
+  const a = (playerA || '').trim();
+  const b = (playerB || '').trim();
+  if (a) params.set('a', a); else params.delete('a');
+  if (b) params.set('b', b); else params.delete('b');
+  const q = params.toString();
+  return '/stats/compare' + (q ? '?' + q : '');
+}
+
 function applyRoute() {
   const r = parseRoute(location.pathname);
   const inLiveGame = state && state.phase && state.phase !== 'waiting_for_players';
@@ -1288,9 +1305,13 @@ function applyRoute() {
 function activateStatsTab(id, presetName) {
   statsTabs.forEach(b => b.classList.toggle('active', b.dataset.tab === id));
   statsPanelMe.classList.toggle('hidden', id !== 'me');
+  statsPanelCompare.classList.toggle('hidden', id !== 'compare');
+  statsPanelEveryone.classList.toggle('hidden', id !== 'everyone');
   statsPanelHs.classList.toggle('hidden', id !== 'highscores');
   statsPanelRecent.classList.toggle('hidden', id !== 'recent');
   if (id === 'me') renderMyStatsPanel(presetName);
+  else if (id === 'compare') renderCompareStatsPanel();
+  else if (id === 'everyone') renderEveryoneStatsPanel();
   else if (id === 'highscores') renderHighScoresPanel();
   else if (id === 'recent') renderRecentGamesPanel();
 }
@@ -1982,6 +2003,319 @@ async function fetchAndRenderPlayerStats(name) {
   }
 }
 
+function formatStatMaybe(value, digits = 1, suffix = '') {
+  if (value == null || Number.isNaN(Number(value))) return '–';
+  return Number(value).toFixed(digits) + suffix;
+}
+
+function renderStatsBiomeBar(prefs) {
+  if (!prefs || prefs.length === 0) return '<div class="compare-empty-inline">No biome data yet.</div>';
+  const total = prefs.reduce((sum, b) => sum + b.count, 0) || 1;
+  const segs = prefs.map(b => {
+    const pct = (100 * b.count / total).toFixed(1);
+    return `<div class="biome-seg biome-${b.biome.toLowerCase()}" style="width:${pct}%" title="${b.biome}: ${b.count} (${pct}%)"></div>`;
+  }).join('');
+  const legend = prefs.map(b => {
+    const pct = (100 * b.count / total).toFixed(0);
+    return `<span class="biome-chip"><span class="biome-dot biome-${b.biome.toLowerCase()}"></span>${b.biome} ${pct}%</span>`;
+  }).join('');
+  return `<div class="biome-bar">${segs}</div><div class="biome-legend">${legend}</div>`;
+}
+
+function renderTopCardStrip(cards, kind = 'region') {
+  if (!cards || cards.length === 0) return '<div class="compare-empty-inline">No card data yet.</div>';
+  return `
+    <div class="topcards compare-topcards">
+      ${cards.map(tc => `
+        <div class="topcard">
+          <img class="${kind === 'sanctuary' ? 'sanctuary' : ''}" src="${kind === 'sanctuary' ? sanctuaryImagePath(tc.number) : regionImagePath(tc.number)}" alt="#${tc.number}" />
+          <div class="topcard-meta">#${tc.number} · ${tc.times_played}×</div>
+        </div>
+      `).join('')}
+    </div>
+  `;
+}
+
+function renderComparisonMetric(label, aValue, bValue, { digits = 1, suffix = '', invert = false } = {}) {
+  const aNum = Number(aValue);
+  const bNum = Number(bValue);
+  const hasBoth = aValue != null && bValue != null && !Number.isNaN(aNum) && !Number.isNaN(bNum);
+  const diff = hasBoth ? aNum - bNum : 0;
+  const absDiff = Math.abs(diff);
+  const diffLabel = hasBoth && absDiff >= 0.05
+    ? `${diff > 0 ? '+' : '-'}${absDiff.toFixed(digits)}${suffix}`
+    : 'even';
+  const diffClass = !hasBoth || absDiff < 0.05
+    ? 'even'
+    : (diff > 0) !== invert ? 'up' : 'down';
+  return `
+    <div class="compare-metric-row">
+      <div class="compare-metric-label">${label}</div>
+      <div class="compare-metric-value">${formatStatMaybe(aValue, digits, suffix)}</div>
+      <div class="compare-metric-diff ${diffClass}">${diffLabel}</div>
+      <div class="compare-metric-value right">${formatStatMaybe(bValue, digits, suffix)}</div>
+    </div>
+  `;
+}
+
+function findHeadToHead(stats, opponentName) {
+  const target = (opponentName || '').trim().toLowerCase();
+  if (!target || !stats.head_to_head) return null;
+  return stats.head_to_head.find(h => (h.name || '').trim().toLowerCase() === target) || null;
+}
+
+function renderPlayerStyleColumn(s, label) {
+  return `
+    <div class="compare-style-col">
+      <div class="compare-player-pill">${escapeHtml(label)}</div>
+      <div class="compare-style-block">
+        <div class="subsection-title">Region biomes</div>
+        ${renderStatsBiomeBar(s.biome_preference_regions)}
+      </div>
+      <div class="compare-style-block">
+        <div class="subsection-title">Sanctuary biomes</div>
+        ${renderStatsBiomeBar(s.biome_preference_sanctuaries)}
+      </div>
+      <div class="compare-style-block">
+        <div class="subsection-title">Favorite regions</div>
+        ${renderTopCardStrip(s.top_cards, 'region')}
+      </div>
+      <div class="compare-style-block">
+        <div class="subsection-title">Favorite sanctuaries</div>
+        ${renderTopCardStrip(s.top_sanctuaries, 'sanctuary')}
+      </div>
+    </div>
+  `;
+}
+
+function renderGroupedAverageComparison(title, left, right, key, labelFn) {
+  const labels = new Set();
+  (left || []).forEach(e => labels.add(e[key]));
+  (right || []).forEach(e => labels.add(e[key]));
+  const sorted = [...labels].sort((a, b) => Number(a) - Number(b));
+  if (sorted.length === 0) return '';
+  const leftBy = new Map((left || []).map(e => [e[key], e]));
+  const rightBy = new Map((right || []).map(e => [e[key], e]));
+  return `
+    <h3 class="stats-section-title">${title}</h3>
+    <div class="compare-metric-table compare-group-table">
+      ${sorted.map(v => {
+        const a = leftBy.get(v);
+        const b = rightBy.get(v);
+        return `
+          <div class="compare-metric-row">
+            <div class="compare-metric-label">${labelFn(v)}</div>
+            <div class="compare-metric-value">${a ? a.avg_score.toFixed(1) : '–'}<span class="compare-games">${a ? ` · ${a.games}g` : ''}</span></div>
+            <div class="compare-metric-diff even"></div>
+            <div class="compare-metric-value right">${b ? b.avg_score.toFixed(1) : '–'}<span class="compare-games">${b ? ` · ${b.games}g` : ''}</span></div>
+          </div>
+        `;
+      }).join('')}
+    </div>
+  `;
+}
+
+function renderCommunityGroupedAverage(title, rows, key, labelFn) {
+  if (!rows || rows.length === 0) return '';
+  const maxAvg = Math.max(...rows.map(e => e.avg_score)) || 1;
+  return `
+    <h3 class="stats-section-title">${title}</h3>
+    <div class="bar-chart">
+      ${rows.map(e => `
+        <div class="bar-row">
+          <div class="bar-label">${labelFn(e[key])}</div>
+          <div class="bar-track"><div class="bar-fill" style="width:${(100 * e.avg_score / maxAvg).toFixed(1)}%"></div></div>
+          <div class="bar-value">${e.avg_score.toFixed(1)} <span class="bar-sub">· ${e.games}g</span></div>
+        </div>
+      `).join('')}
+    </div>
+  `;
+}
+
+async function renderCompareStatsPanel() {
+  const params = new URLSearchParams(location.search);
+  const defaultA = (params.get('a') || playerNameEl.value || '').trim();
+  const defaultB = (params.get('b') || '').trim();
+  statsPanelCompare.innerHTML = `
+    <div class="stats-search compare-search">
+      <label>Compare players</label>
+      <div class="stats-search-row compare-search-row">
+        <input type="text" id="compare-player-a" value="${escapeHtml(defaultA)}" placeholder="Player A" autocomplete="off" />
+        <input type="text" id="compare-player-b" value="${escapeHtml(defaultB)}" placeholder="Player B" autocomplete="off" />
+        <button id="compare-go">Compare</button>
+      </div>
+    </div>
+    <div id="compare-body"></div>
+  `;
+  const inputA = document.getElementById('compare-player-a');
+  const inputB = document.getElementById('compare-player-b');
+  const body = document.getElementById('compare-body');
+  const doCompare = () => {
+    const a = inputA.value.trim();
+    const b = inputB.value.trim();
+    if (a && b) navigate(statsCompareUrl(a, b), { replace: true });
+    else body.innerHTML = '<div class="stats-empty">Enter two player names to compare.</div>';
+  };
+  document.getElementById('compare-go').addEventListener('click', doCompare);
+  [inputA, inputB].forEach(input => {
+    input.addEventListener('keydown', (e) => {
+      if (e.key === 'Enter') { e.preventDefault(); doCompare(); }
+    });
+  });
+
+  if (!defaultA || !defaultB) {
+    body.innerHTML = '<div class="stats-empty">Enter two player names to compare.</div>';
+    return;
+  }
+
+  body.innerHTML = '<div class="stats-empty">Loading…</div>';
+  try {
+    const [a, b] = await Promise.all([
+      apiGet(`/api/stats/player/${encodeURIComponent(defaultA)}`),
+      apiGet(`/api/stats/player/${encodeURIComponent(defaultB)}`),
+    ]);
+    if (!a.games_played || !b.games_played) {
+      const missing = [
+        !a.games_played ? `"${defaultA}"` : '',
+        !b.games_played ? `"${defaultB}"` : '',
+      ].filter(Boolean).join(' and ');
+      body.innerHTML = `<div class="stats-empty">No saved games found for ${escapeHtml(missing)}.</div>`;
+      return;
+    }
+
+    const h2h = findHeadToHead(a, b.name);
+    const h2hHtml = h2h ? `
+      <div class="compare-h2h">
+        <span>${escapeHtml(a.name)} vs ${escapeHtml(b.name)}</span>
+        <strong><span class="h2h-w">${h2h.wins}W</span> <span class="h2h-l">${h2h.losses}L</span>${h2h.ties ? ` <span class="h2h-t">${h2h.ties}T</span>` : ''}</strong>
+        <span>${h2h.games} shared game${h2h.games === 1 ? '' : 's'}</span>
+      </div>
+    ` : '';
+
+    body.innerHTML = `
+      <div class="compare-header">
+        <div>
+          <div class="compare-name">${escapeHtml(a.name)}</div>
+          <div class="compare-sub">${a.games_played} games · avg ${a.avg_score.toFixed(1)}</div>
+        </div>
+        <div class="compare-vs">vs</div>
+        <div class="right">
+          <div class="compare-name">${escapeHtml(b.name)}</div>
+          <div class="compare-sub">${b.games_played} games · avg ${b.avg_score.toFixed(1)}</div>
+        </div>
+      </div>
+      ${h2hHtml}
+      <h3 class="stats-section-title">Results</h3>
+      <div class="compare-metric-table">
+        ${renderComparisonMetric('Games played', a.games_played, b.games_played, { digits: 0 })}
+        ${renderComparisonMetric('Average score', a.avg_score, b.avg_score)}
+        ${renderComparisonMetric('High score', a.high_score, b.high_score, { digits: 0 })}
+        ${renderComparisonMetric('Win rate', a.win_rate, b.win_rate, { digits: 0, suffix: '%' })}
+        ${renderComparisonMetric('Last 5 average', a.recent_avg, b.recent_avg)}
+      </div>
+      <h3 class="stats-section-title">How They Play</h3>
+      <div class="compare-metric-table">
+        ${renderComparisonMetric('Region cards scored', a.scoring_rate, b.scoring_rate, { digits: 0, suffix: '%' })}
+        ${renderComparisonMetric('Avg sanctuaries kept', a.avg_sanctuaries_per_game, b.avg_sanctuaries_per_game)}
+        ${renderComparisonMetric('Sanctuaries scored', a.sanctuary_scoring_rate, b.sanctuary_scoring_rate, { digits: 0, suffix: '%' })}
+        ${renderComparisonMetric('Avg clues', a.avg_clues_per_game, b.avg_clues_per_game)}
+      </div>
+      <div class="compare-style-grid">
+        ${renderPlayerStyleColumn(a, a.name)}
+        ${renderPlayerStyleColumn(b, b.name)}
+      </div>
+      ${renderGroupedAverageComparison('Average by player count', a.avg_by_player_count, b.avg_by_player_count, 'player_count', v => Number(v) === 1 ? 'Solo' : `${v}-player`)}
+      ${renderGroupedAverageComparison('Average by sanctuaries kept', a.avg_by_sanctuary_count, b.avg_by_sanctuary_count, 'sanctuary_count', v => `${v} sanct.`)}
+      ${renderGroupedAverageComparison('Average by total clues', a.avg_by_clue_count, b.avg_by_clue_count, 'clue_count', v => `${v} clues`)}
+    `;
+  } catch (err) {
+    body.innerHTML = `<div class="stats-empty">Error loading comparison: ${escapeHtml(String(err))}</div>`;
+  }
+}
+
+async function renderEveryoneStatsPanel() {
+  statsPanelEveryone.innerHTML = '<div class="stats-empty">Loading…</div>';
+  try {
+    const s = await apiGet('/api/stats/everyone');
+    if (!s.games_played) {
+      statsPanelEveryone.innerHTML = '<div class="stats-empty">No games saved yet. Play one!</div>';
+      return;
+    }
+
+    const hsAttr = s.high_score_game_id ? ` data-game-id="${s.high_score_game_id}"` : '';
+    const hsClass = s.high_score_game_id ? ' stat-card-link' : '';
+    const placementChips = s.placements.map((count, i) => {
+      if (!count) return '';
+      return `<span class="placement-chip">${ordinalSuffix(i + 1)}: ${count}</span>`;
+    }).join('');
+
+    const bestCardHtml = s.best_card_score ? `
+      <h3 class="stats-section-title">Biggest single-card play</h3>
+      <div class="best-card-row" data-game-id="${s.best_card_score.game_id}">
+        <img class="best-card-img ${s.best_card_score.kind === 'sanctuary' ? 'sanctuary' : ''}" src="${s.best_card_score.kind === 'sanctuary' ? sanctuaryImagePath(s.best_card_score.number) : regionImagePath(s.best_card_score.number)}" alt="${s.best_card_score.kind} ${s.best_card_score.number}" />
+        <div class="best-card-body">
+          <div class="best-card-points">+${s.best_card_score.points}</div>
+          <div class="best-card-explain">${escapeHtml(s.best_card_score.explanation)}</div>
+          <div class="best-card-meta">${s.best_card_score.kind} #${s.best_card_score.number} · ${formatDateShort(s.best_card_score.finished_at)}</div>
+        </div>
+      </div>
+    ` : '';
+
+    statsPanelEveryone.innerHTML = `
+      <div class="me-header">
+        <div class="me-name">Everyone</div>
+        <div class="me-sub">All saved player-games. Each seat in a completed game counts once.</div>
+      </div>
+      <div class="stats-summary">
+        <div class="stat-card"><div class="stat-label">Player-games</div><div class="stat-value">${s.games_played}</div></div>
+        <div class="stat-card"><div class="stat-label">Avg score</div><div class="stat-value">${s.avg_score.toFixed(1)}</div></div>
+        <div class="stat-card${hsClass}"${hsAttr}><div class="stat-label">High score</div><div class="stat-value">${s.high_score}</div></div>
+        <div class="stat-card"><div class="stat-label">Winning seats</div><div class="stat-value">${s.wins}</div><div class="stat-sub">${s.win_rate.toFixed(0)}% of entries</div></div>
+        ${s.scoring_rate != null ? `<div class="stat-card"><div class="stat-label">Cards scored</div><div class="stat-value">${s.scoring_rate.toFixed(0)}%</div></div>` : ''}
+        <div class="stat-card"><div class="stat-label">Avg sanctuaries</div><div class="stat-value">${s.avg_sanctuaries_per_game.toFixed(1)}</div></div>
+        <div class="stat-card"><div class="stat-label">Avg clues</div><div class="stat-value">${s.avg_clues_per_game.toFixed(1)}</div></div>
+      </div>
+      ${placementChips ? `<div class="placements-row">${placementChips}</div>` : ''}
+      ${bestCardHtml}
+      ${renderCommunityGroupedAverage('Average by player count', s.avg_by_player_count, 'player_count', v => Number(v) === 1 ? 'Solo' : `${v}-player`)}
+      <h3 class="stats-section-title">Biome averages</h3>
+      <div class="biome-grid">
+        <div class="biome-block">
+          <div class="biome-subtitle">Regions played</div>
+          ${renderStatsBiomeBar(s.biome_preference_regions)}
+        </div>
+        <div class="biome-block">
+          <div class="biome-subtitle">Sanctuaries kept</div>
+          ${renderStatsBiomeBar(s.biome_preference_sanctuaries)}
+        </div>
+      </div>
+      <h3 class="stats-section-title">Most common cards</h3>
+      <div class="compare-style-grid">
+        <div class="compare-style-block">
+          <div class="subsection-title">Regions</div>
+          ${renderTopCardStrip(s.top_cards, 'region')}
+        </div>
+        <div class="compare-style-block">
+          <div class="subsection-title">Sanctuaries</div>
+          ${renderTopCardStrip(s.top_sanctuaries, 'sanctuary')}
+        </div>
+      </div>
+      ${renderCommunityGroupedAverage('Average by sanctuaries kept', s.avg_by_sanctuary_count, 'sanctuary_count', v => `${v} sanct.`)}
+      ${renderCommunityGroupedAverage('Average by total clues', s.avg_by_clue_count, 'clue_count', v => `${v} clues`)}
+    `;
+
+    statsPanelEveryone.querySelectorAll('[data-game-id]').forEach(el => {
+      el.style.cursor = 'pointer';
+      el.addEventListener('click', () => {
+        const id = parseInt(el.dataset.gameId, 10);
+        if (!isNaN(id)) navigate(`/stats/games/${id}`);
+      });
+    });
+  } catch (err) {
+    statsPanelEveryone.innerHTML = `<div class="stats-empty">Error loading everyone stats: ${escapeHtml(String(err))}</div>`;
+  }
+}
+
 async function renderHighScoresPanel() {
   const params = new URLSearchParams(location.search);
   const playerFilter = (params.get('player') || '').trim();
@@ -2219,6 +2553,8 @@ gameDetailClose.addEventListener('click', () => navigate('/stats'));
 statsTabs.forEach(b => b.addEventListener('click', () => {
   const tab = b.dataset.tab;
   const path = tab === 'me' ? '/stats/me'
+    : tab === 'compare' ? '/stats/compare'
+    : tab === 'everyone' ? '/stats/everyone'
     : tab === 'highscores' ? '/stats/high-scores'
     : '/stats/recent';
   navigate(path);

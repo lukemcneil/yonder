@@ -2,19 +2,25 @@ use std::collections::HashMap;
 
 use serde::{Deserialize, Serialize};
 
-use crate::cards::{RegionCard, SanctuaryCard};
 use crate::cards::{get_region_deck, get_sanctuary_deck};
+use crate::cards::{RegionCard, SanctuaryCard};
 use crate::scoring::CardScoreEntry;
 
 // ─── Phase ───────────────────────────────────────────────────────────────────
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub enum GamePhase {
-    WaitingForPlayers { needed: usize },
+    WaitingForPlayers {
+        needed: usize,
+    },
     /// Advanced variant: each player has 5 cards and must keep exactly 3.
-    AdvancedSetup { pending: HashMap<usize, Vec<RegionCard>> },
+    AdvancedSetup {
+        pending: HashMap<usize, Vec<RegionCard>>,
+    },
     Playing(RoundPhase),
-    GameOver { scores: Vec<PlayerScore> },
+    GameOver {
+        scores: Vec<PlayerScore>,
+    },
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -97,7 +103,9 @@ pub struct GameState {
 impl GameState {
     pub fn new_waiting(max_players: usize) -> Self {
         Self {
-            phase: GamePhase::WaitingForPlayers { needed: max_players },
+            phase: GamePhase::WaitingForPlayers {
+                needed: max_players,
+            },
             round: 0,
             players: Vec::new(),
             region_deck: get_region_deck(),
@@ -145,7 +153,12 @@ impl GameState {
     }
 
     /// Start the game. Deals 3 cards to each player (or 5 in advanced mode), reveals market.
-    pub fn start_game(&mut self, seat: usize, advanced: bool, expansion: bool) -> Result<(), ActionError> {
+    pub fn start_game(
+        &mut self,
+        seat: usize,
+        advanced: bool,
+        expansion: bool,
+    ) -> Result<(), ActionError> {
         if seat != 0 {
             return Err(ActionError::NotYourTurn);
         }
@@ -228,7 +241,9 @@ impl GameState {
 
         // Separate kept vs discarded.
         let kept: Vec<RegionCard> = indices.iter().map(|&i| dealt[i].clone()).collect();
-        let discarded: Vec<RegionCard> = dealt.into_iter().enumerate()
+        let discarded: Vec<RegionCard> = dealt
+            .into_iter()
+            .enumerate()
             .filter(|(i, _)| !indices.contains(i))
             .map(|(_, c)| c)
             .collect();
@@ -277,17 +292,28 @@ impl GameState {
     /// Choose a sanctuary to keep. Any player with pending sanctuaries can choose
     /// at any time during the Drafting phase. After choosing, unchosen cards return
     /// to the bottom of the deck, then try to deal to waiting players.
-    pub fn choose_sanctuary(&mut self, seat: usize, sanctuary_index: usize) -> Result<(), ActionError> {
+    pub fn choose_sanctuary(
+        &mut self,
+        seat: usize,
+        sanctuary_index: usize,
+    ) -> Result<(), ActionError> {
         // Validate we're in Drafting and this player has pending sanctuaries.
         let choices = match &mut self.phase {
-            GamePhase::Playing(RoundPhase::Drafting { pending_sanctuaries, .. }) => {
-                pending_sanctuaries.remove(&seat).ok_or(ActionError::NotYourTurn)?
-            }
+            GamePhase::Playing(RoundPhase::Drafting {
+                pending_sanctuaries,
+                ..
+            }) => pending_sanctuaries
+                .remove(&seat)
+                .ok_or(ActionError::NotYourTurn)?,
             _ => return Err(ActionError::WrongPhase),
         };
         if sanctuary_index >= choices.len() {
             // Put choices back so the player can retry.
-            if let GamePhase::Playing(RoundPhase::Drafting { pending_sanctuaries, .. }) = &mut self.phase {
+            if let GamePhase::Playing(RoundPhase::Drafting {
+                pending_sanctuaries,
+                ..
+            }) = &mut self.phase
+            {
                 pending_sanctuaries.insert(seat, choices);
             }
             return Err(ActionError::InvalidCardIndex);
@@ -310,9 +336,12 @@ impl GameState {
     /// Draft a card from the market (Drafting phase).
     pub fn draft_card(&mut self, seat: usize, market_index: usize) -> Result<(), ActionError> {
         let (order, current, current_has_drafted) = match &self.phase {
-            GamePhase::Playing(RoundPhase::Drafting { order, current, current_has_drafted, .. }) => {
-                (order.clone(), *current, *current_has_drafted)
-            }
+            GamePhase::Playing(RoundPhase::Drafting {
+                order,
+                current,
+                current_has_drafted,
+                ..
+            }) => (order.clone(), *current, *current_has_drafted),
             _ => return Err(ActionError::WrongPhase),
         };
         if order[current] != seat {
@@ -329,15 +358,20 @@ impl GameState {
 
         // Check if this player has a pending sanctuary choice.
         let has_pending = match &self.phase {
-            GamePhase::Playing(RoundPhase::Drafting { pending_sanctuaries, .. }) => {
-                pending_sanctuaries.contains_key(&seat)
-            }
+            GamePhase::Playing(RoundPhase::Drafting {
+                pending_sanctuaries,
+                ..
+            }) => pending_sanctuaries.contains_key(&seat),
             _ => false,
         };
 
         if has_pending {
             // Must choose sanctuary before next player can draft.
-            if let GamePhase::Playing(RoundPhase::Drafting { current_has_drafted, .. }) = &mut self.phase {
+            if let GamePhase::Playing(RoundPhase::Drafting {
+                current_has_drafted,
+                ..
+            }) = &mut self.phase
+            {
                 *current_has_drafted = true;
             }
         } else {
@@ -356,31 +390,40 @@ impl GameState {
             }
         }
         // Determine sanctuary eligibility: played number > previous number in tableau.
-        let eligible_seats: Vec<usize> = self.players.iter().filter_map(|p| {
-            let len = p.tableau.len();
-            if len < 2 {
-                None
-            } else {
-                let played = &p.tableau[len - 1];
-                let previous = &p.tableau[len - 2];
-                if played.number > previous.number {
-                    Some(p.seat)
-                } else {
+        let eligible_seats: Vec<usize> = self
+            .players
+            .iter()
+            .filter_map(|p| {
+                let len = p.tableau.len();
+                if len < 2 {
                     None
+                } else {
+                    let played = &p.tableau[len - 1];
+                    let previous = &p.tableau[len - 2];
+                    if played.number > previous.number {
+                        Some(p.seat)
+                    } else {
+                        None
+                    }
                 }
-            }
-        }).collect();
+            })
+            .collect();
 
         // Build draft order: ascending card number of played cards.
-        let mut order_pairs: Vec<(usize, u8)> = self.players.iter().map(|p| {
-            let played_num = p.tableau.last().map(|c| c.number).unwrap_or(0);
-            (p.seat, played_num)
-        }).collect();
+        let mut order_pairs: Vec<(usize, u8)> = self
+            .players
+            .iter()
+            .map(|p| {
+                let played_num = p.tableau.last().map(|c| c.number).unwrap_or(0);
+                (p.seat, played_num)
+            })
+            .collect();
         order_pairs.sort_by_key(|&(_, num)| num);
         let seat_order: Vec<usize> = order_pairs.into_iter().map(|(s, _)| s).collect();
 
         // Sort eligible seats in draft order so we deal in the right sequence.
-        let sanctuary_waiting: Vec<usize> = seat_order.iter()
+        let sanctuary_waiting: Vec<usize> = seat_order
+            .iter()
             .filter(|s| eligible_seats.contains(s))
             .copied()
             .collect();
@@ -419,7 +462,12 @@ impl GameState {
     fn deal_available_sanctuaries(&mut self) {
         loop {
             let (seat, draw_count, is_current_drafter) = match &self.phase {
-                GamePhase::Playing(RoundPhase::Drafting { order, current, sanctuary_waiting, .. }) => {
+                GamePhase::Playing(RoundPhase::Drafting {
+                    order,
+                    current,
+                    sanctuary_waiting,
+                    ..
+                }) => {
                     if let Some(&seat) = sanctuary_waiting.first() {
                         let count = self.sanctuary_draw_count(seat);
                         let is_current = order[*current] == seat;
@@ -433,7 +481,10 @@ impl GameState {
 
             if draw_count == 0 {
                 // Remove player who needs 0 cards.
-                if let GamePhase::Playing(RoundPhase::Drafting { sanctuary_waiting, .. }) = &mut self.phase {
+                if let GamePhase::Playing(RoundPhase::Drafting {
+                    sanctuary_waiting, ..
+                }) = &mut self.phase
+                {
                     sanctuary_waiting.retain(|&s| s != seat);
                 }
                 continue;
@@ -441,15 +492,19 @@ impl GameState {
 
             let deck_size = self.sanctuary_deck.len();
             let anyone_pending = match &self.phase {
-                GamePhase::Playing(RoundPhase::Drafting { pending_sanctuaries, .. }) => {
-                    !pending_sanctuaries.is_empty()
-                }
+                GamePhase::Playing(RoundPhase::Drafting {
+                    pending_sanctuaries,
+                    ..
+                }) => !pending_sanctuaries.is_empty(),
                 _ => false,
             };
 
             if deck_size == 0 && !anyone_pending {
                 // Deck empty and no one will discard. Remove all remaining waiters.
-                if let GamePhase::Playing(RoundPhase::Drafting { sanctuary_waiting, .. }) = &mut self.phase {
+                if let GamePhase::Playing(RoundPhase::Drafting {
+                    sanctuary_waiting, ..
+                }) = &mut self.phase
+                {
                     sanctuary_waiting.clear();
                 }
                 return;
@@ -462,15 +517,24 @@ impl GameState {
             }
 
             // Remove from waiting list and deal.
-            if let GamePhase::Playing(RoundPhase::Drafting { sanctuary_waiting, .. }) = &mut self.phase {
+            if let GamePhase::Playing(RoundPhase::Drafting {
+                sanctuary_waiting, ..
+            }) = &mut self.phase
+            {
                 sanctuary_waiting.retain(|&s| s != seat);
             }
 
             let choices = self.draw_sanctuary_choices(seat);
             if choices.len() == 1 {
-                self.players[seat].sanctuaries.push(choices.into_iter().next().unwrap());
+                self.players[seat]
+                    .sanctuaries
+                    .push(choices.into_iter().next().unwrap());
             } else if !choices.is_empty() {
-                if let GamePhase::Playing(RoundPhase::Drafting { pending_sanctuaries, .. }) = &mut self.phase {
+                if let GamePhase::Playing(RoundPhase::Drafting {
+                    pending_sanctuaries,
+                    ..
+                }) = &mut self.phase
+                {
                     pending_sanctuaries.insert(seat, choices);
                 }
             }
@@ -480,13 +544,21 @@ impl GameState {
     /// How many sanctuary cards a player would draw (1 + clue count).
     fn sanctuary_draw_count(&self, seat: usize) -> usize {
         let clue_count = self.players[seat].tableau.iter().filter(|c| c.clue).count()
-            + self.players[seat].sanctuaries.iter().filter(|c| c.clue).count();
+            + self.players[seat]
+                .sanctuaries
+                .iter()
+                .filter(|c| c.clue)
+                .count();
         1 + clue_count
     }
 
     fn draw_sanctuary_choices(&mut self, seat: usize) -> Vec<SanctuaryCard> {
         let clue_count = self.players[seat].tableau.iter().filter(|c| c.clue).count()
-            + self.players[seat].sanctuaries.iter().filter(|c| c.clue).count();
+            + self.players[seat]
+                .sanctuaries
+                .iter()
+                .filter(|c| c.clue)
+                .count();
         let draw_count = 1 + clue_count;
         let mut choices = Vec::new();
         for _ in 0..draw_count {
@@ -513,7 +585,8 @@ impl GameState {
                 current: ref mut c,
                 current_has_drafted: ref mut drafted,
                 ..
-            }) = &mut self.phase {
+            }) = &mut self.phase
+            {
                 *c = next;
                 *drafted = self.round == 8;
             }
@@ -530,7 +603,11 @@ impl GameState {
     fn try_advance_drafter(&mut self) {
         let should_advance = match &self.phase {
             GamePhase::Playing(RoundPhase::Drafting {
-                order, current, current_has_drafted, pending_sanctuaries, ..
+                order,
+                current,
+                current_has_drafted,
+                pending_sanctuaries,
+                ..
             }) => {
                 let seat = order[*current];
                 *current_has_drafted && !pending_sanctuaries.contains_key(&seat)
@@ -549,7 +626,11 @@ impl GameState {
         loop {
             let (order, current, has_pending, is_waiting) = match &self.phase {
                 GamePhase::Playing(RoundPhase::Drafting {
-                    order, current, pending_sanctuaries, sanctuary_waiting, ..
+                    order,
+                    current,
+                    pending_sanctuaries,
+                    sanctuary_waiting,
+                    ..
                 }) => {
                     let seat = order[*current];
                     let has_pending = pending_sanctuaries.contains_key(&seat);
@@ -566,7 +647,10 @@ impl GameState {
                 self.end_round().ok();
                 return;
             }
-            if let GamePhase::Playing(RoundPhase::Drafting { current: ref mut c, .. }) = &mut self.phase {
+            if let GamePhase::Playing(RoundPhase::Drafting {
+                current: ref mut c, ..
+            }) = &mut self.phase
+            {
                 *c = next;
             }
         }
@@ -592,16 +676,20 @@ impl GameState {
 
     fn finalize_scores(&mut self) {
         use crate::scoring::score_player;
-        let scores: Vec<PlayerScore> = self.players.iter().map(|p| {
-            let total = score_player(p);
-            let card_number_sum = p.tableau.iter().map(|c| c.number as u32).sum::<u32>();
-            PlayerScore {
-                seat: p.seat,
-                name: p.name.clone(),
-                total,
-                card_number_sum,
-            }
-        }).collect();
+        let scores: Vec<PlayerScore> = self
+            .players
+            .iter()
+            .map(|p| {
+                let total = score_player(p);
+                let card_number_sum = p.tableau.iter().map(|c| c.number as u32).sum::<u32>();
+                PlayerScore {
+                    seat: p.seat,
+                    name: p.name.clone(),
+                    total,
+                    card_number_sum,
+                }
+            })
+            .collect();
         self.phase = GamePhase::GameOver { scores };
     }
 
@@ -729,21 +817,53 @@ pub enum ClientPhase {
 
 impl GameState {
     pub fn to_client_state(&self, my_seat: usize) -> ClientGameState {
-        let (phase, draft_order, current_drafter, drafter_choosing_sanctuary, sanctuary_choices, advanced_setup_choices) = match &self.phase {
-            GamePhase::WaitingForPlayers { .. } => {
-                (ClientPhase::WaitingForPlayers, vec![], None, false, None, None)
-            }
+        let (
+            phase,
+            draft_order,
+            current_drafter,
+            drafter_choosing_sanctuary,
+            sanctuary_choices,
+            advanced_setup_choices,
+        ) = match &self.phase {
+            GamePhase::WaitingForPlayers { .. } => (
+                ClientPhase::WaitingForPlayers,
+                vec![],
+                None,
+                false,
+                None,
+                None,
+            ),
             GamePhase::AdvancedSetup { pending } => {
                 let my_choices = pending.get(&my_seat).cloned();
-                (ClientPhase::AdvancedSetup, vec![], None, false, None, my_choices)
+                (
+                    ClientPhase::AdvancedSetup,
+                    vec![],
+                    None,
+                    false,
+                    None,
+                    my_choices,
+                )
             }
             GamePhase::Playing(RoundPhase::ChoosingCards) => {
                 (ClientPhase::ChoosingCards, vec![], None, false, None, None)
             }
-            GamePhase::Playing(RoundPhase::Drafting { order, current, pending_sanctuaries, current_has_drafted, .. }) => {
+            GamePhase::Playing(RoundPhase::Drafting {
+                order,
+                current,
+                pending_sanctuaries,
+                current_has_drafted,
+                ..
+            }) => {
                 let drafter = order.get(*current).copied();
                 let my_choices = pending_sanctuaries.get(&my_seat).cloned();
-                (ClientPhase::Drafting, order.clone(), drafter, *current_has_drafted, my_choices, None)
+                (
+                    ClientPhase::Drafting,
+                    order.clone(),
+                    drafter,
+                    *current_has_drafted,
+                    my_choices,
+                    None,
+                )
             }
             GamePhase::GameOver { .. } => (ClientPhase::GameOver, vec![], None, false, None, None),
         };
@@ -754,12 +874,16 @@ impl GameState {
         };
 
         // The card this player played this round (visible only to them).
-        let my_played_card = self.players.get(my_seat)
+        let my_played_card = self
+            .players
+            .get(my_seat)
             .and_then(|p| p.played_this_round.clone());
 
         // Live score detail: include the played-but-not-yet-revealed card so
         // scores update immediately when the player places a card.
-        let my_score_detail = self.players.get(my_seat)
+        let my_score_detail = self
+            .players
+            .get(my_seat)
             .filter(|p| !p.tableau.is_empty() || p.played_this_round.is_some())
             .map(|p| {
                 if p.played_this_round.is_some() {
@@ -774,33 +898,40 @@ impl GameState {
             });
 
         let all_score_details = match &self.phase {
-            GamePhase::GameOver { .. } => {
-                Some(self.players.iter().map(|p| {
-                    let entries = crate::scoring::score_player_detailed(p);
-                    let total = entries.iter().map(|e| e.points).sum();
-                    crate::scoring::PlayerScoreDetail {
-                        seat: p.seat,
-                        name: p.name.clone(),
-                        entries,
-                        total,
-                    }
-                }).collect())
-            }
+            GamePhase::GameOver { .. } => Some(
+                self.players
+                    .iter()
+                    .map(|p| {
+                        let entries = crate::scoring::score_player_detailed(p);
+                        let total = entries.iter().map(|e| e.points).sum();
+                        crate::scoring::PlayerScoreDetail {
+                            seat: p.seat,
+                            name: p.name.clone(),
+                            entries,
+                            total,
+                        }
+                    })
+                    .collect(),
+            ),
             _ => None,
         };
 
-        let players: Vec<ClientPlayerState> = self.players.iter().map(|p| {
-            ClientPlayerState {
+        let players: Vec<ClientPlayerState> = self
+            .players
+            .iter()
+            .map(|p| ClientPlayerState {
                 seat: p.seat,
                 name: p.name.clone(),
                 hand_size: p.hand.len(),
                 tableau: p.tableau.clone(),
                 sanctuaries: p.sanctuaries.clone(),
                 played_this_round: p.played_this_round.is_some(),
-            }
-        }).collect();
+            })
+            .collect();
 
-        let my_hand = self.players.get(my_seat)
+        let my_hand = self
+            .players
+            .get(my_seat)
             .map(|p| p.hand.clone())
             .unwrap_or_default();
 
@@ -835,11 +966,23 @@ impl GameState {
 #[derive(Debug, Deserialize)]
 #[serde(tag = "action")]
 pub enum ClientAction {
-    StartGame { advanced: bool, #[serde(default)] expansion: bool },
-    KeepCards { indices: [usize; 3] },
-    PlayCard { card_index: usize },
-    ChooseSanctuary { sanctuary_index: usize },
-    DraftCard { market_index: usize },
+    StartGame {
+        advanced: bool,
+        #[serde(default)]
+        expansion: bool,
+    },
+    KeepCards {
+        indices: [usize; 3],
+    },
+    PlayCard {
+        card_index: usize,
+    },
+    ChooseSanctuary {
+        sanctuary_index: usize,
+    },
+    DraftCard {
+        market_index: usize,
+    },
     Rematch,
 }
 

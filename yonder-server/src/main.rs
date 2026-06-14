@@ -7,17 +7,17 @@ use std::sync::Mutex as StdMutex;
 use std::time::{Instant, SystemTime};
 
 use game::{ActionError, ClientAction, GameState, PostGameHighlight};
-use rocket::futures::{SinkExt, StreamExt};
-use rocket::tokio::sync::broadcast::{self, Sender};
 use rocket::fairing::{Fairing, Info, Kind};
 use rocket::fs::{FileServer, NamedFile};
+use rocket::futures::{SinkExt, StreamExt};
 use rocket::http::{Header, Status};
 use rocket::request::Request;
 use rocket::serde::json::Json;
-use std::path::PathBuf;
+use rocket::tokio::sync::broadcast::{self, Sender};
 use rocket::{futures::lock::Mutex, tokio::select, State};
 use rusqlite::Connection;
 use serde::Serialize;
+use std::path::PathBuf;
 use ws::{stream::DuplexStream, Message};
 
 mod cards;
@@ -77,7 +77,9 @@ fn generate_room_code() -> String {
     use rand::Rng;
     const CHARS: &[u8] = b"ABCDEFGHJKLMNPQRSTUVWXYZ";
     let mut rng = rand::thread_rng();
-    (0..4).map(|_| CHARS[rng.gen_range(0..CHARS.len())] as char).collect()
+    (0..4)
+        .map(|_| CHARS[rng.gen_range(0..CHARS.len())] as char)
+        .collect()
 }
 
 /// Shared broadcast channel that fires whenever the room list changes
@@ -219,7 +221,9 @@ async fn handle_message(
     lobby_sender: &Sender<()>,
 ) {
     if let Message::Text(text) = message {
-        if text == "ping" { return; }
+        if text == "ping" {
+            return;
+        }
         println!("[{}] {}: {}", room_name, player_name, text);
         match serde_json::from_str::<ClientAction>(&text) {
             Ok(action) => {
@@ -236,8 +240,12 @@ async fn handle_message(
                         });
                         // Check phase validity
                         match rooms.0.get(room_name) {
-                            Some(r) if !matches!(r.state.phase, game::GamePhase::GameOver { .. }) => {
-                                let _ = stream.send(Message::Text("{\"Err\":\"WrongPhase\"}".to_string())).await;
+                            Some(r)
+                                if !matches!(r.state.phase, game::GamePhase::GameOver { .. }) =>
+                            {
+                                let _ = stream
+                                    .send(Message::Text("{\"Err\":\"WrongPhase\"}".to_string()))
+                                    .await;
                                 return;
                             }
                             None => return,
@@ -248,7 +256,9 @@ async fn handle_message(
                         } else {
                             let code = generate_room_code();
                             let (tx, _) = broadcast::channel(1);
-                            rooms.0.insert(code.clone(), GameRoom::new(GameState::new_waiting(6), tx));
+                            rooms
+                                .0
+                                .insert(code.clone(), GameRoom::new(GameState::new_waiting(6), tx));
                             rooms.0.get_mut(room_name).unwrap().rematch_code = Some(code.clone());
                             code
                         }
@@ -279,21 +289,31 @@ async fn handle_message(
                                 Some(seat) => {
                                     room.last_activity = Instant::now();
                                     let r = match &action {
-                                        ClientAction::StartGame { advanced, expansion } =>
-                                            room.state.start_game(seat, *advanced, *expansion),
-                                        ClientAction::KeepCards { indices } =>
-                                            room.state.keep_cards(seat, indices),
-                                        ClientAction::PlayCard { card_index } =>
-                                            room.state.play_card(seat, *card_index),
-                                        ClientAction::ChooseSanctuary { sanctuary_index } =>
-                                            room.state.choose_sanctuary(seat, *sanctuary_index),
-                                        ClientAction::DraftCard { market_index } =>
-                                            room.state.draft_card(seat, *market_index),
+                                        ClientAction::StartGame {
+                                            advanced,
+                                            expansion,
+                                        } => room.state.start_game(seat, *advanced, *expansion),
+                                        ClientAction::KeepCards { indices } => {
+                                            room.state.keep_cards(seat, indices)
+                                        }
+                                        ClientAction::PlayCard { card_index } => {
+                                            room.state.play_card(seat, *card_index)
+                                        }
+                                        ClientAction::ChooseSanctuary { sanctuary_index } => {
+                                            room.state.choose_sanctuary(seat, *sanctuary_index)
+                                        }
+                                        ClientAction::DraftCard { market_index } => {
+                                            room.state.draft_card(seat, *market_index)
+                                        }
                                         ClientAction::Rematch => unreachable!(),
                                     };
                                     if r.is_ok() {
                                         // Stamp start-of-game bookkeeping.
-                                        if let ClientAction::StartGame { advanced, expansion } = &action {
+                                        if let ClientAction::StartGame {
+                                            advanced,
+                                            expansion,
+                                        } = &action
+                                        {
                                             if room.started_at.is_none() {
                                                 room.started_at = Some(SystemTime::now());
                                                 room.started_advanced = *advanced;
@@ -301,13 +321,17 @@ async fn handle_message(
                                             }
                                         }
                                         // If the game just ended and hasn't been saved, queue a save.
-                                        if matches!(room.state.phase, game::GamePhase::GameOver { .. })
-                                            && !room.persisted
+                                        if matches!(
+                                            room.state.phase,
+                                            game::GamePhase::GameOver { .. }
+                                        ) && !room.persisted
                                             && !room.skip_persistence
                                         {
                                             to_persist = Some(PersistInfo {
                                                 room_code: room_name.to_string(),
-                                                started_at: room.started_at.unwrap_or_else(SystemTime::now),
+                                                started_at: room
+                                                    .started_at
+                                                    .unwrap_or_else(SystemTime::now),
                                                 state_snapshot: room.state.clone(),
                                                 advanced: room.started_advanced,
                                                 expansion: room.started_expansion,
@@ -390,7 +414,9 @@ async fn handle_message(
         }
     } else {
         let _ = stream
-            .send(Message::Text("{\"Err\":\"SentNonTextMessage\"}".to_string()))
+            .send(Message::Text(
+                "{\"Err\":\"SentNonTextMessage\"}".to_string(),
+            ))
             .await;
     }
 }
@@ -434,39 +460,17 @@ async fn stats_player(name: &str, db: &State<Db>) -> Json<db::PlayerStats> {
     let conn = db.0.lock().expect("db mutex poisoned");
     let stats = db::player_stats(&conn, name).unwrap_or_else(|e| {
         eprintln!("stats_player error: {}", e);
-        db::PlayerStats {
-            name: name.to_string(),
-            games_played: 0,
-            wins: 0,
-            win_rate: 0.0,
-            high_score: 0,
-            high_score_game_id: None,
-            avg_score: 0.0,
-            placements: vec![0; 6],
-            recent: vec![],
-            first_game_at: None,
-            last_game_at: None,
-            recent_avg: None,
-            total_play_time_secs: 0,
-            longest_win_streak: 0,
-            scoring_rate: None,
-            best_card_score: None,
-            avg_by_player_count: vec![],
-            top_cards: vec![],
-            biome_preference: vec![],
-            biome_preference_regions: vec![],
-            biome_preference_sanctuaries: vec![],
-            head_to_head: vec![],
-            score_history: vec![],
-            avg_sanctuaries_per_game: 0.0,
-            sanctuary_scoring_rate: None,
-            best_sanctuary_score: None,
-            top_sanctuaries: vec![],
-            avg_by_sanctuary_count: vec![],
-            avg_clues_per_game: 0.0,
-            avg_by_clue_count: vec![],
-            score_vs_sanctuaries_seen: vec![],
-        }
+        db::empty_player_stats(name)
+    });
+    Json(stats)
+}
+
+#[get("/api/stats/everyone")]
+async fn stats_everyone(db: &State<Db>) -> Json<db::PlayerStats> {
+    let conn = db.0.lock().expect("db mutex poisoned");
+    let stats = db::global_stats(&conn).unwrap_or_else(|e| {
+        eprintln!("stats_everyone error: {}", e);
+        db::empty_player_stats("Everyone")
     });
     Json(stats)
 }
@@ -478,10 +482,7 @@ async fn stats_leaderboard(
     db: &State<Db>,
 ) -> Json<Vec<db::LeaderboardEntry>> {
     let limit = limit.unwrap_or(10).min(100);
-    let player = player
-        .as_deref()
-        .map(str::trim)
-        .filter(|s| !s.is_empty());
+    let player = player.as_deref().map(str::trim).filter(|s| !s.is_empty());
     let conn = db.0.lock().expect("db mutex poisoned");
     Json(db::leaderboard(&conn, limit, player).unwrap_or_default())
 }
@@ -524,17 +525,17 @@ async fn stats_spa(_path: PathBuf) -> Option<NamedFile> {
 
 /// GET /demo/<room_name> — create a room with a pre-completed game for testing scoring UI.
 #[get("/demo/<room_name>")]
-async fn demo_game(
-    room_name: &str,
-    rooms_state: &State<Arc<Mutex<Rooms>>>,
-) -> String {
+async fn demo_game(room_name: &str, rooms_state: &State<Arc<Mutex<Rooms>>>) -> String {
     let mut rooms = rooms_state.lock().await;
     let room_name = room_name.to_string();
     let (sender, _) = broadcast::channel(1);
     let mut room = GameRoom::new(GameState::new_demo(), sender);
     room.skip_persistence = true;
     rooms.0.insert(room_name.clone(), room);
-    format!("Demo game created in room '{}'. Connect as Alice or Bob.", room_name)
+    format!(
+        "Demo game created in room '{}'. Connect as Alice or Bob.",
+        room_name
+    )
 }
 
 // ─── Room listing ────────────────────────────────────────────────────────────
@@ -547,17 +548,21 @@ struct RoomInfo {
 }
 
 fn build_room_list(rooms: &Rooms) -> Vec<RoomInfo> {
-    rooms.0.iter().filter_map(|(code, room)| {
-        if matches!(room.state.phase, game::GamePhase::WaitingForPlayers { .. }) {
-            Some(RoomInfo {
-                code: code.clone(),
-                players: room.state.players.iter().map(|p| p.name.clone()).collect(),
-                player_count: room.state.players.len(),
-            })
-        } else {
-            None
-        }
-    }).collect()
+    rooms
+        .0
+        .iter()
+        .filter_map(|(code, room)| {
+            if matches!(room.state.phase, game::GamePhase::WaitingForPlayers { .. }) {
+                Some(RoomInfo {
+                    code: code.clone(),
+                    players: room.state.players.iter().map(|p| p.name.clone()).collect(),
+                    player_count: room.state.players.len(),
+                })
+            } else {
+                None
+            }
+        })
+        .collect()
 }
 
 #[get("/api/rooms")]
@@ -620,7 +625,10 @@ struct ResponseFairing;
 #[rocket::async_trait]
 impl Fairing for ResponseFairing {
     fn info(&self) -> Info {
-        Info { name: "Response Headers", kind: Kind::Response }
+        Info {
+            name: "Response Headers",
+            kind: Kind::Response,
+        }
     }
 
     async fn on_response<'r>(&self, req: &'r Request<'_>, res: &mut rocket::Response<'r>) {
@@ -632,7 +640,10 @@ impl Fairing for ResponseFairing {
             || path.ends_with(".js")
             || path.ends_with(".css")
         {
-            res.set_header(Header::new("Cache-Control", "no-cache, no-store, must-revalidate"));
+            res.set_header(Header::new(
+                "Cache-Control",
+                "no-cache, no-store, must-revalidate",
+            ));
         }
         // CORS for API endpoints (needed when client is served from a different origin)
         if path.starts_with("/api/") {
@@ -645,16 +656,19 @@ impl Fairing for ResponseFairing {
 
 // ─── Stale room cleanup ──────────────────────────────────────────────────────
 
-const STALE_TIMEOUT_DEFAULT_SECS: u64 = 2 * 60 * 60;  // 2 hours (waiting/game over)
+const STALE_TIMEOUT_DEFAULT_SECS: u64 = 2 * 60 * 60; // 2 hours (waiting/game over)
 const STALE_TIMEOUT_PLAYING_SECS: u64 = 48 * 60 * 60; // 48 hours (in-progress games)
-const CLEANUP_INTERVAL_SECS: u64 = 5 * 60;             // check every 5 minutes
+const CLEANUP_INTERVAL_SECS: u64 = 5 * 60; // check every 5 minutes
 
 struct CleanupFairing;
 
 #[rocket::async_trait]
 impl Fairing for CleanupFairing {
     fn info(&self) -> Info {
-        Info { name: "Stale Room Cleanup", kind: Kind::Liftoff }
+        Info {
+            name: "Stale Room Cleanup",
+            kind: Kind::Liftoff,
+        }
     }
 
     async fn on_liftoff(&self, rocket: &rocket::Rocket<rocket::Orbit>) {
@@ -663,16 +677,16 @@ impl Fairing for CleanupFairing {
 
         rocket::tokio::spawn(async move {
             loop {
-                rocket::tokio::time::sleep(
-                    std::time::Duration::from_secs(CLEANUP_INTERVAL_SECS)
-                ).await;
+                rocket::tokio::time::sleep(std::time::Duration::from_secs(CLEANUP_INTERVAL_SECS))
+                    .await;
 
                 let mut rooms = rooms.lock().await;
                 let before = rooms.0.len();
                 rooms.0.retain(|name, room| {
                     let timeout = match &room.state.phase {
-                        game::GamePhase::Playing(_) | game::GamePhase::AdvancedSetup { .. }
-                            => STALE_TIMEOUT_PLAYING_SECS,
+                        game::GamePhase::Playing(_) | game::GamePhase::AdvancedSetup { .. } => {
+                            STALE_TIMEOUT_PLAYING_SECS
+                        }
                         _ => STALE_TIMEOUT_DEFAULT_SECS,
                     };
                     let stale = room.last_activity.elapsed().as_secs() >= timeout;
@@ -697,8 +711,8 @@ impl Fairing for CleanupFairing {
 
 #[launch]
 fn rocket() -> _ {
-    let client_dir = std::env::var("YONDER_CLIENT_DIR")
-        .unwrap_or_else(|_| "../yonder-client".to_string());
+    let client_dir =
+        std::env::var("YONDER_CLIENT_DIR").unwrap_or_else(|_| "../yonder-client".to_string());
     println!("Serving static files from: {}", client_dir);
 
     let db_path = std::env::var("YONDER_DB_PATH").unwrap_or_else(|_| "yonder.db".to_string());
@@ -708,11 +722,23 @@ fn rocket() -> _ {
     rocket::build()
         .attach(ResponseFairing)
         .attach(CleanupFairing)
-        .mount("/", routes![
-            health, play_game, demo_game, list_rooms, lobby_ws,
-            stats_player, stats_leaderboard, stats_games, stats_game_detail,
-            stats_root, stats_spa,
-        ])
+        .mount(
+            "/",
+            routes![
+                health,
+                play_game,
+                demo_game,
+                list_rooms,
+                lobby_ws,
+                stats_player,
+                stats_everyone,
+                stats_leaderboard,
+                stats_games,
+                stats_game_detail,
+                stats_root,
+                stats_spa,
+            ],
+        )
         .mount("/", FileServer::from(&client_dir))
         .register("/", catchers![not_found])
         .configure(rocket::Config {

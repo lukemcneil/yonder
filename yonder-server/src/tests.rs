@@ -20,7 +20,10 @@ mod tests {
     }
 
     fn region_with_clue(number: u8) -> RegionCard {
-        RegionCard { clue: true, ..region(number) }
+        RegionCard {
+            clue: true,
+            ..region(number)
+        }
     }
 
     fn sanctuary(tile: u8) -> SanctuaryCard {
@@ -35,7 +38,10 @@ mod tests {
     }
 
     fn sanctuary_with_clue(tile: u8) -> SanctuaryCard {
-        SanctuaryCard { clue: true, ..sanctuary(tile) }
+        SanctuaryCard {
+            clue: true,
+            ..sanctuary(tile)
+        }
     }
 
     /// Build a 2-player game already in ChoosingCards phase with known cards.
@@ -81,7 +87,10 @@ mod tests {
         gs.join("Bob").unwrap();
         gs.start_game(0, false, false).unwrap();
         assert_eq!(gs.round, 1);
-        assert!(matches!(gs.phase, GamePhase::Playing(RoundPhase::ChoosingCards)));
+        assert!(matches!(
+            gs.phase,
+            GamePhase::Playing(RoundPhase::ChoosingCards)
+        ));
     }
 
     #[test]
@@ -141,7 +150,10 @@ mod tests {
         assert!(matches!(gs.phase, GamePhase::AdvancedSetup { .. }));
         gs.keep_cards(1, &[0, 2, 4]).unwrap();
         // Both done — should be in ChoosingCards now.
-        assert!(matches!(gs.phase, GamePhase::Playing(RoundPhase::ChoosingCards)));
+        assert!(matches!(
+            gs.phase,
+            GamePhase::Playing(RoundPhase::ChoosingCards)
+        ));
         assert_eq!(gs.players[0].hand.len(), 3);
         assert_eq!(gs.players[1].hand.len(), 3);
         assert_eq!(gs.round, 1);
@@ -204,7 +216,10 @@ mod tests {
         );
         gs.play_card(0, 0).unwrap(); // Alice plays card 5
         gs.play_card(1, 0).unwrap(); // Bob plays card 3
-        assert!(matches!(gs.phase, GamePhase::Playing(RoundPhase::Drafting { .. })));
+        assert!(matches!(
+            gs.phase,
+            GamePhase::Playing(RoundPhase::Drafting { .. })
+        ));
     }
 
     #[test]
@@ -235,8 +250,11 @@ mod tests {
         );
         gs.play_card(0, 0).unwrap(); // Alice plays 5
         gs.play_card(1, 0).unwrap(); // Bob plays 3
-        // Should be Drafting, not SanctuaryChoice.
-        assert!(matches!(gs.phase, GamePhase::Playing(RoundPhase::Drafting { .. })));
+                                     // Should be Drafting, not SanctuaryChoice.
+        assert!(matches!(
+            gs.phase,
+            GamePhase::Playing(RoundPhase::Drafting { .. })
+        ));
     }
 
     #[test]
@@ -253,8 +271,11 @@ mod tests {
 
         gs.play_card(0, 0).unwrap(); // Alice plays 10 (> 5 ✓)
         gs.play_card(1, 0).unwrap(); // Bob plays 3 (< 7 ✗)
-        // In Drafting. Alice eligible, 1 sanctuary (no clues) → auto-assigned eagerly.
-        assert!(matches!(gs.phase, GamePhase::Playing(RoundPhase::Drafting { .. })));
+                                     // In Drafting. Alice eligible, 1 sanctuary (no clues) → auto-assigned eagerly.
+        assert!(matches!(
+            gs.phase,
+            GamePhase::Playing(RoundPhase::Drafting { .. })
+        ));
         assert_eq!(gs.players[0].sanctuaries.len(), 1);
     }
 
@@ -270,8 +291,11 @@ mod tests {
 
         gs.play_card(0, 0).unwrap(); // Alice plays 5 (= 5, not >)
         gs.play_card(1, 0).unwrap(); // Bob plays 3 (= 3, not >)
-        // Neither eligible → straight to Drafting.
-        assert!(matches!(gs.phase, GamePhase::Playing(RoundPhase::Drafting { .. })));
+                                     // Neither eligible → straight to Drafting.
+        assert!(matches!(
+            gs.phase,
+            GamePhase::Playing(RoundPhase::Drafting { .. })
+        ));
     }
 
     #[test]
@@ -282,11 +306,14 @@ mod tests {
             vec![region(1), region(4), region(6)],
         );
         gs.players[0].tableau.push(region(10)); // previous = 10
-        gs.players[1].tableau.push(region(8));  // previous = 8
+        gs.players[1].tableau.push(region(8)); // previous = 8
 
         gs.play_card(0, 0).unwrap(); // Alice plays 3 (< 10 ✗)
         gs.play_card(1, 0).unwrap(); // Bob plays 2 (< 8 ✗)
-        assert!(matches!(gs.phase, GamePhase::Playing(RoundPhase::Drafting { .. })));
+        assert!(matches!(
+            gs.phase,
+            GamePhase::Playing(RoundPhase::Drafting { .. })
+        ));
     }
 
     // ─── Sanctuary draw count ─────────────────────────────────────────────────
@@ -310,7 +337,11 @@ mod tests {
         // Alice draws 1 sanctuary (no clues) → auto-assigned eagerly.
         assert_eq!(gs.players[0].sanctuaries.len(), 1);
         assert_eq!(gs.players[0].sanctuaries[0].tile, 5); // top of deck
-        if let GamePhase::Playing(RoundPhase::Drafting { pending_sanctuaries, .. }) = &gs.phase {
+        if let GamePhase::Playing(RoundPhase::Drafting {
+            pending_sanctuaries,
+            ..
+        }) = &gs.phase
+        {
             assert!(!pending_sanctuaries.contains_key(&0));
         }
     }
@@ -335,9 +366,15 @@ mod tests {
         // Draft order: Bob (8) first, Alice (10) second.
         // Sanctuary drawn on Alice's turn.
         gs.draft_card(1, 0).unwrap(); // Bob drafts
-        // Now Alice's turn — should have 1 + 2 clues = 3 sanctuary choices.
-        if let GamePhase::Playing(RoundPhase::Drafting { pending_sanctuaries, .. }) = &gs.phase {
-            let choices = pending_sanctuaries.get(&0).expect("Alice should have pending choices");
+                                      // Now Alice's turn — should have 1 + 2 clues = 3 sanctuary choices.
+        if let GamePhase::Playing(RoundPhase::Drafting {
+            pending_sanctuaries,
+            ..
+        }) = &gs.phase
+        {
+            let choices = pending_sanctuaries
+                .get(&0)
+                .expect("Alice should have pending choices");
             assert_eq!(choices.len(), 3);
         } else {
             panic!("Expected Drafting, got {:?}", gs.phase);
@@ -362,9 +399,15 @@ mod tests {
 
         // Draft order: Bob (8) first, Alice (10) second.
         gs.draft_card(1, 0).unwrap(); // Bob drafts
-        // Now Alice's turn — should draw 1 + 1 sanctuary clue = 2 choices.
-        if let GamePhase::Playing(RoundPhase::Drafting { pending_sanctuaries, .. }) = &gs.phase {
-            let choices = pending_sanctuaries.get(&0).expect("Alice should have pending choices");
+                                      // Now Alice's turn — should draw 1 + 1 sanctuary clue = 2 choices.
+        if let GamePhase::Playing(RoundPhase::Drafting {
+            pending_sanctuaries,
+            ..
+        }) = &gs.phase
+        {
+            let choices = pending_sanctuaries
+                .get(&0)
+                .expect("Alice should have pending choices");
             assert_eq!(choices.len(), 2);
         } else {
             panic!("Expected Drafting, got {:?}", gs.phase);
@@ -390,7 +433,7 @@ mod tests {
 
         // Draft order: Bob (8) first, Alice (10) second.
         gs.draft_card(1, 0).unwrap(); // Bob drafts
-        // Alice's turn — sanctuary drawn, she must draft then choose.
+                                      // Alice's turn — sanctuary drawn, she must draft then choose.
         gs.draft_card(0, 0).unwrap(); // Alice drafts
         gs.choose_sanctuary(0, 0).unwrap();
         assert_eq!(gs.players[0].sanctuaries.len(), 1);
@@ -432,8 +475,14 @@ mod tests {
         gs.play_card(1, 1).unwrap(); // Bob plays 8 (< 50 ✗)
 
         // Alice's sanctuary dealt eagerly — she can choose before her draft turn.
-        if let GamePhase::Playing(RoundPhase::Drafting { pending_sanctuaries, .. }) = &gs.phase {
-            let choices = pending_sanctuaries.get(&0).expect("Alice should have pending choices");
+        if let GamePhase::Playing(RoundPhase::Drafting {
+            pending_sanctuaries,
+            ..
+        }) = &gs.phase
+        {
+            let choices = pending_sanctuaries
+                .get(&0)
+                .expect("Alice should have pending choices");
             assert_eq!(choices.len(), 2);
         }
         gs.choose_sanctuary(0, 0).unwrap();
@@ -459,16 +508,32 @@ mod tests {
 
         // Draft order: Bob (8) first, Alice (10) second.
         // Bob dealt 2, Alice waiting (not current drafter, needs full draw).
-        if let GamePhase::Playing(RoundPhase::Drafting { pending_sanctuaries, sanctuary_waiting, .. }) = &gs.phase {
-            assert!(pending_sanctuaries.contains_key(&1), "Bob should have 2 choices");
+        if let GamePhase::Playing(RoundPhase::Drafting {
+            pending_sanctuaries,
+            sanctuary_waiting,
+            ..
+        }) = &gs.phase
+        {
+            assert!(
+                pending_sanctuaries.contains_key(&1),
+                "Bob should have 2 choices"
+            );
             assert!(sanctuary_waiting.contains(&0), "Alice should be waiting");
         }
         assert_eq!(gs.players[0].sanctuaries.len(), 0);
 
         // Bob chooses → returns 1 card. Now deck has 2, enough for Alice's full draw.
         gs.choose_sanctuary(1, 0).unwrap();
-        if let GamePhase::Playing(RoundPhase::Drafting { pending_sanctuaries, sanctuary_waiting, .. }) = &gs.phase {
-            assert!(pending_sanctuaries.contains_key(&0), "Alice should now have choices");
+        if let GamePhase::Playing(RoundPhase::Drafting {
+            pending_sanctuaries,
+            sanctuary_waiting,
+            ..
+        }) = &gs.phase
+        {
+            assert!(
+                pending_sanctuaries.contains_key(&0),
+                "Alice should now have choices"
+            );
             assert!(sanctuary_waiting.is_empty());
         }
     }
@@ -491,21 +556,39 @@ mod tests {
 
         // Draft order: Bob (8) first, Alice (10) second.
         // Bob dealt 2, deck now empty. Alice waiting.
-        if let GamePhase::Playing(RoundPhase::Drafting { pending_sanctuaries, sanctuary_waiting, .. }) = &gs.phase {
-            assert!(pending_sanctuaries.contains_key(&1), "Bob should have choices");
+        if let GamePhase::Playing(RoundPhase::Drafting {
+            pending_sanctuaries,
+            sanctuary_waiting,
+            ..
+        }) = &gs.phase
+        {
+            assert!(
+                pending_sanctuaries.contains_key(&1),
+                "Bob should have choices"
+            );
             assert!(sanctuary_waiting.contains(&0), "Alice should be waiting");
         }
 
         // Bob chooses → returns 1 card. But Alice needs 2 and isn't current drafter,
         // so she still waits (only 1 available, needs full draw of 2).
         gs.choose_sanctuary(1, 0).unwrap();
-        if let GamePhase::Playing(RoundPhase::Drafting { sanctuary_waiting, .. }) = &gs.phase {
-            assert!(sanctuary_waiting.contains(&0), "Alice still waiting for full draw");
+        if let GamePhase::Playing(RoundPhase::Drafting {
+            sanctuary_waiting, ..
+        }) = &gs.phase
+        {
+            assert!(
+                sanctuary_waiting.contains(&0),
+                "Alice still waiting for full draw"
+            );
         }
 
         // Bob drafts → now Alice is current drafter. She gets partial draw (1 card, auto-assigned).
         gs.draft_card(1, 0).unwrap();
-        assert_eq!(gs.players[0].sanctuaries.len(), 1, "Alice got partial draw as current drafter");
+        assert_eq!(
+            gs.players[0].sanctuaries.len(),
+            1,
+            "Alice got partial draw as current drafter"
+        );
     }
 
     #[test]
@@ -524,16 +607,25 @@ mod tests {
         gs.play_card(1, 0).unwrap(); // Bob plays 8
 
         // Draft order: Bob (8) first, Alice (10) second.
-        if let GamePhase::Playing(RoundPhase::Drafting { order, pending_sanctuaries, .. }) = &gs.phase {
+        if let GamePhase::Playing(RoundPhase::Drafting {
+            order,
+            pending_sanctuaries,
+            ..
+        }) = &gs.phase
+        {
             assert_eq!(order[0], 1); // Bob first
-            // Bob's sanctuary dealt immediately (he's first drafter and eligible).
+                                     // Bob's sanctuary dealt immediately (he's first drafter and eligible).
             assert!(pending_sanctuaries.contains_key(&1));
         }
 
         // Bob drafts from market.
         gs.draft_card(1, 0).unwrap();
         // Bob still has pending sanctuary → must choose before Alice can draft.
-        if let GamePhase::Playing(RoundPhase::Drafting { current_has_drafted, .. }) = &gs.phase {
+        if let GamePhase::Playing(RoundPhase::Drafting {
+            current_has_drafted,
+            ..
+        }) = &gs.phase
+        {
             assert!(*current_has_drafted);
         }
         // Alice can't draft yet (Bob's turn still, choosing sanctuary).
@@ -566,7 +658,7 @@ mod tests {
         );
         gs.play_card(0, 0).unwrap(); // Alice plays 10
         gs.play_card(1, 0).unwrap(); // Bob plays 3
-        // Round 1 → straight to Drafting.
+                                     // Round 1 → straight to Drafting.
         if let GamePhase::Playing(RoundPhase::Drafting { order, current, .. }) = &gs.phase {
             assert_eq!(order[*current], 1); // Bob (seat 1) drafts first
         } else {
@@ -611,9 +703,12 @@ mod tests {
         gs.play_card(1, 0).unwrap(); // Bob first, Alice second
         gs.draft_card(1, 0).unwrap(); // Bob drafts
         gs.draft_card(0, 0).unwrap(); // Alice drafts (last)
-        // Round should advance to 2, market refilled, back to ChoosingCards.
+                                      // Round should advance to 2, market refilled, back to ChoosingCards.
         assert_eq!(gs.round, 2);
-        assert!(matches!(gs.phase, GamePhase::Playing(RoundPhase::ChoosingCards)));
+        assert!(matches!(
+            gs.phase,
+            GamePhase::Playing(RoundPhase::ChoosingCards)
+        ));
     }
 
     #[test]
@@ -670,7 +765,10 @@ mod tests {
 
         // Both eligible but deck empty → both in waiting, but no cards to deal.
         // Game should still be in Drafting and not stuck.
-        assert!(matches!(gs.phase, GamePhase::Playing(RoundPhase::Drafting { .. })));
+        assert!(matches!(
+            gs.phase,
+            GamePhase::Playing(RoundPhase::Drafting { .. })
+        ));
         // Bob can still draft from market.
         gs.draft_card(1, 0).unwrap();
         // Alice can draft too (she's current drafter now, deck still empty, gets nothing).
@@ -725,8 +823,16 @@ mod tests {
 
         // Round 8: no market. Draft order: Bob (8) first, Alice (10) second.
         // Bob gets 2 cards. Alice waits.
-        assert!(matches!(gs.phase, GamePhase::Playing(RoundPhase::Drafting { .. })));
-        if let GamePhase::Playing(RoundPhase::Drafting { pending_sanctuaries, sanctuary_waiting, .. }) = &gs.phase {
+        assert!(matches!(
+            gs.phase,
+            GamePhase::Playing(RoundPhase::Drafting { .. })
+        ));
+        if let GamePhase::Playing(RoundPhase::Drafting {
+            pending_sanctuaries,
+            sanctuary_waiting,
+            ..
+        }) = &gs.phase
+        {
             assert!(pending_sanctuaries.contains_key(&1));
             assert!(sanctuary_waiting.contains(&0));
         }
@@ -760,7 +866,12 @@ mod tests {
         // Draft order: Alice (3) first, Bob (8) second.
         // Alice is current drafter, needs 2, deck has 1 → partial draw (auto-assigned).
         assert_eq!(gs.players[0].sanctuaries.len(), 1);
-        if let GamePhase::Playing(RoundPhase::Drafting { sanctuary_waiting, pending_sanctuaries, .. }) = &gs.phase {
+        if let GamePhase::Playing(RoundPhase::Drafting {
+            sanctuary_waiting,
+            pending_sanctuaries,
+            ..
+        }) = &gs.phase
+        {
             assert!(sanctuary_waiting.is_empty());
             assert!(!pending_sanctuaries.contains_key(&0));
         }
@@ -790,9 +901,13 @@ mod tests {
         for i in 0..6 {
             let played_num = (i as u8 + 1) * 10;
             let prev_num = played_num - 5;
-            gs.players[i].hand = vec![region(played_num), region(played_num + 1), region(played_num + 2)];
+            gs.players[i].hand = vec![
+                region(played_num),
+                region(played_num + 1),
+                region(played_num + 2),
+            ];
             gs.players[i].tableau.push(region_with_clue(prev_num - 1)); // clue card
-            gs.players[i].tableau.push(region_with_clue(prev_num));     // another clue → 2 clues, needs 3
+            gs.players[i].tableau.push(region_with_clue(prev_num)); // another clue → 2 clues, needs 3
         }
         // Market: 7 cards (6 + 1)
         gs.market = (70..=76).map(|i| region(i)).collect();
@@ -806,16 +921,28 @@ mod tests {
         }
 
         // Should be in Drafting, not stuck.
-        assert!(matches!(gs.phase, GamePhase::Playing(RoundPhase::Drafting { .. })));
+        assert!(matches!(
+            gs.phase,
+            GamePhase::Playing(RoundPhase::Drafting { .. })
+        ));
 
         // Draft order is ascending by played number: P0 (10), P1 (20), ..., P5 (60).
         // Process each drafter: choose sanctuary if pending, then draft.
         for _ in 0..6 {
             // Get current drafter info.
             let (current_seat, has_pending, has_choices) = match &gs.phase {
-                GamePhase::Playing(RoundPhase::Drafting { order, current, pending_sanctuaries, .. }) => {
+                GamePhase::Playing(RoundPhase::Drafting {
+                    order,
+                    current,
+                    pending_sanctuaries,
+                    ..
+                }) => {
                     let seat = order[*current];
-                    (seat, pending_sanctuaries.contains_key(&seat), pending_sanctuaries.get(&seat).map(|c| c.len()).unwrap_or(0) > 0)
+                    (
+                        seat,
+                        pending_sanctuaries.contains_key(&seat),
+                        pending_sanctuaries.get(&seat).map(|c| c.len()).unwrap_or(0) > 0,
+                    )
                 }
                 _ => panic!("Expected Drafting, got {:?}", gs.phase),
             };
@@ -827,8 +954,14 @@ mod tests {
 
             // Check if we're still current drafter (choosing might have triggered re-deal and another pending).
             let still_has_pending = match &gs.phase {
-                GamePhase::Playing(RoundPhase::Drafting { pending_sanctuaries, order, current, .. }) => {
-                    order[*current] == current_seat && pending_sanctuaries.contains_key(&current_seat)
+                GamePhase::Playing(RoundPhase::Drafting {
+                    pending_sanctuaries,
+                    order,
+                    current,
+                    ..
+                }) => {
+                    order[*current] == current_seat
+                        && pending_sanctuaries.contains_key(&current_seat)
                 }
                 _ => false,
             };
@@ -837,20 +970,30 @@ mod tests {
             }
 
             // Now draft from market.
-            let still_drafting = matches!(gs.phase, GamePhase::Playing(RoundPhase::Drafting { .. }));
+            let still_drafting =
+                matches!(gs.phase, GamePhase::Playing(RoundPhase::Drafting { .. }));
             if still_drafting {
                 let is_still_current = match &gs.phase {
-                    GamePhase::Playing(RoundPhase::Drafting { order, current, current_has_drafted, .. }) => {
-                        order[*current] == current_seat && !current_has_drafted
-                    }
+                    GamePhase::Playing(RoundPhase::Drafting {
+                        order,
+                        current,
+                        current_has_drafted,
+                        ..
+                    }) => order[*current] == current_seat && !current_has_drafted,
                     _ => false,
                 };
                 if is_still_current {
                     gs.draft_card(current_seat, 0).unwrap();
                     // If sanctuary pending after draft, choose it.
                     let post_draft_pending = match &gs.phase {
-                        GamePhase::Playing(RoundPhase::Drafting { pending_sanctuaries, order, current, .. }) => {
-                            order.get(*current) == Some(&current_seat) && pending_sanctuaries.contains_key(&current_seat)
+                        GamePhase::Playing(RoundPhase::Drafting {
+                            pending_sanctuaries,
+                            order,
+                            current,
+                            ..
+                        }) => {
+                            order.get(*current) == Some(&current_seat)
+                                && pending_sanctuaries.contains_key(&current_seat)
                         }
                         _ => false,
                     };
@@ -862,8 +1005,14 @@ mod tests {
         }
 
         // Round should have advanced.
-        assert_eq!(gs.round, 3, "Round should advance to 3 after all 6 players draft");
-        assert!(matches!(gs.phase, GamePhase::Playing(RoundPhase::ChoosingCards)));
+        assert_eq!(
+            gs.round, 3,
+            "Round should advance to 3 after all 6 players draft"
+        );
+        assert!(matches!(
+            gs.phase,
+            GamePhase::Playing(RoundPhase::ChoosingCards)
+        ));
     }
 
     #[test]
@@ -882,7 +1031,11 @@ mod tests {
         for i in 0..6 {
             let played_num = (i as u8 + 1) * 10;
             let prev_num = played_num - 5;
-            gs.players[i].hand = vec![region(played_num), region(played_num + 1), region(played_num + 2)];
+            gs.players[i].hand = vec![
+                region(played_num),
+                region(played_num + 1),
+                region(played_num + 2),
+            ];
             gs.players[i].tableau.push(region_with_clue(prev_num - 1));
             gs.players[i].tableau.push(region_with_clue(prev_num));
         }
@@ -896,10 +1049,16 @@ mod tests {
         }
 
         // Process sanctuary choices until game over.
-        for _ in 0..20 { // safety limit
+        for _ in 0..20 {
+            // safety limit
             match &gs.phase {
                 GamePhase::GameOver { .. } => break,
-                GamePhase::Playing(RoundPhase::Drafting { order, current, pending_sanctuaries, .. }) => {
+                GamePhase::Playing(RoundPhase::Drafting {
+                    order,
+                    current,
+                    pending_sanctuaries,
+                    ..
+                }) => {
                     let seat = order[*current];
                     if pending_sanctuaries.contains_key(&seat) {
                         gs.choose_sanctuary(seat, 0).unwrap();
@@ -911,7 +1070,11 @@ mod tests {
             }
         }
 
-        assert!(matches!(gs.phase, GamePhase::GameOver { .. }), "Game should reach GameOver, got {:?}", gs.phase);
+        assert!(
+            matches!(gs.phase, GamePhase::GameOver { .. }),
+            "Game should reach GameOver, got {:?}",
+            gs.phase
+        );
     }
 
     // ─── join ─────────────────────────────────────────────────────────────────
