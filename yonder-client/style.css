@@ -1875,31 +1875,38 @@ body {
 
 .compare-header {
   display: grid;
-  grid-template-columns: 1fr auto 1fr;
-  gap: 0.6rem;
+  grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr);
+  gap: 0.45rem;
   align-items: center;
   background: #2a2a3e;
   border: 1px solid #333;
   border-radius: 10px;
-  padding: 0.75rem;
+  padding: 0.65rem;
   margin-bottom: 0.6rem;
+}
+.compare-header > div {
+  min-width: 0;
 }
 .compare-header .right { text-align: right; }
 .compare-name {
-  font-size: 1rem;
+  font-size: 0.95rem;
   font-weight: 800;
   color: #e0e0e0;
   overflow: hidden;
   text-overflow: ellipsis;
+  white-space: nowrap;
 }
 .compare-sub {
   margin-top: 0.15rem;
-  font-size: 0.72rem;
+  font-size: 0.68rem;
   color: #888;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 .compare-vs {
-  width: 38px;
-  height: 38px;
+  width: 32px;
+  height: 32px;
   border-radius: 50%;
   display: grid;
   place-items: center;
@@ -1937,8 +1944,9 @@ body {
 }
 .compare-metric-row {
   display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 0.35rem 0.55rem;
+  grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr);
+  gap: 0.3rem 0.45rem;
+  align-items: center;
   background: #2a2a3e;
   border: 1px solid #333;
   border-radius: 8px;
@@ -1951,28 +1959,37 @@ body {
   font-weight: 700;
 }
 .compare-metric-value {
+  grid-column: 1;
   color: #e0e0e0;
-  font-size: 1.05rem;
+  font-size: 1rem;
   font-weight: 800;
+  min-width: 0;
+  overflow-wrap: anywhere;
 }
-.compare-metric-value.right { text-align: right; }
+.compare-metric-value.right {
+  grid-column: 3;
+  text-align: right;
+}
 .compare-metric-diff {
-  grid-column: 1 / -1;
+  grid-column: 2;
   justify-self: center;
   color: #aaa;
   background: #1f1f32;
   border: 1px solid #3a3a4e;
   border-radius: 999px;
-  padding: 0.15rem 0.55rem;
-  font-size: 0.75rem;
+  padding: 0.12rem 0.45rem;
+  font-size: 0.68rem;
   font-weight: 800;
+  white-space: nowrap;
 }
 .compare-metric-diff.up { color: #6fdc6f; border-color: rgba(111, 220, 111, 0.35); }
 .compare-metric-diff.down { color: #c96f6f; border-color: rgba(201, 111, 111, 0.35); }
 .compare-metric-diff.even { color: #c9a84c; }
+.compare-metric-diff.neutral { color: #888; }
 .compare-games {
+  display: block;
   color: #888;
-  font-size: 0.72rem;
+  font-size: 0.68rem;
   font-weight: 400;
 }
 
@@ -2182,8 +2199,20 @@ body {
   .compare-metric-label {
     grid-column: auto;
   }
+  .compare-metric-value {
+    grid-column: auto;
+    font-size: 1.05rem;
+  }
+  .compare-metric-value.right {
+    grid-column: auto;
+  }
   .compare-metric-diff {
     grid-column: auto;
+    font-size: 0.75rem;
+    padding: 0.15rem 0.55rem;
+  }
+  .compare-games {
+    display: inline;
   }
   .compare-spark-grid {
     grid-template-columns: 1fr 1fr;

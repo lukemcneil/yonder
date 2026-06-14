@@ -2206,10 +2206,10 @@ function renderGroupedAverageComparison(title, left, right, key, labelFn) {
         const a = leftBy.get(v);
         const b = rightBy.get(v);
         return `
-          <div class="compare-metric-row">
+          <div class="compare-metric-row compare-group-row">
             <div class="compare-metric-label">${labelFn(v)}</div>
             <div class="compare-metric-value">${a ? a.avg_score.toFixed(1) : '–'}<span class="compare-games">${a ? ` · ${a.games}g` : ''}</span></div>
-            <div class="compare-metric-diff even"></div>
+            <div class="compare-metric-diff neutral">vs</div>
             <div class="compare-metric-value right">${b ? b.avg_score.toFixed(1) : '–'}<span class="compare-games">${b ? ` · ${b.games}g` : ''}</span></div>
           </div>
         `;
