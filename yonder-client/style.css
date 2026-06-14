@@ -1688,6 +1688,52 @@ body {
 }
 .bar-sub { color: #888; font-weight: 400; }
 
+/* ── Score-vs-sanctuaries-seen line chart ─────────────────────────── */
+
+.seen-chart {
+  width: 100%;
+  height: auto;
+  aspect-ratio: 16 / 9;
+  max-height: 360px;
+  display: block;
+  margin: 0.3rem 0 0.6rem;
+}
+.seen-line {
+  fill: none;
+  stroke: #c9a84c;
+  stroke-width: 2.5;
+  stroke-linejoin: round;
+  stroke-linecap: round;
+}
+.seen-grid {
+  stroke: #333;
+  stroke-width: 1;
+}
+.seen-axis {
+  font-size: 12px;
+  fill: #888;
+  font-family: system-ui, sans-serif;
+}
+.seen-axis-title {
+  font-size: 12px;
+  fill: #aaa;
+  font-family: system-ui, sans-serif;
+  letter-spacing: 0.05em;
+}
+.seen-raw {
+  fill: #e0e0e0;
+  opacity: 0.35;
+  cursor: pointer;
+  transition: opacity 0.1s ease-out;
+}
+.seen-raw:hover { opacity: 0.9; }
+.seen-raw.winner { fill: #c9a84c; opacity: 0.55; }
+.seen-avg-dot {
+  fill: #fff;
+  stroke: #c9a84c;
+  stroke-width: 2.5;
+}
+
 /* ── Subsection title ─────────────────────────────────────────────── */
 
 .subsection-title {

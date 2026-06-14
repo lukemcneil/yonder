@@ -465,7 +465,7 @@ async fn stats_player(name: &str, db: &State<Db>) -> Json<db::PlayerStats> {
             avg_by_sanctuary_count: vec![],
             avg_clues_per_game: 0.0,
             avg_by_clue_count: vec![],
-            avg_by_clue_value: vec![],
+            score_vs_sanctuaries_seen: vec![],
         }
     });
     Json(stats)

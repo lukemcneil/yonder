@@ -1446,6 +1446,100 @@ function renderSparkline(points, avg) {
   `;
 }
 
+// Render a line chart of average score grouped by total sanctuaries seen
+// across a game. Points sharing the same x-value (sanctuaries seen) are
+// averaged into a single y-value. Each game still gets a small translucent
+// dot so the raw scatter is visible behind the average line.
+function renderSeenScoreChart(points) {
+  if (!points || points.length === 0) return '';
+
+  const w = 800, h = 220;
+  const padL = 44, padR = 16, padT = 14, padB = 36;
+  const chartW = w - padL - padR;
+  const chartH = h - padT - padB;
+
+  const xs = points.map(p => p.sanctuaries_seen);
+  const ys = points.map(p => p.final_score);
+  const xMin = Math.min(...xs), xMax = Math.max(...xs);
+  const yMin = Math.min(...ys), yMax = Math.max(...ys);
+  // Always show a reasonable y-range even if all scores are similar.
+  const yPadded = Math.max(1, yMax - yMin);
+  const xRange = Math.max(1, xMax - xMin);
+  const xOf = (x) => padL + chartW * (x - xMin) / xRange;
+  const yOf = (y) => padT + chartH * (1 - (y - yMin) / yPadded);
+
+  // Bucket raw points by x value → average y per bucket.
+  const buckets = new Map();
+  for (const p of points) {
+    const arr = buckets.get(p.sanctuaries_seen) || [];
+    arr.push(p);
+    buckets.set(p.sanctuaries_seen, arr);
+  }
+  const avgPoints = [...buckets.entries()]
+    .map(([x, ps]) => ({
+      x,
+      avg: ps.reduce((s, p) => s + p.final_score, 0) / ps.length,
+      count: ps.length,
+    }))
+    .sort((a, b) => a.x - b.x);
+
+  const linePath = avgPoints
+    .map((p, i) => `${i === 0 ? 'M' : 'L'}${xOf(p.x).toFixed(1)} ${yOf(p.avg).toFixed(1)}`)
+    .join(' ');
+
+  // Light grid: 4 horizontal gridlines + corresponding y-axis labels.
+  const gridLines = 4;
+  let grid = '';
+  let yLabels = '';
+  for (let i = 0; i <= gridLines; i++) {
+    const t = i / gridLines;
+    const y = padT + chartH * t;
+    const v = yMax - yPadded * t;
+    grid += `<line class="seen-grid" x1="${padL}" y1="${y.toFixed(1)}" x2="${(w - padR).toFixed(1)}" y2="${y.toFixed(1)}" />`;
+    yLabels += `<text class="seen-axis" x="${padL - 6}" y="${(y + 4).toFixed(1)}" text-anchor="end">${Math.round(v)}</text>`;
+  }
+  // X-axis tick labels at min, mid, max.
+  const xTicks = xMin === xMax
+    ? [xMin]
+    : [xMin, Math.round((xMin + xMax) / 2), xMax].filter((v, i, a) => a.indexOf(v) === i);
+  const xAxis = xTicks
+    .map(v => `<text class="seen-axis" x="${xOf(v).toFixed(1)}" y="${(h - 14).toFixed(1)}" text-anchor="middle">${v}</text>`)
+    .join('');
+
+  // Raw scatter — each saved game as a translucent dot.
+  const scatter = points
+    .map(p => {
+      const cx = xOf(p.sanctuaries_seen).toFixed(1);
+      const cy = yOf(p.final_score).toFixed(1);
+      const cls = p.placement === 1 ? 'seen-raw winner' : 'seen-raw';
+      return `<circle cx="${cx}" cy="${cy}" r="4" class="${cls}" data-game-id="${p.game_id}"><title>${p.final_score} fame · ${p.sanctuaries_seen} seen · ${ordinalSuffix(p.placement)}</title></circle>`;
+    })
+    .join('');
+
+  // Average-line markers (slightly larger).
+  const avgDots = avgPoints
+    .map(p => `<circle cx="${xOf(p.x).toFixed(1)}" cy="${yOf(p.avg).toFixed(1)}" r="5" class="seen-avg-dot"><title>${p.count} game${p.count === 1 ? '' : 's'} · avg ${p.avg.toFixed(1)} at ${p.x} seen</title></circle>`)
+    .join('');
+
+  // Axis titles.
+  const axisTitles = `
+    <text class="seen-axis-title" x="${(padL + chartW / 2).toFixed(1)}" y="${(h - 2).toFixed(1)}" text-anchor="middle">Total sanctuaries seen</text>
+    <text class="seen-axis-title" x="${(padL - 32).toFixed(1)}" y="${(padT + chartH / 2).toFixed(1)}" text-anchor="middle" transform="rotate(-90 ${(padL - 32).toFixed(1)} ${(padT + chartH / 2).toFixed(1)})">Fame</text>
+  `;
+
+  return `
+    <svg class="seen-chart" viewBox="0 0 ${w} ${h}" preserveAspectRatio="xMidYMid meet" role="img" aria-label="Score versus sanctuaries seen">
+      ${grid}
+      <path d="${linePath}" class="seen-line" />
+      ${scatter}
+      ${avgDots}
+      ${yLabels}
+      ${xAxis}
+      ${axisTitles}
+    </svg>
+  `;
+}
+
 // Attach hover / touch handlers to a sparkline SVG. Updates an info box
 // below the chart with the currently-inspected point, and wires the info
 // box's "view →" link to open that saved game.
@@ -1760,14 +1854,17 @@ async function fetchAndRenderPlayerStats(name) {
     }
 
     // ── Clue impact section ──────────────────────────────────────────
-    // Two views: simple count (clues at end → score) and timing-weighted
-    // (clue value, which weights early clues 8x more than late ones since
-    // an early clue gives extra sanctuary picks for many more rounds).
     let clueSectionHtml = '';
-    const hasClueData = s.avg_by_clue_count.length > 0 || s.avg_by_clue_value.length > 0;
+    const hasClueData =
+      s.avg_by_clue_count.length > 0 || s.score_vs_sanctuaries_seen.length > 0;
     if (hasClueData) {
       const cCards = [];
       cCards.push(`<div class="stat-card"><div class="stat-label">Avg clues</div><div class="stat-value">${s.avg_clues_per_game.toFixed(1)}</div><div class="stat-sub">per game</div></div>`);
+      if (s.score_vs_sanctuaries_seen.length > 0) {
+        const totalSeen = s.score_vs_sanctuaries_seen.reduce((sum, p) => sum + p.sanctuaries_seen, 0);
+        const avgSeen = totalSeen / s.score_vs_sanctuaries_seen.length;
+        cCards.push(`<div class="stat-card"><div class="stat-label">Avg sanct. seen</div><div class="stat-value">${avgSeen.toFixed(1)}</div><div class="stat-sub">per game</div></div>`);
+      }
 
       let byCountHtml = '';
       if (s.avg_by_clue_count.length > 0) {
@@ -1790,20 +1887,18 @@ async function fetchAndRenderPlayerStats(name) {
         `;
       }
 
-      let byValueHtml = '';
-      if (s.avg_by_clue_value.length > 0) {
-        const maxAvg = Math.max(...s.avg_by_clue_value.map(e => e.avg_score)) || 1;
-        const rows = s.avg_by_clue_value.map(e => `
-          <div class="bar-row">
-            <div class="bar-label">${escapeHtml(e.label)}</div>
-            <div class="bar-track"><div class="bar-fill" style="width:${(100 * e.avg_score / maxAvg).toFixed(1)}%"></div></div>
-            <div class="bar-value">${e.avg_score.toFixed(1)} <span class="bar-sub">· ${e.games}g</span></div>
-          </div>
-        `).join('');
-        byValueHtml = `
-          <div class="subsection-title">Average score by clue timing</div>
-          <div class="subsection-hint">Earlier clues count for more — a clue in your first region card gives you extra sanctuary picks for the rest of the game.</div>
-          <div class="bar-chart">${rows}</div>
+      let seenChartHtml = '';
+      if (s.score_vs_sanctuaries_seen.length >= 2) {
+        seenChartHtml = `
+          <div class="subsection-title">Score vs sanctuaries seen</div>
+          <div class="subsection-hint">Total cards you got to choose from across all your drawing rounds. Earlier clues add up here because they give you extra picks every later round.</div>
+          ${renderSeenScoreChart(s.score_vs_sanctuaries_seen)}
+        `;
+      } else if (s.score_vs_sanctuaries_seen.length === 1) {
+        const p = s.score_vs_sanctuaries_seen[0];
+        seenChartHtml = `
+          <div class="subsection-title">Score vs sanctuaries seen</div>
+          <div class="subsection-hint">Need 2+ games to draw a line. Latest: ${p.sanctuaries_seen} cards seen → ${p.final_score} fame.</div>
         `;
       }
 
@@ -1811,7 +1906,7 @@ async function fetchAndRenderPlayerStats(name) {
         <h3 class="stats-section-title">Clue impact</h3>
         <div class="stats-summary">${cCards.join('')}</div>
         ${byCountHtml}
-        ${byValueHtml}
+        ${seenChartHtml}
       `;
     }
 
